@@ -16,32 +16,34 @@ const CORS = {
   'Access-Control-Max-Age': '86400',
 };
 
-export default {
-  async fetch(request) {
-    // Handle preflight
-    if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: CORS });
-    }
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request));
+});
 
-    // Forward all query params to NAS
-    const url = new URL(request.url);
-    const target = NAS_API + url.search;
+async function handleRequest(request) {
+  // Handle preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: CORS });
+  }
 
-    let nasResponse;
-    try {
-      nasResponse = await fetch(target, { method: 'GET' });
-    } catch (err) {
-      return new Response(
-        JSON.stringify({ success: false, error: { code: 502, message: 'NAS unreachable: ' + err.message } }),
-        { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } }
-      );
-    }
+  // Forward all query params to NAS
+  const url = new URL(request.url);
+  const target = NAS_API + url.search;
 
-    const body = await nasResponse.arrayBuffer();
-    const headers = new Headers(CORS);
-    const ct = nasResponse.headers.get('Content-Type');
-    if (ct) headers.set('Content-Type', ct);
+  let nasResponse;
+  try {
+    nasResponse = await fetch(target, { method: 'GET' });
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ success: false, error: { code: 502, message: 'NAS unreachable: ' + err.message } }),
+      { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } }
+    );
+  }
 
-    return new Response(body, { status: nasResponse.status, headers });
-  },
-};
+  const body = await nasResponse.arrayBuffer();
+  const headers = new Headers(CORS);
+  const ct = nasResponse.headers.get('Content-Type');
+  if (ct) headers.set('Content-Type', ct);
+
+  return new Response(body, { status: nasResponse.status, headers });
+}
