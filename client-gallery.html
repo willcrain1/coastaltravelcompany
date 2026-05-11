@@ -466,6 +466,7 @@ function thumbUrl(photo, size) {
     cache_key: JSON.stringify(cacheKey),
     type: 'unit', size,
     passphrase: JSON.stringify(cfg.passphrase),
+    _sharing_id: JSON.stringify(cfg.passphrase),
   });
 }
 
