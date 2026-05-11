@@ -439,6 +439,7 @@
 let cfg = null;
 let photos = [];
 let lbIndex = 0;
+let nasSession = null; // session cookie threaded through the Worker
 
 // ── SHA-256 ───────────────────────────────────────────────
 async function sha256(str) {
@@ -466,7 +467,8 @@ function thumbUrl(photo, size) {
     id: photo.id,
     cache_key: JSON.stringify(cacheKey),
     type: 'unit', size,
-    passphrase: JSON.stringify(cfg.passphrase)
+    passphrase: JSON.stringify(cfg.passphrase),
+    _sharing_id: JSON.stringify(cfg.passphrase)
   });
 }
 
@@ -474,7 +476,8 @@ function dlUrl(photo) {
   return NAS_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Download', version: '1', method: 'download',
     unit_id: JSON.stringify([photo.id]),
-    passphrase: JSON.stringify(cfg.passphrase)
+    passphrase: JSON.stringify(cfg.passphrase),
+    _sharing_id: JSON.stringify(cfg.passphrase)
   });
 }
 
@@ -533,10 +536,45 @@ document.getElementById('lockForm').addEventListener('submit', async e => {
   }
 });
 
+// ── Establish sharing session ─────────────────────────────
+async function initSession() {
+  // Step 1: establish guest session — NAS sets a session cookie
+  const guestRes = await fetch(PROXY_API(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ api: 'SYNO.Foto.Setting.Guest', method: 'get', version: '1' }).toString()
+  });
+  if (!guestRes.ok) throw new Error('Guest session failed: HTTP ' + guestRes.status);
+  nasSession = guestRes.headers.get('X-NAS-Cookie') || null;
+
+  // Step 2: validate sharing passphrase using the guest session cookie
+  const passHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' };
+  if (nasSession) passHeaders['X-NAS-Cookie'] = nasSession;
+
+  const passRes = await fetch(PROXY_API(), {
+    method: 'POST',
+    headers: passHeaders,
+    body: new URLSearchParams({
+      api: 'SYNO.Foto.Sharing.Passphrase',
+      method: 'get_permission',
+      version: '1',
+      passphrase: JSON.stringify(cfg.passphrase),
+      exclude_public: 'false'
+    }).toString()
+  });
+  if (!passRes.ok) throw new Error('Passphrase init failed: HTTP ' + passRes.status);
+  const passData = await passRes.json();
+  if (!passData.success) throw new Error('Synology passphrase error ' + (passData.error?.code ?? ''));
+
+  const updatedCookie = passRes.headers.get('X-NAS-Cookie');
+  if (updatedCookie) nasSession = updatedCookie;
+}
+
 // ── Load all photos ───────────────────────────────────────
 async function loadGallery() {
   showSkeletons();
   try {
+    await initSession();
     photos = await fetchAll();
     if (!photos.length) {
       showError('No photos found in this gallery.', '');
@@ -572,9 +610,12 @@ async function fetchAll() {
       sort_direction: JSON.stringify('asc'),
       passphrase: JSON.stringify(cfg.passphrase)
     });
+    const fetchHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    if (nasSession) fetchHeaders['X-NAS-Cookie'] = nasSession;
+
     const res = await fetch(PROXY_API(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: fetchHeaders,
       body: body.toString()
     });
     if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
