@@ -279,7 +279,7 @@
     <div class="settings-row">
       <div class="fg">
         <label>Main Site Gallery URL — where gallery.html lives (shared with clients)</label>
-        <input type="url" id="mainSiteUrl" placeholder="https://willcrain1.github.io/coastaltravelcompany/gallery.html" />
+        <input type="url" id="mainSiteUrl" placeholder="https://coastaltravelcompany.com/gallery.html" />
         <p class="hint">The URL on your main website. Client links will point here — this is what you send to clients.</p>
       </div>
     </div>
@@ -381,7 +381,7 @@
   function getSettings() {
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
     return {
-      mainSiteUrl:  s.mainSiteUrl  || window.location.href.replace('gallery-admin.html', 'gallery.html'),
+      mainSiteUrl:  s.mainSiteUrl  || 'https://coastaltravelcompany.com/gallery.html',
       nasClientUrl: s.nasClientUrl || ''
     };
   }
