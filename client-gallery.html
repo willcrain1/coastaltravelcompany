@@ -454,7 +454,7 @@ function decodeCfg(hash) {
 
 // ── API URL builders ──────────────────────────────────────
 // Direct NAS URL — used for img src and download href (no CORS needed)
-const NAS_API = () => cfg.nasUrl + '/photo/webapi/entry.cgi';
+const NAS_API = () => cfg.nasUrl + '/webapi/entry.cgi';
 
 // Proxy URL — used for fetch() calls to bypass CORS
 // cfg.proxyUrl is the Cloudflare Worker URL set in gallery-admin
