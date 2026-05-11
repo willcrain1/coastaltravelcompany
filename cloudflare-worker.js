@@ -1,22 +1,24 @@
-// Cloudflare Worker — Synology Photos API CORS proxy
-// Deploy this at: Workers & Pages → Create Worker → paste → Deploy
-// Then add your Worker URL to the Gallery Admin settings.
+// Cloudflare Worker — Synology Photos admin-auth CORS proxy
+// Deploy at: Workers & Pages → Create Worker → paste → Deploy
+//
+// Secrets required (Worker Settings → Variables → Secrets):
+//   NAS_USER — DSM username of the read-only gallery account
+//   NAS_PASS — DSM password of that account
 //
 // What it does:
-// 1. Forwards Synology Photos API calls from coastaltravelcompany.com to the NAS
-// 2. Adds CORS headers that Synology doesn't send natively
-// 3. Establishes a NAS sharing session by loading the sharing page first
-//    (required because the NAS sets sharing_sid and other session cookies on the
-//    page load, not via an API call — the Worker threads these cookies for us)
+// 1. Authenticates with the NAS using admin credentials → gets a real SID
+// 2. Resolves the album_id from the share passphrase (cached per isolate)
+// 3. Forwards SYNO.Foto.Browse.Item calls with album_id + SID to the NAS
+// 4. Returns the SID to the browser (X-NAS-Sid) so thumbnail/download URLs work
 
-const NAS_API   = 'https://nas.coastaltravelcompany.com/mo/sharing/webapi/entry.cgi';
-const NAS_SHARE = 'https://nas.coastaltravelcompany.com/mo/sharing/';
+const NAS_BASE = 'https://nas.coastaltravelcompany.com';
+const NAS_API  = NAS_BASE + '/webapi/entry.cgi';
 
 const CORS = {
   'Access-Control-Allow-Origin':   'https://coastaltravelcompany.com',
   'Access-Control-Allow-Methods':  'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers':  'Content-Type, X-NAS-Cookie',
-  'Access-Control-Expose-Headers': 'X-NAS-Cookie',
+  'Access-Control-Allow-Headers':  'Content-Type',
+  'Access-Control-Expose-Headers': 'X-NAS-Sid',
   'Access-Control-Max-Age':        '86400',
 };
 
@@ -24,12 +26,57 @@ addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request));
 });
 
-// Extract cookie name=value pairs from one or more Set-Cookie headers
-function parseCookies(headers) {
-  const all = headers.getAll
-    ? headers.getAll('set-cookie')
-    : [headers.get('set-cookie')].filter(Boolean);
-  return all.map(c => c.split(';')[0].trim()).filter(Boolean).join('; ');
+// ── In-isolate cache (lives for the lifetime of this Worker isolate) ──────
+let sidCache = null;   // { sid: string, exp: number }
+let albumCache = {};   // passphrase → album_id
+
+async function getAdminSid() {
+  if (sidCache && sidCache.exp > Date.now()) return sidCache.sid;
+
+  const res = await fetch(NAS_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      api: 'SYNO.API.Auth', method: 'login', version: '7',
+      account: NAS_USER, passwd: NAS_PASS,
+      session: 'client_gallery', format: 'sid',
+    }).toString(),
+  });
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error('NAS auth failed: code ' + (data.error?.code ?? '?'));
+  }
+  // Cache for 50 minutes (DSM sessions typically last 6 hours)
+  sidCache = { sid: data.data.sid, exp: Date.now() + 50 * 60 * 1000 };
+  return sidCache.sid;
+}
+
+async function resolveAlbumId(passphrase, sid) {
+  if (albumCache[passphrase]) return albumCache[passphrase];
+
+  const res = await fetch(NAS_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Cookie': 'id=' + sid,
+    },
+    body: new URLSearchParams({
+      api: 'SYNO.Foto.Sharing.Passphrase', method: 'get_permission',
+      version: '1', passphrase,
+    }).toString(),
+  });
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error('Share lookup failed: code ' + (data.error?.code ?? '?'));
+  }
+
+  const perm = data.data?.permission ?? {};
+  const albumId = perm.album_id ?? perm.team_folder_id ?? null;
+  if (!albumId) {
+    throw new Error('Share returned no album_id — raw: ' + JSON.stringify(data.data));
+  }
+  albumCache[passphrase] = albumId;
+  return albumId;
 }
 
 async function handleRequest(request) {
@@ -37,60 +84,68 @@ async function handleRequest(request) {
     return new Response(null, { status: 204, headers: CORS });
   }
 
-  const url = new URL(request.url);
-  const target = NAS_API + url.search;
-
-  const bodyText = request.method === 'POST' ? await request.text() : '';
-
-  // Use session cookie provided by client, or establish one via the sharing page
-  let nasCookie = request.headers.get('X-NAS-Cookie') || '';
-
-  if (!nasCookie) {
-    // Extract passphrase from POST body (may be JSON-stringified: "vCsa5XjJH")
-    const params = new URLSearchParams(bodyText);
-    let passphrase = params.get('passphrase') || '';
-    if (passphrase.startsWith('"') && passphrase.endsWith('"')) {
-      try { passphrase = JSON.parse(passphrase); } catch {}
-    }
-
-    if (passphrase) {
-      try {
-        // Step 1: load the NAS sharing page — sets sharing_sid
-        const pageRes = await fetch(NAS_SHARE + passphrase, { redirect: 'follow' });
-        nasCookie = parseCookies(pageRes.headers);
-
-        // Step 2: call SYNO.Foto.Setting.Guest to activate the guest session
-        // (the real Synology Photos page does this immediately after page load)
-        if (nasCookie) {
-          const guestRes = await fetch(NAS_API, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Cookie': nasCookie,
-            },
-            body: new URLSearchParams({
-              api: 'SYNO.Foto.Setting.Guest', method: 'get', version: '1'
-            }).toString(),
-          });
-          const moreCookies = parseCookies(guestRes.headers);
-          if (moreCookies) nasCookie = [nasCookie, moreCookies].filter(Boolean).join('; ');
-        }
-      } catch {}
-    }
+  // Check secrets are configured
+  if (typeof NAS_USER === 'undefined' || typeof NAS_PASS === 'undefined') {
+    return new Response(
+      JSON.stringify({ success: false, error: { code: 503,
+        message: 'Worker secrets not configured — set NAS_USER and NAS_PASS in the Cloudflare dashboard.' } }),
+      { status: 503, headers: { 'Content-Type': 'application/json', ...CORS } }
+    );
   }
 
-  // Make the actual API call, forwarding the session cookie to the NAS
+  const bodyText = request.method === 'POST' ? await request.text() : '';
+  const params = new URLSearchParams(bodyText);
+
+  let sid;
+  try {
+    sid = await getAdminSid();
+  } catch (err) {
+    return new Response(
+      JSON.stringify({ success: false, error: { code: 502, message: err.message } }),
+      { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } }
+    );
+  }
+
+  // For Browse.Item/list: resolve album_id from passphrase and replace it in the body
+  let nasBody = bodyText;
+  if (params.get('api') === 'SYNO.Foto.Browse.Item' && params.get('method') === 'list') {
+    let rawPass = params.get('passphrase') || '';
+    // passphrase may be JSON-quoted: "vCsa5XjJH"
+    if (rawPass.startsWith('"') && rawPass.endsWith('"')) {
+      try { rawPass = JSON.parse(rawPass); } catch {}
+    }
+    if (!rawPass) {
+      return new Response(
+        JSON.stringify({ success: false, error: { code: 400, message: 'Missing passphrase' } }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } }
+      );
+    }
+
+    let albumId;
+    try {
+      albumId = await resolveAlbumId(rawPass, sid);
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ success: false, error: { code: 502, message: err.message } }),
+        { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } }
+      );
+    }
+
+    const newParams = new URLSearchParams(bodyText);
+    newParams.delete('passphrase');
+    newParams.set('album_id', String(albumId));
+    nasBody = newParams.toString();
+  }
+
   let nasResponse;
   try {
-    const nasHeaders = {};
-    if (nasCookie) nasHeaders['Cookie'] = nasCookie;
-    if (request.method === 'POST') {
-      nasHeaders['Content-Type'] = request.headers.get('Content-Type') || 'application/x-www-form-urlencoded';
-    }
-    nasResponse = await fetch(target, {
-      method: request.method,
-      headers: nasHeaders,
-      body: request.method === 'POST' ? bodyText : undefined,
+    nasResponse = await fetch(NAS_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cookie': 'id=' + sid,
+      },
+      body: nasBody,
     });
   } catch (err) {
     return new Response(
@@ -103,11 +158,8 @@ async function handleRequest(request) {
   const headers = new Headers(CORS);
   const ct = nasResponse.headers.get('Content-Type');
   if (ct) headers.set('Content-Type', ct);
-
-  // Merge any new cookies from the API response and return them to the client
-  const newCookies = parseCookies(nasResponse.headers);
-  const allCookies = [nasCookie, newCookies].filter(Boolean).join('; ');
-  if (allCookies) headers.set('X-NAS-Cookie', allCookies);
+  // Return the SID so the browser can use it for thumbnail/download URLs
+  headers.set('X-NAS-Sid', sid);
 
   return new Response(body, { status: nasResponse.status, headers });
 }
