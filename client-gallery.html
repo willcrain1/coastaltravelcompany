@@ -537,23 +537,13 @@ document.getElementById('lockForm').addEventListener('submit', async e => {
 });
 
 // ── Establish sharing session ─────────────────────────────
+// The Worker fetches the NAS sharing page on the first call (no X-NAS-Cookie
+// present) to get sharing_sid and other session cookies, then makes the API
+// call and returns all cookies as X-NAS-Cookie for us to thread forward.
 async function initSession() {
-  // Step 1: establish guest session — NAS sets a session cookie
-  const guestRes = await fetch(PROXY_API(), {
+  const res = await fetch(PROXY_API(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ api: 'SYNO.Foto.Setting.Guest', method: 'get', version: '1' }).toString()
-  });
-  if (!guestRes.ok) throw new Error('Guest session failed: HTTP ' + guestRes.status);
-  nasSession = guestRes.headers.get('X-NAS-Cookie') || null;
-
-  // Step 2: validate sharing passphrase using the guest session cookie
-  const passHeaders = { 'Content-Type': 'application/x-www-form-urlencoded' };
-  if (nasSession) passHeaders['X-NAS-Cookie'] = nasSession;
-
-  const passRes = await fetch(PROXY_API(), {
-    method: 'POST',
-    headers: passHeaders,
     body: new URLSearchParams({
       api: 'SYNO.Foto.Sharing.Passphrase',
       method: 'get_permission',
@@ -562,12 +552,10 @@ async function initSession() {
       exclude_public: 'false'
     }).toString()
   });
-  if (!passRes.ok) throw new Error('Passphrase init failed: HTTP ' + passRes.status);
-  const passData = await passRes.json();
-  if (!passData.success) throw new Error('Synology passphrase error ' + (passData.error?.code ?? ''));
-
-  const updatedCookie = passRes.headers.get('X-NAS-Cookie');
-  if (updatedCookie) nasSession = updatedCookie;
+  if (!res.ok) throw new Error('Session init failed: HTTP ' + res.status);
+  const data = await res.json();
+  if (!data.success) throw new Error('Synology passphrase error ' + (data.error?.code ?? ''));
+  nasSession = res.headers.get('X-NAS-Cookie') || null;
 }
 
 // ── Load all photos ───────────────────────────────────────
