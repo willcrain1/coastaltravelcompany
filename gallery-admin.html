@@ -104,14 +104,14 @@
     .settings-bar {
       background: var(--card);
       border: 1px solid var(--border);
-      padding: 20px 24px;
+      padding: 24px;
       margin-bottom: 36px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 16px;
-      align-items: end;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
     .settings-bar .hint { font-size: 10.5px; color: var(--dim); margin-top: 6px; }
+    .settings-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; }
 
     /* ── Form card ── */
     .card {
@@ -265,24 +265,34 @@
 
   <!-- Setup instructions -->
   <div class="callout">
-    <strong>One-time setup required.</strong> These gallery files must be hosted on your Synology NAS so the browser can reach the Photos API from the same origin (required to avoid CORS errors).
+    <strong>One-time setup required.</strong> Client galleries are shown on your main website, but photos are fetched from your NAS. Two things need to be in place:
     <ol>
-      <li>Open <strong>File Station</strong> on your NAS → navigate to <code>web</code> (or create a folder like <code>web/galleries</code>)</li>
-      <li>Upload <code>gallery-admin.html</code> and <code>client-gallery.html</code> into that folder</li>
-      <li>Access this admin page at <code>https://[your-id].quickconnect.to/galleries/gallery-admin.html</code></li>
-      <li>In <strong>Synology Photos</strong>, open an album → Share → copy the share link — paste it below</li>
+      <li>Upload <code>gallery-admin.html</code> and <code>client-gallery.html</code> to your NAS via <strong>File Station</strong> → <code>web/galleries/</code> — this lets the gallery reach the Synology Photos API without CORS errors</li>
+      <li>Upload <code>gallery.html</code> to your main website (GitHub Pages repo root) — this is the branded wrapper clients land on</li>
+      <li>Fill in the two URL settings below, then create galleries using a Synology Photos share link</li>
     </ol>
   </div>
 
   <!-- Settings -->
   <h2 class="sh">Settings</h2>
   <div class="settings-bar">
-    <div class="fg">
-      <label>Client Gallery URL (where client-gallery.html lives)</label>
-      <input type="url" id="baseUrl" placeholder="https://your-id.quickconnect.to/galleries/client-gallery.html" />
-      <p class="hint">Saved automatically. This is the base URL used when generating shareable links.</p>
+    <div class="settings-row">
+      <div class="fg">
+        <label>Main Site Gallery URL — where gallery.html lives (shared with clients)</label>
+        <input type="url" id="mainSiteUrl" placeholder="https://willcrain1.github.io/coastaltravelcompany/gallery.html" />
+        <p class="hint">The URL on your main website. Client links will point here — this is what you send to clients.</p>
+      </div>
     </div>
-    <button class="btn btn-ghost" onclick="saveSettings()">Save</button>
+    <div class="settings-row">
+      <div class="fg">
+        <label>NAS Client Gallery URL — where client-gallery.html lives on your NAS</label>
+        <input type="url" id="nasClientUrl" placeholder="https://your-id.quickconnect.to/galleries/client-gallery.html" />
+        <p class="hint">The URL of client-gallery.html on your Synology NAS. Embedded inside the main site as an iframe.</p>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="saveSettings()">Save Settings</button>
+    </div>
   </div>
 
   <!-- Create gallery -->
@@ -355,20 +365,25 @@
   // ── Settings ──────────────────────────────────────────────
   function loadSettings() {
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
-    if (s.baseUrl) document.getElementById('baseUrl').value = s.baseUrl;
+    if (s.mainSiteUrl)  document.getElementById('mainSiteUrl').value  = s.mainSiteUrl;
+    if (s.nasClientUrl) document.getElementById('nasClientUrl').value = s.nasClientUrl;
   }
 
   function saveSettings() {
-    const url = document.getElementById('baseUrl').value.trim();
-    localStorage.setItem(SETTINGS, JSON.stringify({ baseUrl: url }));
+    const s = {
+      mainSiteUrl:  document.getElementById('mainSiteUrl').value.trim(),
+      nasClientUrl: document.getElementById('nasClientUrl').value.trim()
+    };
+    localStorage.setItem(SETTINGS, JSON.stringify(s));
     toast('Settings saved');
   }
 
-  function getBaseUrl() {
+  function getSettings() {
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
-    if (s.baseUrl) return s.baseUrl;
-    // Fallback: derive from current URL
-    return window.location.href.replace('gallery-admin.html', 'client-gallery.html');
+    return {
+      mainSiteUrl:  s.mainSiteUrl  || window.location.href.replace('gallery-admin.html', 'gallery.html'),
+      nasClientUrl: s.nasClientUrl || ''
+    };
   }
 
   // ── SHA-256 ───────────────────────────────────────────────
@@ -416,10 +431,11 @@
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
 
-    const config = { id, nasUrl: parsed.nasUrl, passphrase: parsed.passphrase,
+    const { mainSiteUrl, nasClientUrl } = getSettings();
+    const config = { id, nasUrl: parsed.nasUrl, nasClientUrl, passphrase: parsed.passphrase,
                      eventName, clientName, pwHash, created };
 
-    currentResultUrl = getBaseUrl() + '#' + encode(config);
+    currentResultUrl = mainSiteUrl + '#' + encode(config);
     document.getElementById('resultUrl').textContent = currentResultUrl;
     document.getElementById('resultBox').classList.add('show');
 
@@ -448,10 +464,11 @@
 
   // ── Render gallery list ───────────────────────────────────
   function buildUrl(g) {
-    const config = { id: g.id, nasUrl: g.nasUrl, passphrase: g.passphrase,
-                     eventName: g.eventName, clientName: g.clientName,
-                     pwHash: g.pwHash, created: g.created };
-    return getBaseUrl() + '#' + encode(config);
+    const { mainSiteUrl } = getSettings();
+    const config = { id: g.id, nasUrl: g.nasUrl, nasClientUrl: g.nasClientUrl,
+                     passphrase: g.passphrase, eventName: g.eventName,
+                     clientName: g.clientName, pwHash: g.pwHash, created: g.created };
+    return mainSiteUrl + '#' + encode(config);
   }
 
   function renderList() {
