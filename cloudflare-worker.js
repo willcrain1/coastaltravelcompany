@@ -7,7 +7,7 @@
 // Only JSON API calls go through here — thumbnails and downloads load
 // directly from the NAS (img src / href tags don't need CORS headers).
 
-const NAS_API = 'https://nas.coastaltravelcompany.com/webapi/entry.cgi';
+const NAS_API = 'https://nas.coastaltravelcompany.com/mo/sharing/webapi/entry.cgi';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://coastaltravelcompany.com',
@@ -32,7 +32,12 @@ async function handleRequest(request) {
 
   let nasResponse;
   try {
-    nasResponse = await fetch(target, { method: 'GET' });
+    const init = { method: request.method };
+    if (request.method === 'POST') {
+      init.body = await request.text();
+      init.headers = { 'Content-Type': request.headers.get('Content-Type') || 'application/x-www-form-urlencoded' };
+    }
+    nasResponse = await fetch(target, init);
   } catch (err) {
     return new Response(
       JSON.stringify({ success: false, error: { code: 502, message: 'NAS unreachable: ' + err.message } }),

@@ -406,7 +406,7 @@
   function parseShareUrl(raw) {
     try {
       const url = new URL(raw);
-      const m = url.pathname.match(/\/photo\/mo\/sharing\/([A-Za-z0-9_-]+)/);
+      const m = url.pathname.match(/\/(?:photo\/)?mo\/sharing\/([A-Za-z0-9_-]+)/);
       if (!m) return null;
       return { nasUrl: url.origin, passphrase: m[1] };
     } catch { return null; }
