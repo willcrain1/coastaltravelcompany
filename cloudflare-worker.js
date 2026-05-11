@@ -7,7 +7,7 @@
 // Only JSON API calls go through here — thumbnails and downloads load
 // directly from the NAS (img src / href tags don't need CORS headers).
 
-const NAS_API = 'https://coastaltravelcompany.us6.quickconnect.to/photo/webapi/entry.cgi';
+const NAS_API = 'https://nas.coastaltravelcompany.com/photo/webapi/entry.cgi';
 
 const CORS = {
   'Access-Control-Allow-Origin': 'https://coastaltravelcompany.com',
