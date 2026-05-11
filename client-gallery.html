@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Gallery — Coastal Travel Company</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --black: #1C1C1C;
+      --green: #2A5C45;
+      --teal: #8FBFBE;
+      --cream: #F4F1EC;
+      --linen: #E8DDD0;
+      --white: #ffffff;
+      --mid: #5A5A5A;
+      --light: #8A8A8A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--white);
+      color: var(--black);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ═══════════════════════════════════════
+       LOCK SCREEN
+    ═══════════════════════════════════════ */
+    #lock {
+      position: fixed; inset: 0; z-index: 900;
+      background: var(--black);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 40px;
+      transition: opacity 0.6s ease;
+    }
+    #lock.fade-out { opacity: 0; pointer-events: none; }
+
+    .lock-brand-main {
+      font-family: 'Gilda Display', serif;
+      font-size: 13px; letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.45);
+    }
+    .lock-brand-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 48px; color: var(--teal);
+      display: block; line-height: 1.1; margin-top: -4px;
+    }
+    .lock-rule {
+      width: 44px; height: 1px;
+      background: rgba(255,255,255,0.12);
+      margin: 30px auto;
+    }
+    #lockTitle {
+      font-family: 'Gilda Display', serif;
+      font-size: clamp(22px, 5vw, 38px);
+      color: var(--white); margin-bottom: 6px;
+    }
+    #lockClient {
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.34em; text-transform: uppercase;
+      color: rgba(255,255,255,0.28); margin-bottom: 38px;
+    }
+    .lock-prompt {
+      font-size: 12px; color: rgba(255,255,255,0.38);
+      letter-spacing: 0.1em; margin-bottom: 20px;
+    }
+    .lock-form {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      width: 100%; max-width: 300px;
+    }
+    #lockInput {
+      width: 100%; padding: 14px 20px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: var(--white);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px; font-weight: 300;
+      text-align: center; letter-spacing: 0.18em;
+      outline: none; transition: border-color 0.3s;
+    }
+    #lockInput:focus { border-color: var(--teal); }
+    #lockInput.shake {
+      border-color: #e57373;
+      animation: shake 0.38s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-9px); }
+      75% { transform: translateX(9px); }
+    }
+    #lockBtn {
+      width: 100%; padding: 14px;
+      background: var(--green); color: var(--white);
+      border: none; cursor: pointer;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.38em; text-transform: uppercase;
+      transition: background 0.3s;
+    }
+    #lockBtn:hover { background: var(--teal); color: var(--black); }
+    #lockBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+    #lockErr {
+      font-size: 11px; color: #e57373;
+      letter-spacing: 0.06em; min-height: 15px;
+    }
+    .lock-footer {
+      position: absolute; bottom: 28px;
+      font-size: 10px; letter-spacing: 0.18em;
+      text-transform: uppercase; color: rgba(255,255,255,0.15);
+    }
+
+    /* ═══════════════════════════════════════
+       GALLERY PAGE
+    ═══════════════════════════════════════ */
+    #gallery { display: none; min-height: 100vh; }
+    #gallery.show { display: block; }
+
+    /* Nav */
+    .g-nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(244,241,236,0.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.07);
+      padding: 14px 48px;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+    }
+    .g-nav-brand { line-height: 1; }
+    .g-nav-brand .nb-main {
+      font-family: 'Gilda Display', serif;
+      font-size: 12px; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--black);
+      display: block;
+    }
+    .g-nav-brand .nb-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 22px; color: var(--teal);
+      display: block; margin-top: -2px;
+    }
+    .g-nav-event { text-align: center; }
+    .g-nav-event .ne-title {
+      font-family: 'Gilda Display', serif;
+      font-size: 16px; color: var(--black);
+    }
+    .g-nav-event .ne-client {
+      font-size: 9px; font-weight: 500;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--light); margin-top: 1px;
+    }
+    .g-nav-right {
+      display: flex; align-items: center;
+      justify-content: flex-end; gap: 16px;
+    }
+    .g-count {
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--light);
+    }
+    .dl-all {
+      display: none; align-items: center; gap: 7px;
+      padding: 9px 18px;
+      background: var(--black); color: var(--white);
+      border: none; cursor: pointer;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.26em; text-transform: uppercase;
+      transition: background 0.25s;
+    }
+    .dl-all.show { display: inline-flex; }
+    .dl-all:hover { background: var(--green); }
+
+    /* Loading */
+    #loading {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 120px 40px; gap: 18px;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 2px solid rgba(0,0,0,0.07);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-txt {
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--light);
+    }
+
+    /* Error */
+    #errorState {
+      display: none; padding: 100px 40px; text-align: center;
+    }
+    #errorState h3 {
+      font-family: 'Gilda Display', serif;
+      font-size: 26px; margin-bottom: 14px;
+    }
+    #errorState p {
+      font-size: 13px; color: var(--mid);
+      max-width: 440px; margin: 0 auto; line-height: 1.75;
+    }
+    #errorState code {
+      display: block; margin-top: 20px;
+      background: #f5f5f5; padding: 12px 16px;
+      font-size: 11px; color: #c0392b;
+      text-align: left; max-width: 440px; margin: 16px auto 0;
+      line-height: 1.6;
+    }
+
+    /* Grid */
+    #grid { display: none; padding: 28px 28px 80px; }
+    #grid.show { display: block; }
+
+    .masonry {
+      columns: 4; column-gap: 10px;
+    }
+    @media (max-width: 1100px) { .masonry { columns: 3; } }
+    @media (max-width: 720px)  { .masonry { columns: 2; } #grid { padding: 16px 16px 60px; } .g-nav { padding: 12px 20px; } }
+    @media (max-width: 420px)  { .masonry { columns: 1; } }
+    @media (max-width: 600px)  { .g-nav { grid-template-columns: 1fr auto; } .g-nav-event { display: none; } }
+
+    .p-item {
+      break-inside: avoid;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+      cursor: zoom-in;
+      background: #ece8e4;
+    }
+    .p-item img {
+      width: 100%; height: auto; display: block;
+      opacity: 0; transition: opacity 0.4s ease, transform 0.5s ease;
+    }
+    .p-item img.loaded { opacity: 1; }
+    .p-item:hover img { transform: scale(1.035); }
+
+    .p-hover {
+      position: absolute; inset: 0;
+      background: rgba(28,28,28,0);
+      display: flex; align-items: flex-end; padding: 12px;
+      transition: background 0.3s;
+    }
+    .p-item:hover .p-hover { background: rgba(28,28,28,0.28); }
+    .p-dl {
+      opacity: 0; transition: opacity 0.25s;
+      background: var(--white); color: var(--black);
+      border: none; padding: 5px 13px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      cursor: pointer; text-decoration: none;
+    }
+    .p-item:hover .p-dl { opacity: 1; }
+
+    /* Skeleton */
+    .skel {
+      break-inside: avoid; margin-bottom: 10px;
+      background: linear-gradient(90deg, #ece8e4 25%, #e4e0dc 50%, #ece8e4 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ═══════════════════════════════════════
+       LIGHTBOX
+    ═══════════════════════════════════════ */
+    #lb {
+      display: none; position: fixed; inset: 0; z-index: 800;
+      background: rgba(10,10,10,0.96);
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    #lb.show { display: flex; }
+
+    .lb-bar {
+      position: absolute; top: 0; left: 0; right: 0;
+      padding: 18px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .lb-count {
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+    }
+    .lb-btns { display: flex; gap: 10px; }
+    .lb-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 16px;
+      background: none;
+      border: 1px solid rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.6);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.22em; text-transform: uppercase;
+      cursor: pointer; text-decoration: none;
+      transition: all 0.2s;
+    }
+    .lb-btn:hover { border-color: rgba(255,255,255,0.45); color: var(--white); }
+
+    .lb-img-wrap {
+      max-width: 90vw; max-height: 82vh;
+      position: relative;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #lbImg {
+      max-width: 90vw; max-height: 82vh;
+      object-fit: contain; display: block;
+      opacity: 0; transition: opacity 0.3s ease;
+    }
+    #lbImg.loaded { opacity: 1; }
+    .lb-spin {
+      position: absolute;
+      width: 28px; height: 28px;
+      border: 2px solid rgba(255,255,255,0.08);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+
+    .lb-arrow {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: none; border: none;
+      color: rgba(255,255,255,0.4);
+      font-size: 26px; line-height: 1;
+      padding: 20px 16px; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .lb-arrow:hover { color: var(--white); }
+    .lb-arrow:disabled { opacity: 0.15; cursor: default; }
+    #lbPrev { left: 0; }
+    #lbNext { right: 0; }
+
+    .lb-name {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 14px 24px; text-align: center;
+      font-size: 10px; letter-spacing: 0.14em;
+      color: rgba(255,255,255,0.22);
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ LOCK SCREEN ══════════════════════════════════════ -->
+<div id="lock">
+  <span class="lock-brand-main">Coastal</span>
+  <span class="lock-brand-script">Travel Company</span>
+  <div class="lock-rule"></div>
+  <h1 id="lockTitle">Your Gallery</h1>
+  <p id="lockClient"></p>
+  <p class="lock-prompt">Enter your access code to view your photos</p>
+  <form class="lock-form" id="lockForm">
+    <input type="password" id="lockInput"
+      placeholder="Access code"
+      autocomplete="off" autocorrect="off" spellcheck="false" />
+    <p id="lockErr"></p>
+    <button type="submit" id="lockBtn">View Gallery &rarr;</button>
+  </form>
+  <p class="lock-footer">Private gallery &nbsp;·&nbsp; Coastal Travel Company</p>
+</div>
+
+<!-- ══ GALLERY ═══════════════════════════════════════════ -->
+<div id="gallery">
+
+  <nav class="g-nav">
+    <div class="g-nav-brand">
+      <span class="nb-main">Coastal</span>
+      <span class="nb-script">Travel Company</span>
+    </div>
+    <div class="g-nav-event">
+      <div class="ne-title" id="navTitle"></div>
+      <div class="ne-client" id="navClient"></div>
+    </div>
+    <div class="g-nav-right">
+      <span class="g-count" id="gCount"></span>
+      <button class="dl-all" id="dlAll">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor">
+          <path d="M6 8.5 2 4.5h2.5V1h3v3.5H10L6 8.5zM1 10h10v1.5H1z"/>
+        </svg>
+        Download All
+      </button>
+    </div>
+  </nav>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p class="load-txt">Loading your gallery</p>
+  </div>
+
+  <div id="errorState">
+    <h3>Unable to Load Gallery</h3>
+    <p id="errMsg">We couldn't connect to retrieve your photos. Please check your internet connection or contact us for a new link.</p>
+    <code id="errDetail"></code>
+  </div>
+
+  <div id="grid">
+    <div class="masonry" id="masonry"></div>
+  </div>
+
+</div>
+
+<!-- ══ LIGHTBOX ══════════════════════════════════════════ -->
+<div id="lb">
+  <div class="lb-bar">
+    <span class="lb-count" id="lbCount"></span>
+    <div class="lb-btns">
+      <a class="lb-btn" id="lbDl" href="#" download>
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
+          <path d="M6 8.5 2 4.5h2.5V1h3v3.5H10L6 8.5zM1 10h10v1.5H1z"/>
+        </svg>
+        Download
+      </a>
+      <button class="lb-btn" id="lbClose">&#10005; Close</button>
+    </div>
+  </div>
+
+  <button class="lb-arrow" id="lbPrev">&#8592;</button>
+  <div class="lb-img-wrap">
+    <div class="lb-spin" id="lbSpin"></div>
+    <img id="lbImg" src="" alt="" />
+  </div>
+  <button class="lb-arrow" id="lbNext">&#8594;</button>
+
+  <p class="lb-name" id="lbName"></p>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────
+let cfg = null;
+let photos = [];
+let lbIndex = 0;
+
+// ── SHA-256 ───────────────────────────────────────────────
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── Decode URL hash ───────────────────────────────────────
+function decodeCfg(hash) {
+  try { return JSON.parse(decodeURIComponent(escape(atob(hash)))); }
+  catch { return null; }
+}
+
+// ── API URL builders ──────────────────────────────────────
+const API = () => cfg.nasUrl + '/photo/webapi/entry.cgi';
+
+function thumbUrl(photo, size) {
+  return API() + '?' + new URLSearchParams({
+    api: 'SYNO.Photo.Thumbnail', version: '2', method: 'get',
+    id: photo.id,
+    cache_key: photo.additional?.thumbnail?.cache_key ?? '',
+    type: 'unit', size,
+    passphrase: cfg.passphrase
+  });
+}
+
+function dlUrl(photo) {
+  return API() + '?' + new URLSearchParams({
+    api: 'SYNO.Photo.Download', version: '1', method: 'download',
+    unit_id: JSON.stringify([photo.id]),
+    passphrase: cfg.passphrase
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────
+function init() {
+  const hash = location.hash.slice(1);
+  if (!hash) { showBadLink('No gallery data found in this URL.'); return; }
+
+  cfg = decodeCfg(hash);
+  if (!cfg?.nasUrl || !cfg?.passphrase || !cfg?.pwHash) {
+    showBadLink('This link appears to be incomplete or corrupted.');
+    return;
+  }
+
+  document.title = cfg.eventName + ' — Coastal Travel Company';
+  document.getElementById('lockTitle').textContent = cfg.eventName;
+  document.getElementById('lockClient').textContent = cfg.clientName;
+  document.getElementById('navTitle').textContent = cfg.eventName;
+  document.getElementById('navClient').textContent = cfg.clientName;
+}
+
+function showBadLink(msg) {
+  document.getElementById('lockTitle').textContent = 'Invalid Link';
+  document.getElementById('lockClient').textContent = '';
+  document.querySelector('.lock-prompt').textContent = msg;
+  document.getElementById('lockForm').style.display = 'none';
+}
+
+// ── Lock form ─────────────────────────────────────────────
+document.getElementById('lockForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const inp = document.getElementById('lockInput');
+  const btn = document.getElementById('lockBtn');
+  const err = document.getElementById('lockErr');
+
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+  err.textContent = '';
+
+  const hash = await sha256(inp.value);
+
+  if (hash === cfg.pwHash) {
+    const lock = document.getElementById('lock');
+    lock.classList.add('fade-out');
+    document.getElementById('gallery').classList.add('show');
+    setTimeout(() => lock.style.display = 'none', 650);
+    loadGallery();
+  } else {
+    inp.classList.add('shake');
+    err.textContent = 'Incorrect code — please try again';
+    btn.disabled = false;
+    btn.textContent = 'View Gallery →';
+    setTimeout(() => inp.classList.remove('shake'), 400);
+    inp.value = '';
+    inp.focus();
+  }
+});
+
+// ── Load all photos ───────────────────────────────────────
+async function loadGallery() {
+  showSkeletons();
+  try {
+    photos = await fetchAll();
+    if (!photos.length) {
+      showError('No photos found in this gallery.', '');
+      return;
+    }
+    document.getElementById('gCount').textContent = photos.length + ' photos';
+    document.getElementById('dlAll').classList.add('show');
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('grid').classList.add('show');
+    renderPhotos();
+  } catch(err) {
+    showError(
+      'Unable to connect to the gallery server.',
+      err.message + (err.message.includes('Failed to fetch')
+        ? '\n\nIf this page is not hosted on your Synology NAS, cross-origin (CORS) restrictions will block the API. Upload client-gallery.html to your NAS Web Station folder.'
+        : '')
+    );
+  }
+}
+
+async function fetchAll() {
+  const BATCH = 500;
+  let offset = 0, total = null, all = [];
+  do {
+    const params = new URLSearchParams({
+      api: 'SYNO.Photo.Browse.Item', version: '1', method: 'list',
+      offset: String(offset), limit: String(BATCH),
+      sort_by: 'takentime', sort_direction: 'asc',
+      additional: JSON.stringify(['thumbnail','resolution']),
+      passphrase: cfg.passphrase
+    });
+    const res = await fetch(API() + '?' + params);
+    if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.success) throw new Error('Synology API error ' + (data.error?.code ?? ''));
+    all = all.concat(data.data.list ?? []);
+    total = data.data.total;
+    offset += BATCH;
+  } while (offset < total);
+  return all;
+}
+
+// ── Skeletons ─────────────────────────────────────────────
+function showSkeletons() {
+  const heights = [280,360,240,400,300,360,280,320,420,260,340,390];
+  document.getElementById('masonry').innerHTML =
+    heights.map(h => `<div class="skel" style="height:${h}px"></div>`).join('');
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('grid').classList.add('show');
+}
+
+// ── Render photos ─────────────────────────────────────────
+function renderPhotos() {
+  const masonry = document.getElementById('masonry');
+  masonry.innerHTML = '';
+
+  photos.forEach((photo, i) => {
+    const w = photo.additional?.resolution?.width;
+    const h = photo.additional?.resolution?.height;
+
+    const item = document.createElement('div');
+    item.className = 'p-item';
+
+    const img = document.createElement('img');
+    img.dataset.src = thumbUrl(photo, 'm');
+    img.alt = 'Photo ' + (i + 1);
+    if (w && h) img.style.aspectRatio = w + '/' + h;
+
+    const hover = document.createElement('div');
+    hover.className = 'p-hover';
+
+    const dlBtn = document.createElement('a');
+    dlBtn.className = 'p-dl';
+    dlBtn.href = dlUrl(photo);
+    dlBtn.download = 'coastal-' + (i + 1) + '.jpg';
+    dlBtn.textContent = '↓ Save';
+    dlBtn.addEventListener('click', e => e.stopPropagation());
+
+    hover.appendChild(dlBtn);
+    item.appendChild(img);
+    item.appendChild(hover);
+    item.addEventListener('click', () => openLb(i));
+    masonry.appendChild(item);
+  });
+
+  // Lazy load via IntersectionObserver
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const img = entry.target;
+      img.src = img.dataset.src;
+      img.onload = () => { img.classList.add('loaded'); io.unobserve(img); };
+      img.onerror = () => { img.classList.add('loaded'); io.unobserve(img); };
+    });
+  }, { rootMargin: '300px' });
+
+  masonry.querySelectorAll('img[data-src]').forEach(img => io.observe(img));
+}
+
+// ── Error state ───────────────────────────────────────────
+function showError(msg, detail) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('grid').classList.remove('show');
+  const es = document.getElementById('errorState');
+  es.style.display = 'block';
+  document.getElementById('errMsg').textContent = msg;
+  const det = document.getElementById('errDetail');
+  if (detail) { det.textContent = detail; det.style.display = 'block'; }
+  else det.style.display = 'none';
+}
+
+// ── Lightbox ──────────────────────────────────────────────
+function openLb(i) {
+  lbIndex = i;
+  document.getElementById('lb').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  showLbPhoto(i);
+}
+
+function closeLb() {
+  document.getElementById('lb').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function showLbPhoto(i) {
+  const photo = photos[i];
+  const img = document.getElementById('lbImg');
+  const spin = document.getElementById('lbSpin');
+
+  img.classList.remove('loaded');
+  img.src = '';
+  spin.style.display = 'block';
+
+  img.onload = () => { img.classList.add('loaded'); spin.style.display = 'none'; };
+  img.onerror = () => { spin.style.display = 'none'; };
+  img.src = thumbUrl(photo, 'xl');
+
+  document.getElementById('lbDl').href = dlUrl(photo);
+  document.getElementById('lbDl').download = 'coastal-' + (i + 1) + '.jpg';
+  document.getElementById('lbCount').textContent = (i + 1) + ' / ' + photos.length;
+  document.getElementById('lbName').textContent = photo.filename ?? '';
+
+  document.getElementById('lbPrev').disabled = i === 0;
+  document.getElementById('lbNext').disabled = i === photos.length - 1;
+  lbIndex = i;
+}
+
+document.getElementById('lbPrev').addEventListener('click', () => {
+  if (lbIndex > 0) showLbPhoto(lbIndex - 1);
+});
+document.getElementById('lbNext').addEventListener('click', () => {
+  if (lbIndex < photos.length - 1) showLbPhoto(lbIndex + 1);
+});
+document.getElementById('lbClose').addEventListener('click', closeLb);
+
+// Close on backdrop click
+document.getElementById('lb').addEventListener('click', e => {
+  if (e.target === document.getElementById('lb')) closeLb();
+});
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('lb').classList.contains('show')) return;
+  if (e.key === 'Escape') closeLb();
+  if (e.key === 'ArrowLeft' && lbIndex > 0) showLbPhoto(lbIndex - 1);
+  if (e.key === 'ArrowRight' && lbIndex < photos.length - 1) showLbPhoto(lbIndex + 1);
+});
+
+// ── Download All ──────────────────────────────────────────
+document.getElementById('dlAll').addEventListener('click', () => {
+  const MAX = 20;
+  if (photos.length > MAX) {
+    if (!confirm(`This gallery has ${photos.length} photos.\n\nBrowsers limit batch downloads, so only the first ${MAX} will download automatically.\n\nFor all photos, use the Synology Photos app with your share link, or download individually.\n\nContinue with first ${MAX}?`)) return;
+  }
+  const limit = Math.min(photos.length, MAX);
+  for (let i = 0; i < limit; i++) {
+    setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = dlUrl(photos[i]);
+      a.download = 'coastal-' + (i + 1) + '.jpg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }, i * 200);
+  }
+});
+
+// ── Start ─────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

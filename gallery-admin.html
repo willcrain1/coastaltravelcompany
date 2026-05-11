@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gallery Admin — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #181818;
+      --surface: #222222;
+      --card: #2a2a2a;
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(255,255,255,0.18);
+      --green: #2A5C45;
+      --teal: #8FBFBE;
+      --white: #ffffff;
+      --text: rgba(255,255,255,0.82);
+      --dim: rgba(255,255,255,0.36);
+      --err: #e57373;
+      --ok: #4caf78;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 18px 48px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-wrap { line-height: 1; }
+    .logo-main {
+      font-family: 'Gilda Display', serif;
+      font-size: 13px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--white);
+      display: block;
+    }
+    .logo-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 24px;
+      color: var(--teal);
+    }
+    .badge {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.36em;
+      text-transform: uppercase;
+      color: var(--teal);
+      border: 1px solid rgba(143,191,190,0.35);
+      padding: 5px 14px;
+    }
+
+    /* ── Layout ── */
+    .main { max-width: 860px; margin: 0 auto; padding: 52px 40px 100px; }
+
+    /* ── Section heading ── */
+    .sh {
+      font-family: 'Gilda Display', serif;
+      font-size: 19px;
+      color: var(--white);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .sh::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* ── Setup callout ── */
+    .callout {
+      background: rgba(42,92,69,0.12);
+      border: 1px solid rgba(42,92,69,0.35);
+      padding: 20px 24px;
+      margin-bottom: 36px;
+      font-size: 12.5px;
+      line-height: 1.75;
+      color: rgba(255,255,255,0.6);
+    }
+    .callout strong { color: var(--teal); font-weight: 600; }
+    .callout code {
+      background: rgba(255,255,255,0.07);
+      padding: 1px 6px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--white);
+    }
+    .callout ol { padding-left: 18px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+
+    /* ── Settings bar ── */
+    .settings-bar {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 20px 24px;
+      margin-bottom: 36px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: end;
+    }
+    .settings-bar .hint { font-size: 10.5px; color: var(--dim); margin-top: 6px; }
+
+    /* ── Form card ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 36px;
+      margin-bottom: 40px;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+    .full { grid-column: span 2; }
+    .fg { display: flex; flex-direction: column; gap: 7px; }
+    label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.38em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    input[type=text], input[type=url], input[type=password], input[type=email] {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      padding: 11px 14px;
+      color: var(--white);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13.5px;
+      font-weight: 300;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.25s;
+    }
+    input:focus { border-color: var(--teal); }
+    input::placeholder { color: rgba(255,255,255,0.18); }
+    .hint { font-size: 10.5px; color: var(--dim); margin-top: 4px; line-height: 1.55; }
+
+    /* password toggle */
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 52px; }
+    .pw-eye {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+      color: var(--dim); font-family: 'Montserrat', sans-serif;
+    }
+    .pw-eye:hover { color: var(--white); }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 11px 28px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      border: none; cursor: pointer;
+      transition: all 0.25s;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--green); color: var(--white); }
+    .btn-primary:hover { background: var(--teal); color: #000; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      padding: 8px 16px; font-size: 9px;
+    }
+    .btn-ghost:hover { border-color: var(--border-hover); color: var(--white); }
+    .btn-danger {
+      background: transparent;
+      border: 1px solid rgba(229,115,115,0.25);
+      color: var(--err);
+      padding: 8px 16px; font-size: 9px;
+    }
+    .btn-danger:hover { background: rgba(229,115,115,0.08); }
+
+    /* ── Result box ── */
+    .result-box {
+      display: none;
+      margin-top: 22px;
+      background: rgba(42,92,69,0.13);
+      border: 1px solid rgba(42,92,69,0.38);
+      padding: 20px 22px;
+    }
+    .result-box.show { display: block; }
+    .result-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.38em;
+      text-transform: uppercase; color: var(--teal); margin-bottom: 10px;
+    }
+    .result-url {
+      font-size: 11.5px; color: rgba(255,255,255,0.7);
+      word-break: break-all; line-height: 1.6; margin-bottom: 14px;
+    }
+    .result-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* ── Gallery rows ── */
+    .gallery-row {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 18px 22px;
+      margin-bottom: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      transition: border-color 0.2s;
+    }
+    .gallery-row:hover { border-color: var(--border-hover); }
+    .gr-name {
+      font-family: 'Gilda Display', serif;
+      font-size: 17px; color: var(--white); margin-bottom: 3px;
+    }
+    .gr-meta { font-size: 11px; color: var(--dim); letter-spacing: 0.04em; }
+    .gr-pw {
+      display: inline-block; margin-top: 5px;
+      font-size: 10px; font-weight: 500; letter-spacing: 0.15em;
+      color: var(--teal);
+    }
+    .gr-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+    .empty { text-align: center; padding: 52px; color: var(--dim); font-size: 13px; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--green); color: var(--white);
+      padding: 13px 22px;
+      font-size: 11.5px; font-weight: 500; letter-spacing: 0.08em;
+      opacity: 0; transform: translateY(6px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.err { background: #c0392b; }
+
+    @media (max-width: 640px) {
+      header, .main { padding-left: 20px; padding-right: 20px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .full { grid-column: span 1; }
+      .gallery-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </div>
+  <span class="badge">Gallery Admin</span>
+</header>
+
+<main class="main">
+
+  <!-- Setup instructions -->
+  <div class="callout">
+    <strong>One-time setup required.</strong> These gallery files must be hosted on your Synology NAS so the browser can reach the Photos API from the same origin (required to avoid CORS errors).
+    <ol>
+      <li>Open <strong>File Station</strong> on your NAS → navigate to <code>web</code> (or create a folder like <code>web/galleries</code>)</li>
+      <li>Upload <code>gallery-admin.html</code> and <code>client-gallery.html</code> into that folder</li>
+      <li>Access this admin page at <code>https://[your-id].quickconnect.to/galleries/gallery-admin.html</code></li>
+      <li>In <strong>Synology Photos</strong>, open an album → Share → copy the share link — paste it below</li>
+    </ol>
+  </div>
+
+  <!-- Settings -->
+  <h2 class="sh">Settings</h2>
+  <div class="settings-bar">
+    <div class="fg">
+      <label>Client Gallery URL (where client-gallery.html lives)</label>
+      <input type="url" id="baseUrl" placeholder="https://your-id.quickconnect.to/galleries/client-gallery.html" />
+      <p class="hint">Saved automatically. This is the base URL used when generating shareable links.</p>
+    </div>
+    <button class="btn btn-ghost" onclick="saveSettings()">Save</button>
+  </div>
+
+  <!-- Create gallery -->
+  <h2 class="sh">Create New Gallery</h2>
+  <div class="card">
+    <form id="createForm">
+      <div class="form-grid">
+
+        <div class="fg full">
+          <label>Synology Photos Share Link</label>
+          <input type="url" id="shareUrl" required
+            placeholder="https://your-id.quickconnect.to/photo/mo/sharing/AbCdEfGh" />
+          <p class="hint">Synology Photos → open album → ··· menu → Share → copy the link. Paste the full URL here.</p>
+        </div>
+
+        <div class="fg">
+          <label>Event / Gallery Name</label>
+          <input type="text" id="eventName" required placeholder="Rivera Wedding · May 2024" />
+        </div>
+
+        <div class="fg">
+          <label>Client Name</label>
+          <input type="text" id="clientName" required placeholder="Rivera Family" />
+        </div>
+
+        <div class="fg full">
+          <label>Client Password</label>
+          <div class="pw-wrap">
+            <input type="password" id="clientPw" required minlength="4" placeholder="e.g. coral2024" />
+            <button type="button" class="pw-eye" id="pwEyeBtn">Show</button>
+          </div>
+          <p class="hint">Share this with your client separately from the link — don't include it in the same email as the link.</p>
+        </div>
+
+        <div class="fg full">
+          <label>Internal Notes (not visible to client)</label>
+          <input type="text" id="notes" placeholder="e.g. 200 photos delivered, client approved." />
+        </div>
+
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:26px;">
+        <button type="submit" class="btn btn-primary" id="createBtn">Generate Gallery Link</button>
+      </div>
+
+      <div class="result-box" id="resultBox">
+        <p class="result-label">Client Gallery Link</p>
+        <p class="result-url" id="resultUrl"></p>
+        <div class="result-actions">
+          <button type="button" class="btn btn-primary" style="padding:9px 20px; font-size:9px;" onclick="copyResult()">Copy Link</button>
+          <button type="button" class="btn btn-ghost" onclick="previewResult()">Preview</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Active galleries -->
+  <h2 class="sh">Active Galleries</h2>
+  <div id="galleryList"></div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const STORE = 'ctc_galleries_v1';
+  const SETTINGS = 'ctc_settings_v1';
+  let currentResultUrl = '';
+
+  // ── Settings ──────────────────────────────────────────────
+  function loadSettings() {
+    const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
+    if (s.baseUrl) document.getElementById('baseUrl').value = s.baseUrl;
+  }
+
+  function saveSettings() {
+    const url = document.getElementById('baseUrl').value.trim();
+    localStorage.setItem(SETTINGS, JSON.stringify({ baseUrl: url }));
+    toast('Settings saved');
+  }
+
+  function getBaseUrl() {
+    const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
+    if (s.baseUrl) return s.baseUrl;
+    // Fallback: derive from current URL
+    return window.location.href.replace('gallery-admin.html', 'client-gallery.html');
+  }
+
+  // ── SHA-256 ───────────────────────────────────────────────
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  // ── Parse Synology share URL ──────────────────────────────
+  function parseShareUrl(raw) {
+    try {
+      const url = new URL(raw);
+      const m = url.pathname.match(/\/photo\/mo\/sharing\/([A-Za-z0-9_-]+)/);
+      if (!m) return null;
+      return { nasUrl: url.origin, passphrase: m[1] };
+    } catch { return null; }
+  }
+
+  // ── Encode config for URL hash ────────────────────────────
+  function encode(obj) {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  }
+
+  // ── Create form ───────────────────────────────────────────
+  document.getElementById('createForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+
+    const shareRaw = document.getElementById('shareUrl').value.trim();
+    const eventName = document.getElementById('eventName').value.trim();
+    const clientName = document.getElementById('clientName').value.trim();
+    const pw = document.getElementById('clientPw').value;
+    const notes = document.getElementById('notes').value.trim();
+
+    const parsed = parseShareUrl(shareRaw);
+    if (!parsed) {
+      toast('Could not read share URL — check the format', true);
+      btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+      return;
+    }
+
+    const pwHash = await sha256(pw);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+    const config = { id, nasUrl: parsed.nasUrl, passphrase: parsed.passphrase,
+                     eventName, clientName, pwHash, created };
+
+    currentResultUrl = getBaseUrl() + '#' + encode(config);
+    document.getElementById('resultUrl').textContent = currentResultUrl;
+    document.getElementById('resultBox').classList.add('show');
+
+    // Persist (store plain pw for admin display only)
+    const list = JSON.parse(localStorage.getItem(STORE) || '[]');
+    list.unshift({ ...config, pw, notes });
+    localStorage.setItem(STORE, JSON.stringify(list));
+
+    renderList();
+    toast('Gallery link created');
+    btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+  });
+
+  function copyResult() {
+    navigator.clipboard.writeText(currentResultUrl).then(() => toast('Link copied to clipboard'));
+  }
+  function previewResult() { window.open(currentResultUrl, '_blank'); }
+
+  // ── Password eye toggle ───────────────────────────────────
+  document.getElementById('pwEyeBtn').addEventListener('click', () => {
+    const inp = document.getElementById('clientPw');
+    const btn = document.getElementById('pwEyeBtn');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
+  });
+
+  // ── Render gallery list ───────────────────────────────────
+  function buildUrl(g) {
+    const config = { id: g.id, nasUrl: g.nasUrl, passphrase: g.passphrase,
+                     eventName: g.eventName, clientName: g.clientName,
+                     pwHash: g.pwHash, created: g.created };
+    return getBaseUrl() + '#' + encode(config);
+  }
+
+  function renderList() {
+    const list = JSON.parse(localStorage.getItem(STORE) || '[]');
+    const el = document.getElementById('galleryList');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty">No galleries yet — create your first one above.</div>';
+      return;
+    }
+    el.innerHTML = list.map((g, i) => `
+      <div class="gallery-row">
+        <div>
+          <div class="gr-name">${g.eventName}</div>
+          <div class="gr-meta">${g.clientName} &nbsp;·&nbsp; Created ${g.created}${g.notes ? ' &nbsp;·&nbsp; ' + g.notes : ''}</div>
+          <div class="gr-pw">Password: ${g.pw}</div>
+        </div>
+        <div class="gr-actions">
+          <button class="btn btn-ghost" onclick="copyRow(${i})">Copy Link</button>
+          <button class="btn btn-ghost" onclick="window.open(buildUrl(getRow(${i})),'_blank')">Preview</button>
+          <button class="btn btn-danger" onclick="deleteRow(${i})">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function getRow(i) {
+    return JSON.parse(localStorage.getItem(STORE) || '[]')[i];
+  }
+
+  function copyRow(i) {
+    const g = getRow(i);
+    navigator.clipboard.writeText(buildUrl(g)).then(() => toast('Link copied'));
+  }
+
+  function deleteRow(i) {
+    if (!confirm('Remove this gallery from the list? Photos on Synology are not affected.')) return;
+    const list = JSON.parse(localStorage.getItem(STORE) || '[]');
+    list.splice(i, 1);
+    localStorage.setItem(STORE, JSON.stringify(list));
+    renderList();
+    toast('Gallery removed');
+  }
+
+  // ── Toast ─────────────────────────────────────────────────
+  let toastTmr;
+  function toast(msg, isErr = false) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toastTmr);
+    toastTmr = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+
+  // ── Init ──────────────────────────────────────────────────
+  loadSettings();
+  renderList();
+</script>
+</body>
+</html>

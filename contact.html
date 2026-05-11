@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contact — Coastal Travel Company</title>
+  <meta name="description" content="Inquire about editorial photography and video for your luxury hotel. Palm Beach, Florida." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── Navigation ─────────────────────────────────────── -->
+  <nav id="main-nav">
+    <a href="index.html" class="nav-logo">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="collections.html">Collections</a></li>
+      <li><a href="contact.html" class="active">Contact</a></li>
+    </ul>
+    <button class="nav-toggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ── Page Hero ──────────────────────────────────────── -->
+  <section class="page-hero">
+    <div class="page-hero-bg" style="background-image: url('https://images.unsplash.com/photo-1560347876-aeef00ee58a1?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="page-hero-overlay"></div>
+    <div class="page-hero-content">
+      <span class="eyebrow">Let's Work Together</span>
+      <h1>Contact</h1>
+      <span class="hero-script-sub">start the conversation</span>
+    </div>
+  </section>
+
+  <!-- ── Contact Section ────────────────────────────────── -->
+  <section class="section bg-cream">
+    <div class="container">
+      <div class="grid-2" style="gap: 100px; align-items: start;">
+
+        <!-- Left: Info -->
+        <div class="fade-up">
+          <span class="eyebrow">Get in Touch</span>
+          <h2 style="font-size: clamp(28px, 4vw, 50px); margin-bottom: 12px;">
+            Ready to elevate<br />your property?
+          </h2>
+          <span class="script" style="font-size: clamp(26px, 3.5vw, 44px); color: var(--forest-green); display: block; margin-bottom: 28px;">we'd love to hear from you.</span>
+          <p class="body-sm mb-32">
+            Tell us about your property, your vision, and what you're looking to create. We'll respond within 48 hours to discuss your project and which of our collections may be the right fit.
+          </p>
+
+          <div style="border-top: 1px solid rgba(0,0,0,0.09); padding-top: 36px; display: flex; flex-direction: column; gap: 28px;">
+            <div>
+              <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">Location</p>
+              <p style="font-size: 14px; color: var(--text-dark);">Palm Beach, Florida</p>
+              <p class="body-sm">Available for travel worldwide</p>
+            </div>
+            <div>
+              <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">Email</p>
+              <a href="mailto:hello@coastaltravelco.com" style="font-size: 14px; color: var(--forest-green); text-decoration: none; letter-spacing: 0.04em;">hello@coastaltravelco.com</a>
+            </div>
+            <div>
+              <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">Follow Along</p>
+              <div style="display: flex; gap: 24px;">
+                <a href="#" style="font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--forest-green)'" onmouseout="this.style.color='var(--text-mid)'">Instagram</a>
+                <a href="#" style="font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--forest-green)'" onmouseout="this.style.color='var(--text-mid)'">Pinterest</a>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 52px; padding: 36px; background: var(--forest-green);">
+            <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--sage-teal); margin-bottom: 16px;">Response Time</p>
+            <p style="font-family: 'Gilda Display', serif; font-size: 20px; color: var(--white); margin-bottom: 10px;">We respond within 48 hours.</p>
+            <p style="font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.75;">For time-sensitive inquiries, please note your preferred contact window in your message.</p>
+          </div>
+        </div>
+
+        <!-- Right: Form -->
+        <div class="fade-up delay-2">
+          <form action="#" method="POST" style="background: var(--white); padding: 52px 48px;">
+            <p style="font-family: 'Gilda Display', serif; font-size: 24px; color: var(--black); margin-bottom: 8px;">Project Inquiry</p>
+            <span style="font-family: 'Pinyon Script', cursive; font-size: 32px; color: var(--sage-teal); display: block; margin-bottom: 36px; line-height: 1;">tell us everything.</span>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="first-name">First Name</label>
+                <input type="text" id="first-name" name="first-name" placeholder="Rebecca" />
+              </div>
+              <div class="form-group">
+                <label for="last-name">Last Name</label>
+                <input type="text" id="last-name" name="last-name" placeholder="Harper" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" name="email" placeholder="hello@yourproperty.com" />
+            </div>
+
+            <div class="form-group">
+              <label for="property">Property Name</label>
+              <input type="text" id="property" name="property" placeholder="The Grand Palms Resort" />
+            </div>
+
+            <div class="form-group">
+              <label for="location">Property Location</label>
+              <input type="text" id="location" name="location" placeholder="Palm Beach, FL" />
+            </div>
+
+            <div class="form-group">
+              <label for="collection">Collection of Interest</label>
+              <select id="collection" name="collection">
+                <option value="" disabled selected>Select a collection</option>
+                <option value="editorial-stay">The Editorial Stay</option>
+                <option value="fashioned-weekend">The Fashioned Weekend</option>
+                <option value="signature-story">The Signature Story</option>
+                <option value="custom">Custom / Not Sure Yet</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="timeline">Ideal Timeline</label>
+              <input type="text" id="timeline" name="timeline" placeholder="e.g. September 2024, or flexible" />
+            </div>
+
+            <div class="form-group">
+              <label for="message">Tell Us About Your Vision</label>
+              <textarea id="message" name="message" placeholder="Share the feeling you'd like to create, your goals, and anything else that would help us understand your property and vision..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-dark" style="width: 100%; text-align: center; margin-top: 8px;">Send Inquiry</button>
+
+            <p style="font-size: 11px; color: var(--text-light); margin-top: 16px; text-align: center; line-height: 1.6;">We'll respond within 48 hours. Your information is kept private and never shared.</p>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Collections Reference ──────────────────────────── -->
+  <section class="section bg-white">
+    <div class="container">
+      <div class="text-center mb-48 fade-up">
+        <span class="eyebrow">Not Sure Which Collection?</span>
+        <h2 style="font-size: clamp(26px, 3.8vw, 46px);">Explore the Options</h2>
+      </div>
+      <div class="grid-3 fade-up" style="gap: 2px;">
+        <div style="padding: 44px 36px; background: var(--cream);">
+          <span class="eyebrow" style="margin-bottom: 14px;">Collection 01</span>
+          <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--forest-green); display: block; margin-bottom: 12px; line-height: 1.1;">The Editorial Stay</span>
+          <p class="body-sm mb-24">Multi-day, full-property. Complete visual library for launches, rebrands, or major campaigns.</p>
+          <a href="collections.html#editorial-stay" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--forest-green); text-decoration: none;">Learn More →</a>
+        </div>
+        <div style="padding: 44px 36px; background: var(--forest-green);">
+          <span class="eyebrow" style="color: var(--sage-teal); margin-bottom: 14px;">Collection 02</span>
+          <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--white); display: block; margin-bottom: 12px; line-height: 1.1;">The Fashioned Weekend</span>
+          <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.65); margin-bottom: 24px;">Two-day lifestyle &amp; video focus. Fashion-forward presence and social-ready content.</p>
+          <a href="collections.html#fashioned-weekend" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--sage-teal); text-decoration: none;">Learn More →</a>
+        </div>
+        <div style="padding: 44px 36px; background: var(--black);">
+          <span class="eyebrow" style="color: var(--sage-teal); margin-bottom: 14px;">Collection 03</span>
+          <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--sage-teal); display: block; margin-bottom: 12px; line-height: 1.1;">The Signature Story</span>
+          <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.55); margin-bottom: 24px;">Campaign-level, brand-defining. Hero film, full library, and total creative direction.</p>
+          <a href="collections.html#signature-story" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--sage-teal); text-decoration: none;">Learn More →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <span class="f-logo-main">Coastal</span>
+          <span class="f-logo-script">Travel Company</span>
+          <p>Editorial photography and short-form video for luxury hotels and destinations that want to be desired, not just seen.</p>
+          <p class="f-location">Palm Beach, Florida</p>
+        </div>
+        <div class="footer-col">
+          <h5>Navigate</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="collections.html">Collections</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Collections</h5>
+          <ul>
+            <li><a href="collections.html#editorial-stay">The Editorial Stay</a></li>
+            <li><a href="collections.html#fashioned-weekend">The Fashioned Weekend</a></li>
+            <li><a href="collections.html#signature-story">The Signature Story</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">Pinterest</a></li>
+            <li><a href="mailto:hello@coastaltravelco.com">Email Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 Coastal Travel Company. All rights reserved.</p>
+        <p style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
