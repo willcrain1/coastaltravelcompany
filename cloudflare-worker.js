@@ -55,9 +55,26 @@ async function handleRequest(request) {
 
     if (passphrase) {
       try {
-        // Load the NAS sharing page — this sets sharing_sid and other session cookies
+        // Step 1: load the NAS sharing page — sets sharing_sid
         const pageRes = await fetch(NAS_SHARE + passphrase, { redirect: 'follow' });
         nasCookie = parseCookies(pageRes.headers);
+
+        // Step 2: call SYNO.Foto.Setting.Guest to activate the guest session
+        // (the real Synology Photos page does this immediately after page load)
+        if (nasCookie) {
+          const guestRes = await fetch(NAS_API, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Cookie': nasCookie,
+            },
+            body: new URLSearchParams({
+              api: 'SYNO.Foto.Setting.Guest', method: 'get', version: '1'
+            }).toString(),
+          });
+          const moreCookies = parseCookies(guestRes.headers);
+          if (moreCookies) nasCookie = [nasCookie, moreCookies].filter(Boolean).join('; ');
+        }
       } catch {}
     }
   }
