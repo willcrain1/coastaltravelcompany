@@ -453,10 +453,15 @@ function decodeCfg(hash) {
 }
 
 // ── API URL builders ──────────────────────────────────────
-const API = () => cfg.nasUrl + '/photo/webapi/entry.cgi';
+// Direct NAS URL — used for img src and download href (no CORS needed)
+const NAS_API = () => cfg.nasUrl + '/photo/webapi/entry.cgi';
+
+// Proxy URL — used for fetch() calls to bypass CORS
+// cfg.proxyUrl is the Cloudflare Worker URL set in gallery-admin
+const PROXY_API = () => cfg.proxyUrl || NAS_API();
 
 function thumbUrl(photo, size) {
-  return API() + '?' + new URLSearchParams({
+  return NAS_API() + '?' + new URLSearchParams({
     api: 'SYNO.Photo.Thumbnail', version: '2', method: 'get',
     id: photo.id,
     cache_key: photo.additional?.thumbnail?.cache_key ?? '',
@@ -466,7 +471,7 @@ function thumbUrl(photo, size) {
 }
 
 function dlUrl(photo) {
-  return API() + '?' + new URLSearchParams({
+  return NAS_API() + '?' + new URLSearchParams({
     api: 'SYNO.Photo.Download', version: '1', method: 'download',
     unit_id: JSON.stringify([photo.id]),
     passphrase: cfg.passphrase
@@ -546,7 +551,7 @@ async function loadGallery() {
     showError(
       'Unable to connect to the gallery server.',
       err.message + (err.message.includes('Failed to fetch')
-        ? '\n\nIf this page is not hosted on your Synology NAS, cross-origin (CORS) restrictions will block the API. Upload client-gallery.html to your NAS Web Station folder.'
+        ? '\n\nThe Cloudflare Worker proxy may be unreachable. Check that the Worker URL is set correctly in Gallery Admin, or that the Worker is deployed and running.'
         : '')
     );
   }
@@ -563,7 +568,8 @@ async function fetchAll() {
       additional: JSON.stringify(['thumbnail','resolution']),
       passphrase: cfg.passphrase
     });
-    const res = await fetch(API() + '?' + params);
+    // JSON API calls route through the Cloudflare Worker proxy to add CORS headers
+    const res = await fetch(PROXY_API() + '?' + params);
     if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
     const data = await res.json();
     if (!data.success) throw new Error('Synology API error ' + (data.error?.code ?? ''));

@@ -265,11 +265,11 @@
 
   <!-- Setup instructions -->
   <div class="callout">
-    <strong>One-time setup required.</strong> Client galleries are shown on your main website, but photos are fetched from your NAS. Two things need to be in place:
+    <strong>One-time setup required.</strong> Three things need to be in place before you create galleries:
     <ol>
-      <li>Upload <code>gallery-admin.html</code> and <code>client-gallery.html</code> to your NAS via <strong>File Station</strong> → <code>web/galleries/</code> — this lets the gallery reach the Synology Photos API without CORS errors</li>
-      <li>Upload <code>gallery.html</code> to your main website (GitHub Pages repo root) — this is the branded wrapper clients land on</li>
-      <li>Fill in the two URL settings below, then create galleries using a Synology Photos share link</li>
+      <li><strong>Deploy the Cloudflare Worker</strong> — log in to <code>dash.cloudflare.com</code> → Workers &amp; Pages → Create Worker → paste the contents of <code>cloudflare-worker.js</code> → Deploy. Copy the <code>*.workers.dev</code> URL and paste it into the Worker URL setting below.</li>
+      <li><strong>GitHub Pages</strong> — <code>gallery.html</code> and <code>client-gallery.html</code> are already live on <code>coastaltravelcompany.com</code> from the GitHub repo. No NAS hosting needed.</li>
+      <li>Fill in the three URL settings below, then create galleries using a Synology Photos share link.</li>
     </ol>
   </div>
 
@@ -285,9 +285,16 @@
     </div>
     <div class="settings-row">
       <div class="fg">
-        <label>NAS Client Gallery URL — where client-gallery.html lives on your NAS</label>
-        <input type="url" id="nasClientUrl" placeholder="https://coastaltravelcompany.us6.quickconnect.to/galleries/client-gallery.html" />
-        <p class="hint">The URL of client-gallery.html on your Synology NAS. Embedded inside the main site as an iframe.</p>
+        <label>Client Gallery URL — where client-gallery.html lives</label>
+        <input type="url" id="nasClientUrl" placeholder="https://coastaltravelcompany.com/client-gallery.html" />
+        <p class="hint">The URL of client-gallery.html — now hosted on GitHub Pages alongside the rest of the site. Embedded inside gallery.html as an iframe.</p>
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="fg">
+        <label>Cloudflare Worker URL — your deployed CORS proxy</label>
+        <input type="url" id="workerUrl" placeholder="https://ctc-nas-proxy.yourname.workers.dev" />
+        <p class="hint">Deploy <code>cloudflare-worker.js</code> to Cloudflare Workers (free tier). Paste the <code>*.workers.dev</code> URL here — it proxies Synology API calls and adds CORS headers so the gallery can fetch from any browser.</p>
       </div>
     </div>
     <div style="display:flex; justify-content:flex-end;">
@@ -367,12 +374,14 @@
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
     if (s.mainSiteUrl)  document.getElementById('mainSiteUrl').value  = s.mainSiteUrl;
     if (s.nasClientUrl) document.getElementById('nasClientUrl').value = s.nasClientUrl;
+    if (s.workerUrl)    document.getElementById('workerUrl').value    = s.workerUrl;
   }
 
   function saveSettings() {
     const s = {
       mainSiteUrl:  document.getElementById('mainSiteUrl').value.trim(),
-      nasClientUrl: document.getElementById('nasClientUrl').value.trim()
+      nasClientUrl: document.getElementById('nasClientUrl').value.trim(),
+      workerUrl:    document.getElementById('workerUrl').value.trim()
     };
     localStorage.setItem(SETTINGS, JSON.stringify(s));
     toast('Settings saved');
@@ -382,7 +391,8 @@
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
     return {
       mainSiteUrl:  s.mainSiteUrl  || 'https://coastaltravelcompany.com/gallery.html',
-      nasClientUrl: s.nasClientUrl || ''
+      nasClientUrl: s.nasClientUrl || 'https://coastaltravelcompany.com/client-gallery.html',
+      workerUrl:    s.workerUrl    || ''
     };
   }
 
@@ -431,9 +441,9 @@
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
 
-    const { mainSiteUrl, nasClientUrl } = getSettings();
-    const config = { id, nasUrl: parsed.nasUrl, nasClientUrl, passphrase: parsed.passphrase,
-                     eventName, clientName, pwHash, created };
+    const { mainSiteUrl, nasClientUrl, workerUrl } = getSettings();
+    const config = { id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: workerUrl,
+                     passphrase: parsed.passphrase, eventName, clientName, pwHash, created };
 
     currentResultUrl = mainSiteUrl + '#' + encode(config);
     document.getElementById('resultUrl').textContent = currentResultUrl;
@@ -464,8 +474,9 @@
 
   // ── Render gallery list ───────────────────────────────────
   function buildUrl(g) {
-    const { mainSiteUrl } = getSettings();
+    const { mainSiteUrl, workerUrl } = getSettings();
     const config = { id: g.id, nasUrl: g.nasUrl, nasClientUrl: g.nasClientUrl,
+                     proxyUrl: g.proxyUrl || workerUrl,
                      passphrase: g.passphrase, eventName: g.eventName,
                      clientName: g.clientName, pwHash: g.pwHash, created: g.created };
     return mainSiteUrl + '#' + encode(config);
