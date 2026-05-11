@@ -439,8 +439,6 @@
 let cfg = null;
 let photos = [];
 let lbIndex = 0;
-let nasSession = null; // session cookie threaded through the Worker
-
 // ── SHA-256 ───────────────────────────────────────────────
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -454,31 +452,27 @@ function decodeCfg(hash) {
 }
 
 // ── API URL builders ──────────────────────────────────────
-// Authenticated NAS entry point — used for img src and download href
-const NAS_ENTRY = () => cfg.nasUrl + '/webapi/entry.cgi';
-
-// Proxy URL — used for fetch() calls to bypass CORS
-const PROXY_API = () => cfg.proxyUrl || NAS_ENTRY();
+// All requests (JSON, thumbnails, downloads) go through the Worker so it can
+// add the X-SYNO-SHARING header and sharing session cookie that the NAS requires.
+const PROXY_API = () => cfg.proxyUrl || (cfg.nasUrl + '/mo/sharing/webapi/entry.cgi');
 
 function thumbUrl(photo, size) {
   const cacheKey = photo.additional?.thumbnail?.cache_key ?? '';
-  const p = {
+  return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Thumbnail', version: '2', method: 'get',
     id: photo.id,
     cache_key: JSON.stringify(cacheKey),
     type: 'unit', size,
-  };
-  if (nasSession) p._sid = nasSession;
-  return NAS_ENTRY() + '?' + new URLSearchParams(p);
+    passphrase: JSON.stringify(cfg.passphrase),
+  });
 }
 
 function dlUrl(photo) {
-  const p = {
+  return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Download', version: '1', method: 'download',
     unit_id: JSON.stringify([photo.id]),
-  };
-  if (nasSession) p._sid = nasSession;
-  return NAS_ENTRY() + '?' + new URLSearchParams(p);
+    passphrase: JSON.stringify(cfg.passphrase),
+  });
 }
 
 // ── Init ──────────────────────────────────────────────────
@@ -541,7 +535,6 @@ async function loadGallery() {
   showSkeletons();
   try {
     photos = await fetchAll();
-    // nasSession is captured from X-NAS-Sid inside fetchAll()
     if (!photos.length) {
       showError('No photos found in this gallery.', '');
       return;
@@ -584,8 +577,6 @@ async function fetchAll() {
     if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
     const data = await res.json();
     if (!data.success) throw new Error('Synology API error ' + (data.error?.code ?? ''));
-    // Capture the admin SID so thumbnail/download URLs can use it directly
-    if (!nasSession) nasSession = res.headers.get('X-NAS-Sid') || null;
     all = all.concat(data.data.list ?? []);
     total = data.data.total;
     offset += BATCH;
