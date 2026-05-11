@@ -457,10 +457,12 @@ function decodeCfg(hash) {
 const PROXY_API = () => cfg.proxyUrl || (cfg.nasUrl + '/mo/sharing/webapi/entry.cgi');
 
 function thumbUrl(photo, size) {
-  const cacheKey = photo.additional?.thumbnail?.cache_key ?? '';
+  const thumb = photo.additional?.thumbnail ?? {};
+  const unitId = thumb.unit_id ?? photo.id;
+  const cacheKey = thumb.cache_key ?? '';
   return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Thumbnail', version: '2', method: 'get',
-    id: photo.id,
+    id: unitId,
     cache_key: JSON.stringify(cacheKey),
     type: 'unit', size,
     passphrase: JSON.stringify(cfg.passphrase),
