@@ -473,31 +473,36 @@ function thumbUrl(photo, size) {
   const thumb = photo.additional?.thumbnail ?? {};
   const unitId = thumb.unit_id ?? photo.id;
   const cacheKey = thumb.cache_key ?? '';
+  const auth = gallerySid ? { sid: gallerySid } : { passphrase: JSON.stringify(cfg.passphrase), _sharing_id: JSON.stringify(cfg.passphrase) };
   return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Thumbnail', version: '2', method: 'get',
     id: unitId,
     cache_key: JSON.stringify(cacheKey),
     type: 'unit', size,
-    sid: gallerySid,
+    ...auth,
   });
 }
 
 function dlUrl(photo) {
+  const auth = gallerySid ? { sid: gallerySid } : { passphrase: JSON.stringify(cfg.passphrase) };
   return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Download', version: '1', method: 'download',
     unit_id: JSON.stringify([photo.id]),
-    sid: gallerySid,
+    ...auth,
   });
 }
 
 // ── Session token exchange ────────────────────────────────
 // Exchanges the gallery passphrase for a 4-hour sid stored in Worker KV.
+// Returns null if the Worker doesn't support /token yet (old deployment),
+// in which case thumbUrl/dlUrl/fetchAll fall back to sending the passphrase directly.
 async function getGallerySid() {
   const res = await fetch(cfg.proxyUrl + '/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ passphrase: JSON.stringify(cfg.passphrase) }).toString(),
   });
+  if (res.status === 404) return null; // old Worker — degrade gracefully
   if (!res.ok) throw new Error('Gallery session failed (HTTP ' + res.status + ')');
   const data = await res.json();
   if (!data.sid) throw new Error('Token exchange returned no sid');
@@ -596,6 +601,7 @@ async function fetchAll() {
   const BATCH = 500;
   let offset = 0, all = [];
   while (true) {
+    const auth = gallerySid ? { sid: gallerySid } : { passphrase: JSON.stringify(cfg.passphrase) };
     const body = new URLSearchParams({
       api: 'SYNO.Foto.Browse.Item',
       method: 'list',
@@ -605,7 +611,7 @@ async function fetchAll() {
       limit: String(BATCH),
       sort_by: JSON.stringify('takentime'),
       sort_direction: JSON.stringify('asc'),
-      sid: gallerySid,
+      ...auth,
     });
     const res = await fetch(PROXY_API(), {
       method: 'POST',
