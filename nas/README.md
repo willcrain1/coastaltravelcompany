@@ -1,50 +1,55 @@
 # NAS Infrastructure
 
-Docker and Cloudflare Tunnel configuration for the Synology NAS at `nas.coastaltravelcompany.com`.
+Docker services running on the Synology NAS at `nas.coastaltravelcompany.com`.
+
+## Tunnel configuration
+
+Ingress rules are managed in the Cloudflare Zero Trust dashboard (not in a local file). Current configuration:
+
+| Hostname | Path | Service | Origin |
+|---|---|---|---|
+| `nas.coastaltravelcompany.com` | `*` | `https://192.168.68.2:5001` | `noTLSVerify: true` |
+| catch-all | — | `http_status:404` | — |
+
+`noTLSVerify` is required because the NAS uses a self-signed certificate. `192.168.68.2:5001` is the Synology DSM HTTPS port on the local network. See `cloudflare-tunnel/config.example.yml` for the equivalent YAML reference.
+
+## How the tunnel works
+
+This setup uses Cloudflare Tunnel **token-based auth** — no local `config.yml` or `credentials.json` needed. The tunnel token embeds the credentials, and ingress rules (which hostnames route to which local services) are managed entirely in the Cloudflare Zero Trust dashboard:
+
+> Zero Trust → Networks → Tunnels → select tunnel → Public Hostname tab
 
 ## Rebuild from scratch
 
-### 1. Cloudflare Tunnel
+### 1. Get the tunnel token
+
+Cloudflare Zero Trust dashboard → Networks → Tunnels → select your tunnel → **Configure → Token** → copy the token.
+
+If the tunnel was deleted or you're starting fresh:
+- Zero Trust → Networks → Tunnels → Create a tunnel → Cloudflared → follow the setup wizard → copy the token at the end
+
+### 2. Set up the env file
 
 ```bash
-# Install cloudflared on your machine (not the NAS)
-# https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/
-
-# Authenticate
-cloudflared tunnel login
-
-# Create the tunnel (skip if reusing an existing tunnel UUID)
-cloudflared tunnel create coastal-travel
-
-# Copy the generated credentials file to the NAS
-scp ~/.cloudflared/<tunnel-uuid>.json admin@<nas-ip>:/volume1/docker/nas/cloudflare-tunnel/credentials.json
-
-# On the NAS: copy config template and fill in your tunnel UUID
-cp cloudflare-tunnel/config.example.yml cloudflare-tunnel/config.yml
-# Edit config.yml — replace YOUR-TUNNEL-UUID-HERE with your actual UUID
+# On the NAS (or wherever you're running this)
+cp .env.example .env
+# Edit .env and paste the tunnel token as TUNNEL_TOKEN=...
 ```
 
-### 2. Deploy containers
+### 3. Deploy
 
 ```bash
-# SSH into the NAS
-ssh admin@<nas-ip>
-
-# Clone the repo (or copy the nas/ directory)
-cd /volume1/docker
-git clone https://github.com/willcrain1/coastaltravelcompany.git
-cd coastaltravelcompany/nas
-
-# Ensure cloudflare-tunnel/credentials.json is in place (see step 1)
-# Ensure cloudflare-tunnel/config.yml is filled in
-
 docker compose up -d
-docker compose ps   # verify all containers are running
+docker compose ps   # verify cloudflared is running
 ```
 
-### 3. Capturing a standalone container
+### 4. Verify the tunnel is connected
 
-Container Manager only exports Compose projects, not standalone containers. To record a standalone container's config, click it in the UI and transcribe each tab into `nas/docker-compose.yml`:
+Cloudflare Zero Trust dashboard → Networks → Tunnels → your tunnel should show **Healthy**.
+
+### 5. Capturing a standalone container
+
+Container Manager does not export standalone containers (only Compose projects). To record a standalone container's config, click it in the UI and transcribe each tab into `docker-compose.yml`:
 
 | Container Manager tab | `docker-compose.yml` key |
 |---|---|
@@ -61,7 +66,7 @@ Commit and push the updated `docker-compose.yml` after transcribing.
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | All Docker services — source of truth for what runs on the NAS |
-| `cloudflare-tunnel/config.example.yml` | Tunnel ingress rules template (commit safe) |
-| `cloudflare-tunnel/config.yml` | Live tunnel config — **gitignored**, lives on NAS only |
-| `cloudflare-tunnel/credentials.json` | Tunnel private key — **gitignored**, lives on NAS only |
+| `docker-compose.yml` | All Docker services — source of truth |
+| `.env.example` | Template for secrets — copy to `.env` on the NAS |
+| `.env` | Live secrets — **gitignored**, lives on NAS only |
+| `cloudflare-tunnel/` | Not used for token-based auth — kept for reference if switching to file-based auth |

@@ -1,36 +1,11 @@
 # Docker services running on the Synology NAS
-# Deploy: SSH into NAS → cd to this directory → docker compose up -d
-#
-# To export your current live config from Synology Container Manager:
-#   Container Manager → Project → select project → Action → Export
-# That downloads a docker-compose.yml you can use to replace/update this file.
+# Deploy: copy nas/ to the NAS, create .env from .env.example, then run:
+#   docker compose up -d
 
 services:
-
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: cloudflared
+    container_name: cloudflare-cloudflared-1
     restart: unless-stopped
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
-      - ./cloudflare-tunnel/config.yml:/etc/cloudflared/config.yml:ro
-      - ./cloudflare-tunnel/credentials.json:/etc/cloudflared/credentials.json:ro
-    network_mode: host
-
-  # ── Add other NAS services below ──────────────────────────────────────────
-  # Replace these placeholders with your actual containers exported from
-  # Container Manager (see export instructions above).
-  #
-  # Example for a processing service:
-  # photo-processor:
-  #   image: node:20-alpine
-  #   container_name: photo-processor
-  #   restart: unless-stopped
-  #   volumes:
-  #     - /volume1/photo-processor:/app
-  #   working_dir: /app
-  #   command: node server.js
-  #   ports:
-  #     - "3100:3100"
-  #   environment:
-  #     - NODE_ENV=production
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    network_mode: bridge

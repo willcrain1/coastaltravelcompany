@@ -1,24 +1,20 @@
-# Cloudflare Tunnel ingress configuration
-# Copy to config.yml and fill in your tunnel UUID.
-# credentials.json is never committed — copy it to this directory on the NAS only.
+# Cloudflare Tunnel — ingress configuration reference
 #
-# Rebuild steps:
-#   1. cloudflared tunnel create coastal-travel   (or reuse existing tunnel UUID)
-#   2. Copy the generated credentials JSON to nas/cloudflare-tunnel/credentials.json on the NAS
-#   3. Fill in tunnel UUID below
-#   4. Run: docker compose up -d
-
-tunnel: YOUR-TUNNEL-UUID-HERE
-credentials-file: /etc/cloudflared/credentials.json
+# This documents what is configured in the Cloudflare Zero Trust dashboard.
+# With token-based auth, cloudflared does NOT read a local config.yml —
+# all ingress rules live in the dashboard under:
+#   Networks → Tunnels → coastal-nas → Published application routes
+#
+# To rebuild: re-enter these routes in the dashboard after creating/recreating the tunnel.
+#
+# Tunnel name:  coastal-nas
+# Tunnel ID:    6e0fe91a-d68e-446e-a5e0-c636bb535b44
 
 ingress:
-  # NAS web interface (Synology Photos, DSM) — restrict at Cloudflare Access if exposing DSM
   - hostname: nas.coastaltravelcompany.com
-    service: http://localhost:5000
+    path: "*"
+    service: https://192.168.68.2:5001  # Synology DSM HTTPS; LAN IP of the NAS
+    originRequest:
+      noTLSVerify: true                  # NAS uses a self-signed certificate
 
-  # Add additional services here, e.g.:
-  # - hostname: photos.coastaltravelcompany.com
-  #   service: http://localhost:5001
-
-  # Required catch-all — must be last
-  - service: http_status:404
+  - service: http_status:404             # catch-all
