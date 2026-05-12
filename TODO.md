@@ -219,7 +219,10 @@
 - [ ] Add "3D Walkthrough" as a deliverable option to `services.html` — position as a premium add-on to The Editorial Stay and similar property collections
 - [ ] Build `/walkthroughs.html` as a showcase page: grid of property cards, each opening a full-screen splat viewer — use as a sales tool for prospective hotel clients
 - [ ] Add walkthrough pricing to `faq.html` alongside print pricing
-## 16. Video Support in Client Gallery
+
+---
+
+## 18. Video Support in Client Gallery
 
 **Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
 
@@ -231,3 +234,69 @@
 - [ ] Handle mixed galleries gracefully — photos and videos interleaved in chronological order
 - [ ] Test with Synology video formats (MP4, MOV) — confirm the Worker can stream binary video data without buffering issues at Cloudflare Worker memory limits
 - [ ] Consider file size: large video files may need to be linked for direct download rather than streamed through the Worker (Cloudflare Workers have a 128MB response limit)
+
+---
+
+## 19. Admin Photo Editing
+
+**Goal:** Give admins a browser-based, non-destructive photo editor inside the gallery admin tool — adjust individual photos or apply edits globally across a gallery before client delivery. Edit parameters are stored in D1 and applied at serve time; original NAS files are never modified.
+
+### Editing interface
+- [ ] Add an "Edit" button to each photo in `gallery-admin.html` that opens a full-screen editing panel
+- [ ] Add a "Global Adjustments" mode that applies a set of edits to every photo in the gallery (useful for consistent look across a shoot)
+- [ ] Show a real-time preview using WebGL (via `glfx.js` or custom GLSL shaders on a `<canvas>`) — fast enough for interactive sliders without hitting the server
+- [ ] Add a before/after toggle (split-screen or A/B) so the admin can compare against the original
+- [ ] Add an "Apply to all" action that copies current photo edits as the gallery-wide baseline
+
+### Tone & exposure controls
+- [ ] Exposure (overall brightness in stops)
+- [ ] Contrast
+- [ ] Highlights (pull down bright areas without clipping)
+- [ ] Shadows (lift or crush shadow detail)
+- [ ] Whites (set the white point)
+- [ ] Blacks (set the black point)
+- [ ] Clarity (local contrast / midtone punch)
+- [ ] Dehaze (remove atmospheric haze — useful for outdoor/landscape property shots)
+
+### Color controls
+- [ ] White balance: Temperature (cool/warm) and Tint (green/magenta)
+- [ ] Vibrance (boost muted colors without oversaturating skin/neutrals)
+- [ ] Saturation (global color intensity)
+- [ ] HSL mixer: per-channel Hue, Saturation, Luminance for the 8 color ranges (Reds, Oranges, Yellows, Greens, Aquas, Blues, Purples, Magentas) — critical for interior shots where you want to shift wall colors or correct mixed lighting
+- [ ] Split toning: assign a color cast independently to shadows and highlights (e.g. warm highlights, cool shadows for a cinematic look)
+
+### Tone curve
+- [ ] RGB tone curve with draggable control points
+- [ ] Per-channel curves (R, G, B) for precise color grading
+- [ ] Preset curve shapes: Linear, Contrast S, Film (lifted blacks), Matte (flat)
+
+### Black & white
+- [ ] One-click B&W conversion toggle
+- [ ] B&W luminosity mixer: per-channel brightness contribution (same 8 ranges as HSL) — lets the admin control how much each color contributes to gray value, e.g. darken blue sky, brighten foliage
+- [ ] Film grain overlay with adjustable amount and size
+- [ ] Selenium / sepia tone option (split tone applied post-desaturation)
+
+### Effects
+- [ ] Vignette: amount, midpoint, feather, and roundness
+- [ ] Sharpening: amount and radius (applied via unsharp mask)
+- [ ] Noise reduction: luminance smoothing (useful for low-light interior shots)
+- [ ] Texture (fine detail enhancement, less aggressive than clarity)
+
+### Crop & transform
+- [ ] Crop with aspect ratio lock (free, 1:1, 4:3, 16:9, 3:2)
+- [ ] Straighten (rotation with auto-crop)
+- [ ] Horizontal and vertical perspective correction (fix converging verticals on architecture shots)
+- [ ] Flip horizontal / vertical
+
+### Presets
+- [ ] Save current edit settings as a named preset, stored per admin in D1
+- [ ] Ship a set of branded starting presets: "Coastal Clean" (neutral, airy), "Editorial Dark" (rich contrast, lifted blacks), "Golden Hour" (warm split tone), "B&W Architecture" (high-contrast monochrome)
+- [ ] Apply any preset to the current photo or to all photos in the gallery
+- [ ] Export and import presets as JSON for sharing between admin accounts
+
+### Storage & rendering pipeline
+- [ ] Add a `photo_edits` table to D1: `(gallery_id, photo_id, edit_params JSON, created_at, updated_at)` — one row per photo, `edit_params` is the full edit state as a JSON object
+- [ ] Add a `gallery_edits` table for gallery-wide baseline adjustments that are merged with per-photo overrides at serve time
+- [ ] Update the Worker's thumbnail and download endpoints to read edit params from D1, fetch the raw image from the NAS, apply adjustments server-side via **Sharp** (running in a Docker container on the NAS, called by the Worker), and return the processed image — keeps originals untouched
+- [ ] For download at full resolution: same pipeline, Sharp processes the original full-res file with the stored params
+- [ ] Cache processed thumbnails in Cloudflare R2 keyed by `{photo_id}:{hash_of_edit_params}` to avoid reprocessing on every view — invalidate cache entry when edits are updated
