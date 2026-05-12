@@ -571,3 +571,15 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Evaluate **Pixsy** or **Copytrack** as managed alternatives to the custom TinEye integration — both continuously crawl the web, identify unauthorized uses, and can initiate takedowns or compensation claims; recommended for ongoing production use once the store has meaningful volume
 - [ ] Store monitoring results in a `license_monitoring` D1 table: `photo_id`, `match_url`, `match_domain`, `detected_at`, `matched_license_id` (nullable), `status` (compliant / potential_violation / resolved / ignored)
 - [ ] Add a "License monitoring" panel in `gallery-admin.html` showing recent matches, their status, and quick actions (Mark compliant / Send takedown notice / Ignore)
+
+---
+
+## 25. Employee Email Addresses (@coastaltravelcompany.com)
+
+**Goal:** Set up professional email addresses on the company domain for any employees or contractors — replaces personal Gmail/etc. addresses for client-facing communication.
+
+- [ ] Choose an email host: **Google Workspace** (familiar UI, integrates with Google Meet/Drive, ~$6/user/month) or **Cloudflare Email Routing** (free, forwards to an existing inbox — good for a small team that doesn't need a separate mailbox) or **Microsoft 365** (~$6/user/month, includes Office apps)
+- [ ] Add the required DNS records for the chosen provider (MX, SPF, DKIM, DMARC) — these go in the Cloudflare DNS dashboard for `coastaltravelcompany.com`
+- [ ] Create addresses for each employee/role (e.g. `will@coastaltravelcompany.com`, `hello@coastaltravelcompany.com`)
+- [ ] Update the contact form delivery address and any Resend sending addresses to use the new domain emails
+- [ ] Add DMARC reporting (`rua=mailto:...`) so you can monitor for spoofing of the domain
