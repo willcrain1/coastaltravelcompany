@@ -199,3 +199,18 @@
 - [ ] Send invoice links to clients via email (Resend, shared with auth infrastructure in item 2)
 - [ ] Add invoice history to the client portal (item 2) so clients can view and download past invoices
 - [ ] Handle sales tax if applicable (Stripe Tax can automate this)
+
+---
+
+## 17. Video Support in Client Gallery
+
+**Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
+
+- [ ] Research Synology Photos API for video items — check whether `SYNO.Foto.Browse.Item` returns videos in a shared album and what fields differ from photos (likely a `type` or `mime_type` field)
+- [ ] Update `fetchAll()` in `client-gallery.html` to include video items in the results
+- [ ] Render video cards in the masonry grid differently from photos — show a play icon overlay, use the video thumbnail returned by the Synology API
+- [ ] On click, open the lightbox with an HTML `<video>` element instead of an `<img>` — proxy the video stream through the Worker the same way thumbnails are proxied
+- [ ] Add video download support — route through `SYNO.Foto.Download` via the Worker (same as photo downloads)
+- [ ] Handle mixed galleries gracefully — photos and videos interleaved in chronological order
+- [ ] Test with Synology video formats (MP4, MOV) — confirm the Worker can stream binary video data without buffering issues at Cloudflare Worker memory limits
+- [ ] Consider file size: large video files may need to be linked for direct download rather than streamed through the Worker (Cloudflare Workers have a 128MB response limit)
