@@ -51,3 +51,96 @@
 - [ ] If API supports it: update Worker or `gallery-admin.html` to set the share password to match the admin-specified client password when generating a gallery link
 - [ ] If API does not support it: update admin workflow instructions to remind admin to manually set the same password on the Synology share
 - [ ] Verify that the Worker's session establishment (`/mo/sharing/{passphrase}`) works correctly when a share has a password set (may need to pass the password during session init)
+
+---
+
+## 5. Testimonials Page
+
+**Goal:** Dedicated page (and homepage section) showing client reviews to build credibility with prospective hotel/property clients.
+
+- [ ] Design and build `testimonials.html` — full-page layout with quotes, client name, property name, and optional photo
+- [ ] Add a testimonials preview section to `index.html` (2–3 featured quotes with a "Read More" link)
+- [ ] Add "Testimonials" to the main nav and footer links
+- [ ] Populate with real client quotes
+- [ ] Consider a pull-quote format with property name and collection type (e.g. "The Editorial Stay — The Grand Palms, Palm Beach") for specificity
+
+---
+
+## 6. Photo Favorites / Proofing in Client Gallery
+
+**Goal:** Clients can star/heart photos in their gallery to indicate selections — admin can see which photos were favorited.
+
+- [ ] Add a heart/star button to each photo card in `client-gallery.html` (alongside or replacing the Save button)
+- [ ] Store favorites in `localStorage` keyed by gallery ID so selections persist across sessions on the same device
+- [ ] Add a "My Selections" view — filtered grid showing only favorited photos, with a count in the nav
+- [ ] Add a "Copy Selections List" or "Submit Selections" action — generates a list of filenames or photo indices the client can send back
+- [ ] In `gallery-admin.html`, consider a way to view submitted selections per gallery (requires either a Worker endpoint to receive the list, or a simple mailto link with the selection data)
+- [ ] Dependency: full per-client persistence requires the auth system (item 2) — localStorage version works standalone in the meantime
+
+---
+
+## 7. Email Capture / Mailing List
+
+**Goal:** Collect visitor emails for newsletters, availability announcements, or seasonal campaigns.
+
+- [ ] Choose a provider — Mailchimp or ConvertKit (both have free tiers and embed forms)
+- [ ] Add an email capture section to `index.html` — minimal, one-field form with a brand-appropriate headline (e.g. "Stay in the loop — new collections, destinations, availability")
+- [ ] Optionally add a slide-in or footer capture on `contact.html` for visitors who don't submit the inquiry form
+- [ ] Connect form to provider embed code or API
+- [ ] Set up a welcome email in the provider dashboard that goes out automatically on signup
+
+---
+
+## 8. Online Booking / Inquiry Workflow
+
+**Goal:** Move beyond the contact form to a structured intake — availability check, project details, deposit request — so new clients can self-qualify and book without back-and-forth.
+
+- [ ] Evaluate tools: HoneyBook or Dubsado handle contracts, invoices, and scheduling in one place and are common in photography; simpler alternative is Calendly for scheduling + Stripe for deposits
+- [ ] Embed a scheduling/availability widget on `contact.html` or a new `/book.html` page
+- [ ] Set up a project intake questionnaire (property type, dates, collection interest, budget range) that fires after a time slot is selected
+- [ ] Connect deposit/invoice flow — client pays a retainer to confirm the booking
+- [ ] Update the "Send Inquiry" CTA on `contact.html` and homepage to point to the booking flow once live
+
+---
+
+## 9. Before/After Editing Sliders
+
+**Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
+
+- [ ] Choose 3–5 strong before/after pairs from real shoots
+- [ ] Build or use a lightweight CSS-only or JS drag slider (no heavy library needed — a simple range input over two stacked images works well)
+- [ ] Add a "The Edit" section to `services.html` or create a standalone `/editing.html` page
+- [ ] Optionally embed one slider on the homepage as a visual hook
+
+---
+
+## 10. Video Reel / Showreel
+
+**Goal:** Feature short-form video work prominently, since it's a core part of the collections offering.
+
+- [ ] Upload reel to Vimeo (preferred over YouTube for clean embeds without ads/recommendations)
+- [ ] Add a full-width video hero or reel section to `index.html` — autoplay muted loop for ambient effect, or a play-button overlay for the full reel
+- [ ] Add video examples to `services.html` per collection (e.g. sample clip from The Fashioned Weekend)
+- [ ] Ensure video does not autoplay with sound — muted autoplay is fine for hero, full reel should be user-initiated
+
+---
+
+## 11. Availability Calendar
+
+**Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
+
+- [ ] Choose an approach: simple manually-updated HTML calendar, or embed from a booking tool (syncs automatically if item 8 is implemented)
+- [ ] Add to `contact.html` or a new `/availability.html` page
+- [ ] Mark booked periods as unavailable, show open windows clearly
+- [ ] Add a note about travel availability (available worldwide, lead time requirements)
+
+---
+
+## 12. FAQ Page
+
+**Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
+
+- [ ] Build `faq.html` with an accordion layout
+- [ ] Cover: pricing / how collections are priced, what's included, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
+- [ ] Add "FAQ" to footer nav
+- [ ] Link to FAQ from the contact page ("Have questions? See our FAQ") and from the collections page
