@@ -87,7 +87,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Admin sets weekly availability windows in `gallery-admin.html` (e.g. Mon–Fri, 9am–5pm, blocked dates synced from availability calendar item 13)
 - [ ] Discovery call scheduling: send client a link to pick a 30-minute slot; on confirmation, both parties receive a calendar invite via email (ICS attachment via Resend)
 - [ ] Shoot date confirmation: admin selects confirmed shoot date(s) on the project, client receives confirmation email with date, address, and pre-shoot questionnaire link
-- [ ] Shoot dates automatically block the availability calendar (item 15)
+- [ ] Shoot dates automatically block the availability calendar (item 16)
 
 ### Client portal
 - [ ] Every project has a dedicated portal at `/portal/{project-id}` — accessible via auth (item 4) or a single-use magic link emailed to the client
@@ -294,7 +294,47 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 15. Availability Calendar
+## 15. Admin Content Editor (CMS)
+
+**Goal:** Allow the admin to update text and photos on every public website page directly from the browser — no HTML editing or git knowledge required. Changes commit to the GitHub repo via the API and GitHub Pages deploys automatically within ~2 minutes.
+
+### Architecture
+- Extend `gallery-admin.html` or create `admin/content-editor.html` — gated behind admin auth (item 4)
+- Mark editable zones in each HTML page using `data-content-id` attributes (e.g. `<h1 data-content-id="home-hero-headline">`) so the Worker can parse and update only the relevant zones without touching surrounding markup
+- Worker reads current file content via GitHub API (`GET /repos/{owner}/{repo}/contents/{path}`), extracts zone values, serves them to the editor; on save, injects updated values back and commits via `PUT /repos/{owner}/{repo}/contents/{path}` with the file's current SHA
+- Store `GITHUB_TOKEN` (fine-grained personal access token with repo write scope, scoped to this repo only) as a Worker secret
+- Show a "Deploying — live in ~2 minutes" status badge after a successful commit; poll GitHub API for deployment status and update badge to "Live" when complete
+
+### Editable content zones per page
+- **`index.html`**: hero headline, hero subheadline, hero CTA button label, about-preview paragraph, featured collection names and one-line descriptions (per card), homepage testimonial quotes (2–3 pull quotes with attribution)
+- **`about.html`**: bio / brand story paragraphs, brand photo (replaceable), pull-quote overlays
+- **`services.html`**: per-collection card — name, description, inclusions list, price range indicator, hero photo
+- **`collections.html`**: portfolio photos per collection — add, remove, reorder; per-photo caption
+- **`contact.html`**: intro paragraph, contact details text
+- **`testimonials.html`** (item 13): add / edit / remove testimonials — quote text, client name, property name, optional photo
+- **`faq.html`** (item 19): add / edit / remove FAQ entries — question and answer; drag-to-reorder
+
+### Photo management
+- **Upload**: admin drags an image into the editor → Worker uploads to a public Cloudflare R2 bucket → returns the CDN URL → URL written into the content zone on save
+- **Pick from NAS**: admin opens a picker that loads gallery thumbnails via the existing Worker proxy → selects a photo → Worker fetches full-res from NAS and copies to R2 → URL used in content zone
+- **Reorder**: drag-and-drop handles on photo grids in `collections.html` and services cards; order persisted as a data attribute the Worker commits back to the file
+
+### Editor UI
+- Per-page editor shows each content zone as a labeled field — short text zones use a single-line input, body copy uses a minimal rich-text editor (bold, italic, line breaks only — no full HTML)
+- Inline photo picker appears on hover over any image zone — "Replace" opens upload or NAS picker, "Remove" clears the zone
+- Live preview panel renders the full page in an `<iframe>` using the current (unsaved) edits so the admin can see exactly how the page will look before publishing
+- **Save & Publish** commits all changed zones in a single GitHub API call with a descriptive auto-generated message (e.g. "Update home hero headline and about photo")
+- **Change history**: list of recent commits affecting website pages — shows timestamp, changed zones summary, and a "Revert" action that creates a new reverting commit (non-destructive)
+
+### Implementation notes
+- Use the GitHub Contents API — no git CLI or deploy script needed; the Worker handles all API calls server-side so `GITHUB_TOKEN` is never exposed to the browser
+- Each `PUT` to the GitHub Contents API requires the current file's `sha` to prevent conflicts — fetch it fresh immediately before each save
+- Add `GITHUB_TOKEN` to the Worker secrets checklist alongside `JWT_SECRET`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`
+- Mark all editable HTML zones before building the editor so zone IDs are stable; add a `data-content-id` naming convention to `CLAUDE.md` once established
+
+---
+
+## 16. Availability Calendar
 
 **Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
 
@@ -305,20 +345,20 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 16. Licensing Information
+## 17. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
 
 - [ ] Build a licensing page (`/licensing.html`) covering: personal use vs. commercial use, print vs. digital, exclusivity options, duration, geographic scope, third-party sub-licensing
 - [ ] Define license tiers per collection (e.g. The Editorial Stay includes X years of digital commercial use; extended licenses available for an additional fee)
 - [ ] Add license summary to each collection on `collections.html` — short plain-English version with a link to the full licensing page
-- [ ] Include licensing terms in the FAQ (item 18)
+- [ ] Include licensing terms in the FAQ (item 19)
 - [ ] Add licensing details to client delivery emails and the client portal (item 4) so clients have a permanent record
 - [ ] Consider a simple license certificate PDF generated per delivery — client name, property, collection, usage rights, expiry
 
 ---
 
-## 17. Before/After Editing Sliders
+## 18. Before/After Editing Sliders
 
 **Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
 
@@ -329,7 +369,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 18. FAQ Page
+## 19. FAQ Page
 
 **Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
 
@@ -340,7 +380,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 19. Photo Favorites / Proofing in Client Gallery
+## 20. Photo Favorites / Proofing in Client Gallery
 
 **Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
 
@@ -361,7 +401,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 20. Video Support in Client Gallery
+## 21. Video Support in Client Gallery
 
 **Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
 
@@ -376,7 +416,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 21. Admin Photo Editing
+## 22. Admin Photo Editing
 
 **Goal:** Give admins a browser-based, non-destructive photo editor inside the gallery admin tool — adjust individual photos or apply edits globally across a gallery before client delivery. Edit parameters are stored in D1 and applied at serve time; original NAS files are never modified.
 
@@ -442,13 +482,13 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 22. AI-Powered Auto Edit
+## 23. AI-Powered Auto Edit
 
 **Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 21 edit system so admins can review, tweak, or approve with one click.
 
 ### Analysis approach
 - [ ] Use the **Claude API (claude-opus-4-7 with vision)** as the primary analysis engine — send a downscaled JPEG of the photo (800px long edge is sufficient for analysis) and prompt it to return a structured JSON edit recommendation; Claude can reason about scene context ("beachfront suite at golden hour, pool is the hero element, slight haze on the horizon") in ways a pure algorithmic approach cannot
-- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 21 `edit_params` schema
+- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 22 `edit_params` schema
 - [ ] Implement a deterministic algorithmic fallback (no API call) for fast batch processing: histogram-based auto exposure (stretch to fill tonal range), gray world white balance correction, and shadow/highlight analysis — use this when Claude API is unavailable or for quick previews
 - [ ] Run the two approaches in parallel when both are available; prefer the Claude recommendation but fall back to algorithmic if the API call fails or times out
 
@@ -463,14 +503,14 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Detect and correct common hospitality photography problems automatically: mixed tungsten/daylight (common in lobbies), heavy vignetting from wide-angle lenses, converging verticals on architecture shots, overexposed windows vs. dark interiors (flag for HDR note if severe)
 
 ### Edit parameter output
-- [ ] Claude returns a structured JSON object matching the item 21 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
+- [ ] Claude returns a structured JSON object matching the item 22 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
 - [ ] Include a `reasoning` field in the response (a 1–2 sentence plain-English explanation of the main corrections applied) — display this in the admin UI so the admin understands why the edits were suggested
 - [ ] Low-confidence parameters (below a threshold) are flagged in the UI so the admin knows which adjustments are speculative vs. well-founded
 
 ### Admin review workflow
 - [ ] Add an "Auto Edit" button per photo and an "Auto Edit All" button at the gallery level in `gallery-admin.html`
 - [ ] "Auto Edit All" runs analysis in batches of 5 photos in parallel (respecting Claude API rate limits) with a progress indicator
-- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 21 editor pre-populated with the suggestions), or "Discard"
+- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 22 editor pre-populated with the suggestions), or "Discard"
 - [ ] Add an "Auto Edit confidence" badge to each photo card in the admin view — green (high confidence, minimal touch needed), amber (moderate, worth reviewing), red (low confidence, manual edit recommended)
 - [ ] Store `auto_edit_params`, `auto_edit_reasoning`, `auto_edit_confidence`, and `auto_edit_reviewed` columns in the `photo_edits` D1 table alongside the final `edit_params` — preserve the original suggestion even after the admin modifies it
 
