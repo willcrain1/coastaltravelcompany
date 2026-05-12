@@ -144,3 +144,58 @@
 - [ ] Cover: pricing / how collections are priced, what's included, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
 - [ ] Add "FAQ" to footer nav
 - [ ] Link to FAQ from the contact page ("Have questions? See our FAQ") and from the collections page
+
+---
+
+## 13. Proofing & Selection
+
+**Goal:** Structured proofing workflow where clients review their full gallery, mark selects, and submit a final list — replacing informal back-and-forth over email.
+
+- [ ] Add a heart/star toggle to each photo in `client-gallery.html` — persists in `localStorage` keyed by gallery ID
+- [ ] Add a "Selections" counter to the gallery nav showing how many photos are favorited
+- [ ] Add a "View Selections" mode — filtered grid showing only starred photos
+- [ ] Build a "Submit Selections" action that compiles filenames/indices and either: (a) opens a pre-filled mailto, or (b) POSTs to a Worker endpoint that emails the list to the admin
+- [ ] Add a selection deadline field to the gallery config in `gallery-admin.html` — display a countdown or reminder in the gallery UI
+- [ ] Show submitted selections per gallery in `gallery-admin.html`
+- [ ] Dependency: full cross-device persistence requires the auth system (item 2); localStorage works as a standalone first version
+
+---
+
+## 14. Print Ordering
+
+**Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
+
+- [ ] Evaluate print lab integrations: WHCC and Printful both have APIs; Pixieset and Pic-Time are all-in-one solutions that include gallery + print store (worth comparing against building custom)
+- [ ] If building custom: add "Order Print" button to the lightbox and photo hover state in `client-gallery.html`
+- [ ] Build a print product selection flow — size, paper type, quantity — before handing off to the print lab
+- [ ] Handle payment via Stripe (can be same Stripe account as billing/invoices in item 16)
+- [ ] Print lab fulfills and ships directly to client — no inventory needed
+- [ ] Add print pricing to `faq.html` and `services.html`
+- [ ] Dependency: works best alongside the auth system (item 2) so order history is tied to a client account
+
+---
+
+## 15. Licensing Information
+
+**Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
+
+- [ ] Build a licensing page (`/licensing.html`) covering: personal use vs. commercial use, print vs. digital, exclusivity options, duration, geographic scope, third-party sub-licensing
+- [ ] Define license tiers per collection (e.g. The Editorial Stay includes X years of digital commercial use; extended licenses available for an additional fee)
+- [ ] Add license summary to each collection on `collections.html` — short plain-English version with a link to the full licensing page
+- [ ] Include licensing terms in the FAQ (item 12)
+- [ ] Add licensing details to client delivery emails and the client portal (item 2) so clients have a permanent record
+- [ ] Consider a simple license certificate PDF generated per delivery — client name, property, collection, usage rights, expiry
+
+---
+
+## 16. Billing & Invoicing
+
+**Goal:** Send, track, and collect payment on invoices directly — no third-party tool required unless a full CRM (HoneyBook/Dubsado) is preferred.
+
+- [ ] Evaluate approach: (a) Stripe Invoicing — send invoices via Stripe, client pays by card, automatic receipts; (b) HoneyBook/Dubsado — all-in-one with contracts, invoices, scheduling; (c) custom Worker + Stripe API
+- [ ] If Stripe: set up Stripe account, configure invoice templates with Coastal Travel Company branding
+- [ ] Add deposit/retainer collection to the booking flow (item 8) — charge a percentage at booking, remainder on delivery
+- [ ] Add an invoices section to `gallery-admin.html` or the admin portal — create invoice, mark as paid, view status
+- [ ] Send invoice links to clients via email (Resend, shared with auth infrastructure in item 2)
+- [ ] Add invoice history to the client portal (item 2) so clients can view and download past invoices
+- [ ] Handle sales tax if applicable (Stripe Tax can automate this)
