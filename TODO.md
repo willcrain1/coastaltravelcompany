@@ -155,21 +155,7 @@
 
 ---
 
-## 13. Proofing & Selection
-
-**Goal:** Structured proofing workflow where clients review their full gallery, mark selects, and submit a final list — replacing informal back-and-forth over email.
-
-- [ ] Add a heart/star toggle to each photo in `client-gallery.html` — persists in `localStorage` keyed by gallery ID
-- [ ] Add a "Selections" counter to the gallery nav showing how many photos are favorited
-- [ ] Add a "View Selections" mode — filtered grid showing only starred photos
-- [ ] Build a "Submit Selections" action that compiles filenames/indices and either: (a) opens a pre-filled mailto, or (b) POSTs to a Worker endpoint that emails the list to the admin
-- [ ] Add a selection deadline field to the gallery config in `gallery-admin.html` — display a countdown or reminder in the gallery UI
-- [ ] Show submitted selections per gallery in `gallery-admin.html`
-- [ ] Dependency: full cross-device persistence requires the auth system (item 2); localStorage works as a standalone first version
-
----
-
-## 14. Print Ordering
+## 13. Print Ordering
 
 **Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
 
@@ -183,7 +169,7 @@
 
 ---
 
-## 15. Licensing Information
+## 14. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
 
@@ -196,7 +182,7 @@
 
 ---
 
-## 16. Billing & Invoicing
+## 15. Billing & Invoicing
 
 **Goal:** Send, track, and collect payment on invoices directly — no third-party tool required unless a full CRM (HoneyBook/Dubsado) is preferred.
 
@@ -210,7 +196,7 @@
 
 ---
 
-## 17. Video Support in Client Gallery
+## 16. Video Support in Client Gallery
 
 **Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
 
