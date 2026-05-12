@@ -1,8 +1,21 @@
 # Coastal Travel Company — To-Do
 
+Items are ordered: necessary website fixes first, then by highest revenue impact.
+
 ---
 
-## 1. Real Watermarking
+## 1. Functional Contact Form
+
+**Goal:** Form submissions on `contact.html` actually send an inquiry email instead of doing nothing.
+
+- [ ] Decide on delivery method: Formspree/Web3Forms (no backend, 2-minute setup) vs. Cloudflare Worker + Resend (more control, shares infrastructure with auth work)
+- [ ] Wire up form `action` to the chosen endpoint
+- [ ] Add success/error feedback in the UI after submit (replace the button state, show a confirmation message)
+- [ ] Confirm submissions arrive at `thecoastaltravelcompany@gmail.com`
+
+---
+
+## 2. Real Watermarking
 
 **Goal:** Photos downloaded by clients have Coastal Travel Company watermark burned in by Synology — not just a CSS overlay.
 
@@ -15,7 +28,18 @@
 
 ---
 
-## 2. OAuth Login & Per-User Gallery Access
+## 3. Synology-Level Album Password Protection
+
+**Goal:** Gallery password set in the admin tool is enforced at the Synology Photos share level, not just client-side in the browser.
+
+- [ ] Research Synology Photos sharing API — check if password protection can be set on a share via API (`SYNO.Foto.Sharing.Passphrase` or share creation endpoint)
+- [ ] If API supports it: update Worker or `gallery-admin.html` to set the share password to match the admin-specified client password when generating a gallery link
+- [ ] If API does not support it: update admin workflow instructions to remind admin to manually set the same password on the Synology share
+- [ ] Verify that the Worker's session establishment (`/mo/sharing/{passphrase}`) works correctly when a share has a password set (may need to pass the password during session init)
+
+---
+
+## 4. OAuth Login & Per-User Gallery Access
 
 **Goal:** Clients log in with email/password or Google, and see only their own galleries — no shared password links.
 
@@ -32,74 +56,7 @@
 
 ---
 
-## 3. Functional Contact Form
-
-**Goal:** Form submissions on `contact.html` actually send an inquiry email instead of doing nothing.
-
-- [ ] Decide on delivery method: Formspree/Web3Forms (no backend, 2-minute setup) vs. Cloudflare Worker + Resend (more control, shares infrastructure with auth work)
-- [ ] Wire up form `action` to the chosen endpoint
-- [ ] Add success/error feedback in the UI after submit (replace the button state, show a confirmation message)
-- [ ] Confirm submissions arrive at `thecoastaltravelcompany@gmail.com`
-
----
-
-## 4. Synology-Level Album Password Protection
-
-**Goal:** Gallery password set in the admin tool is enforced at the Synology Photos share level, not just client-side in the browser.
-
-- [ ] Research Synology Photos sharing API — check if password protection can be set on a share via API (`SYNO.Foto.Sharing.Passphrase` or share creation endpoint)
-- [ ] If API supports it: update Worker or `gallery-admin.html` to set the share password to match the admin-specified client password when generating a gallery link
-- [ ] If API does not support it: update admin workflow instructions to remind admin to manually set the same password on the Synology share
-- [ ] Verify that the Worker's session establishment (`/mo/sharing/{passphrase}`) works correctly when a share has a password set (may need to pass the password during session init)
-
----
-
-## 5. Testimonials Page
-
-**Goal:** Dedicated page (and homepage section) showing client reviews to build credibility with prospective hotel/property clients.
-
-- [ ] Design and build `testimonials.html` — full-page layout with quotes, client name, property name, and optional photo
-- [ ] Add a testimonials preview section to `index.html` (2–3 featured quotes with a "Read More" link)
-- [ ] Add "Testimonials" to the main nav and footer links
-- [ ] Populate with real client quotes
-- [ ] Consider a pull-quote format with property name and collection type (e.g. "The Editorial Stay — The Grand Palms, Palm Beach") for specificity
-
----
-
-## 6. Photo Favorites / Proofing in Client Gallery
-
-**Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
-
-**Client favorites**
-- [ ] Add a heart button to each photo card in `client-gallery.html` — visible to the client only
-- [ ] Store client favorites in `localStorage` keyed by gallery ID so selections persist across sessions on the same device
-- [ ] Add a "My Selections" view — filtered grid showing only the client's starred photos, with a count in the nav
-- [ ] Add a "Submit Selections" action — compiles filenames/indices and either opens a pre-filled mailto or POSTs to a Worker endpoint that emails the list to the admin
-- [ ] Dependency: full cross-device persistence requires the auth system (item 2); localStorage works as a standalone first version
-
-**Admin favorites (separate track)**
-- [ ] Add an admin preview mode to `client-gallery.html` — activated by a secret URL param (e.g. `&admin=1`) or via the admin portal, not visible to clients
-- [ ] In admin mode, show a separate star icon (different color/shape from the client heart) on each photo
-- [ ] Store admin stars in Cloudflare KV keyed by gallery ID and photo ID — persists across devices and sessions without requiring client auth
-- [ ] Display admin stars as a read-only overlay when the client views the gallery — e.g. a small badge indicating "Admin pick" — so clients can see which shots the photographer recommends
-- [ ] In `gallery-admin.html`, show admin-starred photos per gallery with a "View Admin Picks" filtered view
-- [ ] Allow admin to submit their star list to the client as a curated recommendation alongside (not replacing) the client's own selects
-
----
-
-## 7. Email Capture / Mailing List
-
-**Goal:** Collect visitor emails for newsletters, availability announcements, or seasonal campaigns.
-
-- [ ] Choose a provider — Mailchimp or ConvertKit (both have free tiers and embed forms)
-- [ ] Add an email capture section to `index.html` — minimal, one-field form with a brand-appropriate headline (e.g. "Stay in the loop — new collections, destinations, availability")
-- [ ] Optionally add a slide-in or footer capture on `contact.html` for visitors who don't submit the inquiry form
-- [ ] Connect form to provider embed code or API
-- [ ] Set up a welcome email in the provider dashboard that goes out automatically on signup
-
----
-
-## 8. Online Booking / Inquiry Workflow
+## 5. Online Booking / Inquiry Workflow
 
 **Goal:** Move beyond the contact form to a structured intake — availability check, project details, deposit request — so new clients can self-qualify and book without back-and-forth.
 
@@ -111,92 +68,21 @@
 
 ---
 
-## 9. Before/After Editing Sliders
-
-**Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
-
-- [ ] Choose 3–5 strong before/after pairs from real shoots
-- [ ] Build or use a lightweight CSS-only or JS drag slider (no heavy library needed — a simple range input over two stacked images works well)
-- [ ] Add a "The Edit" section to `services.html` or create a standalone `/editing.html` page
-- [ ] Optionally embed one slider on the homepage as a visual hook
-
----
-
-## 10. Video Reel / Showreel
-
-**Goal:** Feature short-form video work prominently, since it's a core part of the collections offering.
-
-- [ ] Upload reel to Vimeo (preferred over YouTube for clean embeds without ads/recommendations)
-- [ ] Add a full-width video hero or reel section to `index.html` — autoplay muted loop for ambient effect, or a play-button overlay for the full reel
-- [ ] Add video examples to `services.html` per collection (e.g. sample clip from The Fashioned Weekend)
-- [ ] Ensure video does not autoplay with sound — muted autoplay is fine for hero, full reel should be user-initiated
-
----
-
-## 11. Availability Calendar
-
-**Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
-
-- [ ] Choose an approach: simple manually-updated HTML calendar, or embed from a booking tool (syncs automatically if item 8 is implemented)
-- [ ] Add to `contact.html` or a new `/availability.html` page
-- [ ] Mark booked periods as unavailable, show open windows clearly
-- [ ] Add a note about travel availability (available worldwide, lead time requirements)
-
----
-
-## 12. FAQ Page
-
-**Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
-
-- [ ] Build `faq.html` with an accordion layout
-- [ ] Cover: pricing / how collections are priced, what's included, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
-- [ ] Add "FAQ" to footer nav
-- [ ] Link to FAQ from the contact page ("Have questions? See our FAQ") and from the collections page
-
----
-
-## 13. Print Ordering
-
-**Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
-
-- [ ] Evaluate print lab integrations: WHCC and Printful both have APIs; Pixieset and Pic-Time are all-in-one solutions that include gallery + print store (worth comparing against building custom)
-- [ ] If building custom: add "Order Print" button to the lightbox and photo hover state in `client-gallery.html`
-- [ ] Build a print product selection flow — size, paper type, quantity — before handing off to the print lab
-- [ ] Handle payment via Stripe (can be same Stripe account as billing/invoices in item 16)
-- [ ] Print lab fulfills and ships directly to client — no inventory needed
-- [ ] Add print pricing to `faq.html` and `services.html`
-- [ ] Dependency: works best alongside the auth system (item 2) so order history is tied to a client account
-
----
-
-## 14. Licensing Information
-
-**Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
-
-- [ ] Build a licensing page (`/licensing.html`) covering: personal use vs. commercial use, print vs. digital, exclusivity options, duration, geographic scope, third-party sub-licensing
-- [ ] Define license tiers per collection (e.g. The Editorial Stay includes X years of digital commercial use; extended licenses available for an additional fee)
-- [ ] Add license summary to each collection on `collections.html` — short plain-English version with a link to the full licensing page
-- [ ] Include licensing terms in the FAQ (item 12)
-- [ ] Add licensing details to client delivery emails and the client portal (item 2) so clients have a permanent record
-- [ ] Consider a simple license certificate PDF generated per delivery — client name, property, collection, usage rights, expiry
-
----
-
-## 15. Billing & Invoicing
+## 6. Billing & Invoicing
 
 **Goal:** Send, track, and collect payment on invoices directly — no third-party tool required unless a full CRM (HoneyBook/Dubsado) is preferred.
 
 - [ ] Evaluate approach: (a) Stripe Invoicing — send invoices via Stripe, client pays by card, automatic receipts; (b) HoneyBook/Dubsado — all-in-one with contracts, invoices, scheduling; (c) custom Worker + Stripe API
 - [ ] If Stripe: set up Stripe account, configure invoice templates with Coastal Travel Company branding
-- [ ] Add deposit/retainer collection to the booking flow (item 8) — charge a percentage at booking, remainder on delivery
+- [ ] Add deposit/retainer collection to the booking flow (item 5) — charge a percentage at booking, remainder on delivery
 - [ ] Add an invoices section to `gallery-admin.html` or the admin portal — create invoice, mark as paid, view status
-- [ ] Send invoice links to clients via email (Resend, shared with auth infrastructure in item 2)
-- [ ] Add invoice history to the client portal (item 2) so clients can view and download past invoices
+- [ ] Send invoice links to clients via email (Resend, shared with auth infrastructure in item 4)
+- [ ] Add invoice history to the client portal (item 4) so clients can view and download past invoices
 - [ ] Handle sales tax if applicable (Stripe Tax can automate this)
 
 ---
 
-## 17. 3D Property Walkthroughs (Gaussian Splatting)
+## 7. 3D Property Walkthroughs (Gaussian Splatting)
 
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
 
@@ -222,7 +108,123 @@
 
 ---
 
-## 18. Video Support in Client Gallery
+## 8. Print Ordering
+
+**Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
+
+- [ ] Evaluate print lab integrations: WHCC and Printful both have APIs; Pixieset and Pic-Time are all-in-one solutions that include gallery + print store (worth comparing against building custom)
+- [ ] If building custom: add "Order Print" button to the lightbox and photo hover state in `client-gallery.html`
+- [ ] Build a print product selection flow — size, paper type, quantity — before handing off to the print lab
+- [ ] Handle payment via Stripe (can be same Stripe account as billing/invoices in item 6)
+- [ ] Print lab fulfills and ships directly to client — no inventory needed
+- [ ] Add print pricing to `faq.html` and `services.html`
+- [ ] Dependency: works best alongside the auth system (item 4) so order history is tied to a client account
+
+---
+
+## 9. Email Capture / Mailing List
+
+**Goal:** Collect visitor emails for newsletters, availability announcements, or seasonal campaigns.
+
+- [ ] Choose a provider — Mailchimp or ConvertKit (both have free tiers and embed forms)
+- [ ] Add an email capture section to `index.html` — minimal, one-field form with a brand-appropriate headline (e.g. "Stay in the loop — new collections, destinations, availability")
+- [ ] Optionally add a slide-in or footer capture on `contact.html` for visitors who don't submit the inquiry form
+- [ ] Connect form to provider embed code or API
+- [ ] Set up a welcome email in the provider dashboard that goes out automatically on signup
+
+---
+
+## 10. Video Reel / Showreel
+
+**Goal:** Feature short-form video work prominently, since it's a core part of the collections offering.
+
+- [ ] Upload reel to Vimeo (preferred over YouTube for clean embeds without ads/recommendations)
+- [ ] Add a full-width video hero or reel section to `index.html` — autoplay muted loop for ambient effect, or a play-button overlay for the full reel
+- [ ] Add video examples to `services.html` per collection (e.g. sample clip from The Fashioned Weekend)
+- [ ] Ensure video does not autoplay with sound — muted autoplay is fine for hero, full reel should be user-initiated
+
+---
+
+## 11. Testimonials Page
+
+**Goal:** Dedicated page (and homepage section) showing client reviews to build credibility with prospective hotel/property clients.
+
+- [ ] Design and build `testimonials.html` — full-page layout with quotes, client name, property name, and optional photo
+- [ ] Add a testimonials preview section to `index.html` (2–3 featured quotes with a "Read More" link)
+- [ ] Add "Testimonials" to the main nav and footer links
+- [ ] Populate with real client quotes
+- [ ] Consider a pull-quote format with property name and collection type (e.g. "The Editorial Stay — The Grand Palms, Palm Beach") for specificity
+
+---
+
+## 12. Availability Calendar
+
+**Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
+
+- [ ] Choose an approach: simple manually-updated HTML calendar, or embed from a booking tool (syncs automatically if item 5 is implemented)
+- [ ] Add to `contact.html` or a new `/availability.html` page
+- [ ] Mark booked periods as unavailable, show open windows clearly
+- [ ] Add a note about travel availability (available worldwide, lead time requirements)
+
+---
+
+## 13. Licensing Information
+
+**Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
+
+- [ ] Build a licensing page (`/licensing.html`) covering: personal use vs. commercial use, print vs. digital, exclusivity options, duration, geographic scope, third-party sub-licensing
+- [ ] Define license tiers per collection (e.g. The Editorial Stay includes X years of digital commercial use; extended licenses available for an additional fee)
+- [ ] Add license summary to each collection on `collections.html` — short plain-English version with a link to the full licensing page
+- [ ] Include licensing terms in the FAQ (item 15)
+- [ ] Add licensing details to client delivery emails and the client portal (item 4) so clients have a permanent record
+- [ ] Consider a simple license certificate PDF generated per delivery — client name, property, collection, usage rights, expiry
+
+---
+
+## 14. Before/After Editing Sliders
+
+**Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
+
+- [ ] Choose 3–5 strong before/after pairs from real shoots
+- [ ] Build or use a lightweight CSS-only or JS drag slider (no heavy library needed — a simple range input over two stacked images works well)
+- [ ] Add a "The Edit" section to `services.html` or create a standalone `/editing.html` page
+- [ ] Optionally embed one slider on the homepage as a visual hook
+
+---
+
+## 15. FAQ Page
+
+**Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
+
+- [ ] Build `faq.html` with an accordion layout
+- [ ] Cover: pricing / how collections are priced, what's included, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
+- [ ] Add "FAQ" to footer nav
+- [ ] Link to FAQ from the contact page ("Have questions? See our FAQ") and from the collections page
+
+---
+
+## 16. Photo Favorites / Proofing in Client Gallery
+
+**Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
+
+**Client favorites**
+- [ ] Add a heart button to each photo card in `client-gallery.html` — visible to the client only
+- [ ] Store client favorites in `localStorage` keyed by gallery ID so selections persist across sessions on the same device
+- [ ] Add a "My Selections" view — filtered grid showing only the client's starred photos, with a count in the nav
+- [ ] Add a "Submit Selections" action — compiles filenames/indices and either opens a pre-filled mailto or POSTs to a Worker endpoint that emails the list to the admin
+- [ ] Dependency: full cross-device persistence requires the auth system (item 4); localStorage works as a standalone first version
+
+**Admin favorites (separate track)**
+- [ ] Add an admin preview mode to `client-gallery.html` — activated by a secret URL param (e.g. `&admin=1`) or via the admin portal, not visible to clients
+- [ ] In admin mode, show a separate star icon (different color/shape from the client heart) on each photo
+- [ ] Store admin stars in Cloudflare KV keyed by gallery ID and photo ID — persists across devices and sessions without requiring client auth
+- [ ] Display admin stars as a read-only overlay when the client views the gallery — e.g. a small badge indicating "Admin pick" — so clients can see which shots the photographer recommends
+- [ ] In `gallery-admin.html`, show admin-starred photos per gallery with a "View Admin Picks" filtered view
+- [ ] Allow admin to submit their star list to the client as a curated recommendation alongside (not replacing) the client's own selects
+
+---
+
+## 17. Video Support in Client Gallery
 
 **Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
 
@@ -237,7 +239,7 @@
 
 ---
 
-## 19. Admin Photo Editing
+## 18. Admin Photo Editing
 
 **Goal:** Give admins a browser-based, non-destructive photo editor inside the gallery admin tool — adjust individual photos or apply edits globally across a gallery before client delivery. Edit parameters are stored in D1 and applied at serve time; original NAS files are never modified.
 
@@ -303,13 +305,13 @@
 
 ---
 
-## 20. AI-Powered Auto Edit
+## 19. AI-Powered Auto Edit
 
-**Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 19 edit system so admins can review, tweak, or approve with one click.
+**Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 18 edit system so admins can review, tweak, or approve with one click.
 
 ### Analysis approach
 - [ ] Use the **Claude API (claude-opus-4-7 with vision)** as the primary analysis engine — send a downscaled JPEG of the photo (800px long edge is sufficient for analysis) and prompt it to return a structured JSON edit recommendation; Claude can reason about scene context ("beachfront suite at golden hour, pool is the hero element, slight haze on the horizon") in ways a pure algorithmic approach cannot
-- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 19 `edit_params` schema
+- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 18 `edit_params` schema
 - [ ] Implement a deterministic algorithmic fallback (no API call) for fast batch processing: histogram-based auto exposure (stretch to fill tonal range), gray world white balance correction, and shadow/highlight analysis — use this when Claude API is unavailable or for quick previews
 - [ ] Run the two approaches in parallel when both are available; prefer the Claude recommendation but fall back to algorithmic if the API call fails or times out
 
@@ -324,14 +326,14 @@
 - [ ] Detect and correct common hospitality photography problems automatically: mixed tungsten/daylight (common in lobbies), heavy vignetting from wide-angle lenses, converging verticals on architecture shots, overexposed windows vs. dark interiors (flag for HDR note if severe)
 
 ### Edit parameter output
-- [ ] Claude returns a structured JSON object matching the item 19 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
+- [ ] Claude returns a structured JSON object matching the item 18 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
 - [ ] Include a `reasoning` field in the response (a 1–2 sentence plain-English explanation of the main corrections applied) — display this in the admin UI so the admin understands why the edits were suggested
 - [ ] Low-confidence parameters (below a threshold) are flagged in the UI so the admin knows which adjustments are speculative vs. well-founded
 
 ### Admin review workflow
 - [ ] Add an "Auto Edit" button per photo and an "Auto Edit All" button at the gallery level in `gallery-admin.html`
 - [ ] "Auto Edit All" runs analysis in batches of 5 photos in parallel (respecting Claude API rate limits) with a progress indicator
-- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 19 editor pre-populated with the suggestions), or "Discard"
+- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 18 editor pre-populated with the suggestions), or "Discard"
 - [ ] Add an "Auto Edit confidence" badge to each photo card in the admin view — green (high confidence, minimal touch needed), amber (moderate, worth reviewing), red (low confidence, manual edit recommended)
 - [ ] Store `auto_edit_params`, `auto_edit_reasoning`, `auto_edit_confidence`, and `auto_edit_reviewed` columns in the `photo_edits` D1 table alongside the final `edit_params` — preserve the original suggestion even after the admin modifies it
 
