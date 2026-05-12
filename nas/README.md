@@ -2,6 +2,17 @@
 
 Docker services running on the Synology NAS at `nas.coastaltravelcompany.com`.
 
+## Tunnel configuration
+
+Ingress rules are managed in the Cloudflare Zero Trust dashboard (not in a local file). Current configuration:
+
+| Hostname | Path | Service | Origin |
+|---|---|---|---|
+| `nas.coastaltravelcompany.com` | `*` | `https://192.168.68.2:5001` | `noTLSVerify: true` |
+| catch-all | — | `http_status:404` | — |
+
+`noTLSVerify` is required because the NAS uses a self-signed certificate. `192.168.68.2:5001` is the Synology DSM HTTPS port on the local network. See `cloudflare-tunnel/config.example.yml` for the equivalent YAML reference.
+
 ## How the tunnel works
 
 This setup uses Cloudflare Tunnel **token-based auth** — no local `config.yml` or `credentials.json` needed. The tunnel token embeds the credentials, and ingress rules (which hostnames route to which local services) are managed entirely in the Cloudflare Zero Trust dashboard:
