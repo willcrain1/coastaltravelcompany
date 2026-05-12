@@ -339,6 +339,11 @@
           <input type="text" id="notes" placeholder="e.g. 200 photos delivered, client approved." />
         </div>
 
+        <div class="fg full" style="flex-direction:row; align-items:center; gap:10px; margin-top:2px;">
+          <input type="checkbox" id="watermark" style="width:auto; accent-color:var(--teal); cursor:pointer; flex-shrink:0;" />
+          <label for="watermark" style="font-size:11px; letter-spacing:0.08em; text-transform:none; color:var(--dim); cursor:pointer; font-weight:400;">Photos are watermarked — disable downloads in the client gallery</label>
+        </div>
+
       </div>
 
       <div style="display:flex; justify-content:flex-end; margin-top:26px;">
@@ -429,6 +434,7 @@
     const clientName = document.getElementById('clientName').value.trim();
     const pw = document.getElementById('clientPw').value;
     const notes = document.getElementById('notes').value.trim();
+    const watermark = document.getElementById('watermark').checked;
 
     const parsed = parseShareUrl(shareRaw);
     if (!parsed) {
@@ -443,7 +449,7 @@
 
     const { mainSiteUrl, nasClientUrl, workerUrl } = getSettings();
     const config = { id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: workerUrl,
-                     passphrase: parsed.passphrase, eventName, clientName, pwHash, created };
+                     passphrase: parsed.passphrase, eventName, clientName, pwHash, created, watermark };
 
     currentResultUrl = mainSiteUrl + '#' + encode(config);
     document.getElementById('resultUrl').textContent = currentResultUrl;
@@ -478,7 +484,8 @@
     const config = { id: g.id, nasUrl: g.nasUrl, nasClientUrl: g.nasClientUrl,
                      proxyUrl: g.proxyUrl || workerUrl,
                      passphrase: g.passphrase, eventName: g.eventName,
-                     clientName: g.clientName, pwHash: g.pwHash, created: g.created };
+                     clientName: g.clientName, pwHash: g.pwHash, created: g.created,
+                     watermark: g.watermark || false };
     return mainSiteUrl + '#' + encode(config);
   }
 
@@ -493,7 +500,7 @@
       <div class="gallery-row">
         <div>
           <div class="gr-name">${g.eventName}</div>
-          <div class="gr-meta">${g.clientName} &nbsp;·&nbsp; Created ${g.created}${g.notes ? ' &nbsp;·&nbsp; ' + g.notes : ''}</div>
+          <div class="gr-meta">${g.clientName} &nbsp;·&nbsp; Created ${g.created}${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}${g.notes ? ' &nbsp;·&nbsp; ' + g.notes : ''}</div>
           <div class="gr-pw">Password: ${g.pw}</div>
         </div>
         <div class="gr-actions">

@@ -347,6 +347,17 @@
       font-size: 10px; letter-spacing: 0.14em;
       color: rgba(255,255,255,0.22);
     }
+
+    /* ═══════════════════════════════════════
+       WATERMARK OVERLAY
+    ═══════════════════════════════════════ */
+    .wm-overlay {
+      position: absolute; inset: 0;
+      pointer-events: none; z-index: 2;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='130'%3E%3Ctext x='150' y='65' text-anchor='middle' dominant-baseline='middle' font-family='Arial,sans-serif' font-size='11' font-weight='700' letter-spacing='4' fill='white' opacity='0.28' transform='rotate(-25 150 65)'%3ECOASTAL TRAVEL CO%3C/text%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 300px 130px;
+    }
   </style>
 </head>
 <body>
@@ -494,6 +505,14 @@ function init() {
   document.getElementById('lockClient').textContent = cfg.clientName;
   document.getElementById('navTitle').textContent = cfg.eventName;
   document.getElementById('navClient').textContent = cfg.clientName;
+
+  if (cfg.watermark) {
+    document.getElementById('dlAll').style.display = 'none';
+    document.getElementById('lbDl').style.display = 'none';
+    const lbWm = document.createElement('div');
+    lbWm.className = 'wm-overlay';
+    document.querySelector('.lb-img-wrap').appendChild(lbWm);
+  }
 }
 
 function showBadLink(msg) {
@@ -543,7 +562,7 @@ async function loadGallery() {
       return;
     }
     document.getElementById('gCount').textContent = photos.length + ' photos';
-    document.getElementById('dlAll').classList.add('show');
+    if (!cfg.watermark) document.getElementById('dlAll').classList.add('show');
     document.getElementById('loading').style.display = 'none';
     document.getElementById('grid').classList.add('show');
     renderPhotos();
@@ -624,9 +643,14 @@ function renderPhotos() {
     dlBtn.textContent = '↓ Save';
     dlBtn.addEventListener('click', e => e.stopPropagation());
 
-    hover.appendChild(dlBtn);
+    if (!cfg.watermark) hover.appendChild(dlBtn);
     item.appendChild(img);
     item.appendChild(hover);
+    if (cfg.watermark) {
+      const wm = document.createElement('div');
+      wm.className = 'wm-overlay';
+      item.appendChild(wm);
+    }
     item.addEventListener('click', () => openLb(i));
     masonry.appendChild(item);
   });
