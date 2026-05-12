@@ -450,6 +450,7 @@
 let cfg = null;
 let photos = [];
 let lbIndex = 0;
+let gallerySid = null;
 // ── SHA-256 ───────────────────────────────────────────────
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -463,8 +464,9 @@ function decodeCfg(hash) {
 }
 
 // ── API URL builders ──────────────────────────────────────
-// All requests (JSON, thumbnails, downloads) go through the Worker so it can
-// add the X-SYNO-SHARING header and sharing session cookie that the NAS requires.
+// All requests go through the Worker. Thumbnails and downloads use a short-lived
+// sid token (obtained via POST /token) so the passphrase never appears in GET URLs
+// and is therefore never written to Cloudflare's request logs.
 const PROXY_API = () => cfg.proxyUrl || (cfg.nasUrl + '/mo/sharing/webapi/entry.cgi');
 
 function thumbUrl(photo, size) {
@@ -476,8 +478,7 @@ function thumbUrl(photo, size) {
     id: unitId,
     cache_key: JSON.stringify(cacheKey),
     type: 'unit', size,
-    passphrase: JSON.stringify(cfg.passphrase),
-    _sharing_id: JSON.stringify(cfg.passphrase),
+    sid: gallerySid,
   });
 }
 
@@ -485,8 +486,22 @@ function dlUrl(photo) {
   return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Download', version: '1', method: 'download',
     unit_id: JSON.stringify([photo.id]),
-    passphrase: JSON.stringify(cfg.passphrase),
+    sid: gallerySid,
   });
+}
+
+// ── Session token exchange ────────────────────────────────
+// Exchanges the gallery passphrase for a 4-hour sid stored in Worker KV.
+async function getGallerySid() {
+  const res = await fetch(cfg.proxyUrl + '/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ passphrase: JSON.stringify(cfg.passphrase) }).toString(),
+  });
+  if (!res.ok) throw new Error('Gallery session failed (HTTP ' + res.status + ')');
+  const data = await res.json();
+  if (!data.sid) throw new Error('Token exchange returned no sid');
+  return data.sid;
 }
 
 // ── Init ──────────────────────────────────────────────────
@@ -556,6 +571,7 @@ document.getElementById('lockForm').addEventListener('submit', async e => {
 async function loadGallery() {
   showSkeletons();
   try {
+    gallerySid = await getGallerySid();
     photos = await fetchAll();
     if (!photos.length) {
       showError('No photos found in this gallery.', '');
@@ -589,7 +605,7 @@ async function fetchAll() {
       limit: String(BATCH),
       sort_by: JSON.stringify('takentime'),
       sort_direction: JSON.stringify('asc'),
-      passphrase: JSON.stringify(cfg.passphrase)
+      sid: gallerySid,
     });
     const res = await fetch(PROXY_API(), {
       method: 'POST',
