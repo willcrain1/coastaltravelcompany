@@ -58,17 +58,90 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ## 5. Online Booking / Inquiry Workflow
 
-**Goal:** Move beyond the contact form to a structured intake — availability check, project details, deposit request — so new clients can self-qualify and book without back-and-forth.
+**Goal:** Mirror HoneyBook's end-to-end client workflow — lead capture, pipeline management, branded proposals, intake questionnaires, scheduling, client portal, and automations — built custom on the existing Worker + D1 infrastructure so everything stays in one system.
 
-- [ ] Evaluate tools: HoneyBook or Dubsado handle contracts, invoices, and scheduling in one place and are common in photography; simpler alternative is Calendly for scheduling + Stripe for deposits
-- [ ] Embed a scheduling/availability widget on `contact.html` or a new `/book.html` page
-- [ ] Set up a project intake questionnaire (property type, dates, collection interest, budget range) that fires after a time slot is selected
-- [ ] Connect deposit/invoice flow — client pays a retainer to confirm the booking
-- [ ] Update the "Send Inquiry" CTA on `contact.html` and homepage to point to the booking flow once live
+### Lead & project pipeline
+- [ ] Contact form submissions (item 1) feed into a lead inbox in `gallery-admin.html` with unread count badge
+- [ ] Build a Kanban-style pipeline view with stages: **Inquiry → Proposal Sent → Contract Sent → Contract Signed → Retainer Paid → Active → Delivered → Complete**
+- [ ] Each project card shows: client name, property, collection, shoot date, last activity, current stage, outstanding action (e.g. "Contract unsigned — 3 days")
+- [ ] Per-project detail page: notes, labels/tags, activity log, all associated documents (proposal, contract, invoice, gallery) in one place
+- [ ] Admin can add manual notes, set follow-up reminders with due dates, and log phone call outcomes
+- [ ] Store projects in D1 `projects` table linked to `inquiries`, `users`, `bookings`, `galleries`
+
+### Service packages & proposals
+- [ ] Build a package library in `gallery-admin.html`: create reusable packages (The Editorial Stay, The Fashioned Weekend, The Branded Journey, etc.) each with name, description, inclusions list, hero photo, base price, and available add-ons
+- [ ] Add-on options admin can attach to any package: rush delivery, extra edited images, video reel, 3D walkthrough (item 8), extended license, additional half-day
+- [ ] Send a branded proposal to a lead: select 1–3 packages for side-by-side comparison, add a personalized cover note, set an expiry date
+- [ ] Client opens proposal at `/proposal/{id}` — sees branded layout (Coastal design system), browses packages, selects one, checks desired add-ons, and clicks "Let's do this"
+- [ ] Track proposal analytics: opened timestamp, time spent, number of views — stored in D1, shown in admin pipeline view
+- [ ] On client selection, automatically advance project stage to "Contract Sent" and trigger contract workflow (item 6)
+
+### Intake questionnaires
+- [ ] Build a questionnaire builder in `gallery-admin.html`: create reusable question sets with text, multiple choice, date, and file-upload field types
+- [ ] Pre-booking questionnaire (sent with or after proposal): property name, address, property type (hotel / boutique / resort / vacation rental / private villa), number of spaces to shoot, key must-have shots, style references, logistics notes
+- [ ] Post-booking / pre-shoot questionnaire (sent after contract signed): refined shot list, venue contact name/number, parking/access instructions, mood board upload, any restrictions
+- [ ] Client completes questionnaires at `/questionnaire/{id}` — accessible via magic link, no login required
+- [ ] Responses stored per project in D1, displayed on the project detail page; admin receives email notification via Resend when a questionnaire is submitted
+
+### Scheduling
+- [ ] Admin sets weekly availability windows in `gallery-admin.html` (e.g. Mon–Fri, 9am–5pm, blocked dates synced from availability calendar item 13)
+- [ ] Discovery call scheduling: send client a link to pick a 30-minute slot; on confirmation, both parties receive a calendar invite via email (ICS attachment via Resend)
+- [ ] Shoot date confirmation: admin selects confirmed shoot date(s) on the project, client receives confirmation email with date, address, and pre-shoot questionnaire link
+- [ ] Shoot dates automatically block the availability calendar (item 13)
+
+### Client portal
+- [ ] Every project has a dedicated portal at `/portal/{project-id}` — accessible via auth (item 4) or a single-use magic link emailed to the client
+- [ ] Portal shows a visual timeline of the project lifecycle: Proposal → Contract → Invoice → Gallery — each step shows status (pending / action required / complete) and a direct link to the relevant document or action
+- [ ] Messaging thread per project: client and admin exchange messages directly in the portal; admin receives email notification of new messages; full thread history stored in D1
+- [ ] Client can view and download all signed documents, paid invoices, and the final gallery from one URL — no hunting through emails
+
+### Automations
+- [ ] Build a workflow engine in `gallery-admin.html`: admin can enable/disable pre-built automation triggers per project or globally
+- [ ] **Inquiry received** → auto-reply email acknowledging receipt, send proposal within X hours (configurable delay) or queue for manual send
+- [ ] **Proposal not opened** → follow-up email after 3 days ("Just checking in — I wanted to make sure you received the proposal for...")
+- [ ] **Proposal not approved** → reminder after 7 days with a soft deadline ("The dates are filling up — happy to answer any questions before deciding")
+- [ ] **Proposal approved** → auto-advance to "Contract Sent", send contract link (item 6)
+- [ ] **Contract not signed** → reminder after 2 days
+- [ ] **Contract signed** → auto-send deposit invoice (item 7), advance stage to "Retainer Paid" when deposit clears
+- [ ] **Invoice due in 3 days** → payment reminder email
+- [ ] **Final payment received** → thank-you email, stage advances to "Active"
+- [ ] **Gallery delivered** → auto-send gallery link and access instructions, stage advances to "Delivered"
+- [ ] **2 weeks post-delivery** → review request email (feeds into testimonials item 12)
+- [ ] All automation emails use Resend with branded templates matching the Coastal design system
 
 ---
 
-## 6. Billing & Invoicing
+## 6. Document Signing & Contracts
+
+**Goal:** Send, sign, and store legally binding contracts entirely within the platform — clients sign from any device without printing, scanning, or third-party accounts.
+
+### Contract template builder
+- [ ] Build a contract template editor in `gallery-admin.html` with a rich-text body and a library of merge fields: `{{client_name}}`, `{{property_name}}`, `{{collection}}`, `{{shoot_date}}`, `{{deliverables}}`, `{{total_fee}}`, `{{deposit_amount}}`, `{{deposit_due_date}}`, `{{balance_due_date}}`, `{{license_scope}}`, `{{license_duration}}`, `{{cancellation_policy}}`
+- [ ] Create one default template per collection type (The Editorial Stay, The Fashioned Weekend, The Branded Journey) pre-populated with appropriate scope of work, deliverable list, and license terms
+- [ ] Standard contract sections to include: scope of work, deliverables & timeline, fees & payment schedule, cancellation & rescheduling policy, licensing & usage rights, property release, limitation of liability, governing law
+- [ ] Admin can preview a rendered contract with merged fields before sending
+
+### Sending & signing flow
+- [ ] Admin sends contract from the project detail page — Worker creates a contract record in D1, generates a unique signing URL, emails client via Resend
+- [ ] Client opens `/contract/{token}` — sees a read-only rendered contract with a scroll-to-bottom requirement before the signature block activates (ensures the client has scrolled through the document)
+- [ ] Signature capture options: (a) **type name** — rendered in a cursive font as a signature, (b) **draw** — mouse or touchscreen signature pad using Canvas API, (c) **upload image** — upload a signature image file
+- [ ] Client submits: records their signature, name, date, and clicks "I agree and sign"
+- [ ] Admin receives email notification of client signature with a countersign link
+- [ ] Admin countersigns in `gallery-admin.html` using the same signature options — finalizes the contract
+- [ ] On full execution, both parties receive a "Fully executed contract" email with a PDF attachment and a permanent download link
+
+### Legal audit trail
+- [ ] Each signing event (view, sign, countersign) records in D1: UTC timestamp, IP address, email address, browser user-agent string, and a hash of the document contents at signing time
+- [ ] Certificate of completion appended to the PDF: lists all signing events with timestamps and IP addresses — meets legal requirements for e-signature validity in the US and EU (equivalent to DocuSign's evidence summary)
+- [ ] Store signed PDFs in Cloudflare R2 keyed by contract ID — never deleted, accessible from client portal and admin indefinitely
+
+### Integration option
+- [ ] Evaluate Dropbox Sign (HelloSign) API as an alternative to the custom build above — provides jurisdiction-tested legal compliance, SMS authentication, and audit trail out of the box; trade-off is per-envelope cost (~$0.10–0.40/contract) vs. the custom build which is free per signing
+- [ ] If using Dropbox Sign: store only the signature request ID and signed document URL in D1; Dropbox Sign hosts the audit trail
+
+---
+
+## 7. Billing & Invoicing
 
 **Goal:** Send, track, and collect payment on invoices directly — no third-party tool required unless a full CRM (HoneyBook/Dubsado) is preferred.
 
@@ -82,7 +155,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 7. 3D Property Walkthroughs (Gaussian Splatting)
+## 8. 3D Property Walkthroughs (Gaussian Splatting)
 
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
 
@@ -108,21 +181,21 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 8. Print Ordering
+## 9. Print Ordering
 
 **Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
 
 - [ ] Evaluate print lab integrations: WHCC and Printful both have APIs; Pixieset and Pic-Time are all-in-one solutions that include gallery + print store (worth comparing against building custom)
 - [ ] If building custom: add "Order Print" button to the lightbox and photo hover state in `client-gallery.html`
 - [ ] Build a print product selection flow — size, paper type, quantity — before handing off to the print lab
-- [ ] Handle payment via Stripe (can be same Stripe account as billing/invoices in item 6)
+- [ ] Handle payment via Stripe (can be same Stripe account as billing/invoices in item 7)
 - [ ] Print lab fulfills and ships directly to client — no inventory needed
 - [ ] Add print pricing to `faq.html` and `services.html`
 - [ ] Dependency: works best alongside the auth system (item 4) so order history is tied to a client account
 
 ---
 
-## 9. Email Capture / Mailing List
+## 10. Email Capture / Mailing List
 
 **Goal:** Collect visitor emails for newsletters, availability announcements, or seasonal campaigns.
 
@@ -134,7 +207,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 10. Video Reel / Showreel
+## 11. Video Reel / Showreel
 
 **Goal:** Feature short-form video work prominently, since it's a core part of the collections offering.
 
@@ -145,7 +218,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 11. Testimonials Page
+## 12. Testimonials Page
 
 **Goal:** Dedicated page (and homepage section) showing client reviews to build credibility with prospective hotel/property clients.
 
@@ -157,7 +230,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 12. Availability Calendar
+## 13. Availability Calendar
 
 **Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
 
@@ -168,20 +241,20 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 13. Licensing Information
+## 14. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
 
 - [ ] Build a licensing page (`/licensing.html`) covering: personal use vs. commercial use, print vs. digital, exclusivity options, duration, geographic scope, third-party sub-licensing
 - [ ] Define license tiers per collection (e.g. The Editorial Stay includes X years of digital commercial use; extended licenses available for an additional fee)
 - [ ] Add license summary to each collection on `collections.html` — short plain-English version with a link to the full licensing page
-- [ ] Include licensing terms in the FAQ (item 15)
+- [ ] Include licensing terms in the FAQ (item 16)
 - [ ] Add licensing details to client delivery emails and the client portal (item 4) so clients have a permanent record
 - [ ] Consider a simple license certificate PDF generated per delivery — client name, property, collection, usage rights, expiry
 
 ---
 
-## 14. Before/After Editing Sliders
+## 15. Before/After Editing Sliders
 
 **Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
 
@@ -192,7 +265,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 15. FAQ Page
+## 16. FAQ Page
 
 **Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
 
@@ -203,7 +276,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 16. Photo Favorites / Proofing in Client Gallery
+## 17. Photo Favorites / Proofing in Client Gallery
 
 **Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
 
@@ -224,7 +297,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 17. Video Support in Client Gallery
+## 18. Video Support in Client Gallery
 
 **Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
 
@@ -239,7 +312,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 18. Admin Photo Editing
+## 19. Admin Photo Editing
 
 **Goal:** Give admins a browser-based, non-destructive photo editor inside the gallery admin tool — adjust individual photos or apply edits globally across a gallery before client delivery. Edit parameters are stored in D1 and applied at serve time; original NAS files are never modified.
 
@@ -305,13 +378,13 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 19. AI-Powered Auto Edit
+## 20. AI-Powered Auto Edit
 
-**Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 18 edit system so admins can review, tweak, or approve with one click.
+**Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 19 edit system so admins can review, tweak, or approve with one click.
 
 ### Analysis approach
 - [ ] Use the **Claude API (claude-opus-4-7 with vision)** as the primary analysis engine — send a downscaled JPEG of the photo (800px long edge is sufficient for analysis) and prompt it to return a structured JSON edit recommendation; Claude can reason about scene context ("beachfront suite at golden hour, pool is the hero element, slight haze on the horizon") in ways a pure algorithmic approach cannot
-- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 18 `edit_params` schema
+- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 19 `edit_params` schema
 - [ ] Implement a deterministic algorithmic fallback (no API call) for fast batch processing: histogram-based auto exposure (stretch to fill tonal range), gray world white balance correction, and shadow/highlight analysis — use this when Claude API is unavailable or for quick previews
 - [ ] Run the two approaches in parallel when both are available; prefer the Claude recommendation but fall back to algorithmic if the API call fails or times out
 
@@ -326,14 +399,14 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Detect and correct common hospitality photography problems automatically: mixed tungsten/daylight (common in lobbies), heavy vignetting from wide-angle lenses, converging verticals on architecture shots, overexposed windows vs. dark interiors (flag for HDR note if severe)
 
 ### Edit parameter output
-- [ ] Claude returns a structured JSON object matching the item 18 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
+- [ ] Claude returns a structured JSON object matching the item 19 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
 - [ ] Include a `reasoning` field in the response (a 1–2 sentence plain-English explanation of the main corrections applied) — display this in the admin UI so the admin understands why the edits were suggested
 - [ ] Low-confidence parameters (below a threshold) are flagged in the UI so the admin knows which adjustments are speculative vs. well-founded
 
 ### Admin review workflow
 - [ ] Add an "Auto Edit" button per photo and an "Auto Edit All" button at the gallery level in `gallery-admin.html`
 - [ ] "Auto Edit All" runs analysis in batches of 5 photos in parallel (respecting Claude API rate limits) with a progress indicator
-- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 18 editor pre-populated with the suggestions), or "Discard"
+- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 19 editor pre-populated with the suggestions), or "Discard"
 - [ ] Add an "Auto Edit confidence" badge to each photo card in the admin view — green (high confidence, minimal touch needed), amber (moderate, worth reviewing), red (low confidence, manual edit recommended)
 - [ ] Store `auto_edit_params`, `auto_edit_reasoning`, `auto_edit_confidence`, and `auto_edit_reviewed` columns in the `photo_edits` D1 table alongside the final `edit_params` — preserve the original suggestion even after the admin modifies it
 
