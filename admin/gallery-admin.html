@@ -279,14 +279,14 @@
     <div class="settings-row">
       <div class="fg">
         <label>Main Site Gallery URL — where gallery.html lives (shared with clients)</label>
-        <input type="url" id="mainSiteUrl" placeholder="https://coastaltravelcompany.com/gallery.html" />
+        <input type="url" id="mainSiteUrl" placeholder="https://coastaltravelcompany.com/gallery/gallery.html" />
         <p class="hint">The URL on your main website. Client links will point here — this is what you send to clients.</p>
       </div>
     </div>
     <div class="settings-row">
       <div class="fg">
         <label>Client Gallery URL — where client-gallery.html lives</label>
-        <input type="url" id="nasClientUrl" placeholder="https://coastaltravelcompany.com/client-gallery.html" />
+        <input type="url" id="nasClientUrl" placeholder="https://coastaltravelcompany.com/gallery/client-gallery.html" />
         <p class="hint">The URL of client-gallery.html — now hosted on GitHub Pages alongside the rest of the site. Embedded inside gallery.html as an iframe.</p>
       </div>
     </div>
@@ -390,8 +390,8 @@
   function getSettings() {
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
     return {
-      mainSiteUrl:  s.mainSiteUrl  || 'https://coastaltravelcompany.com/gallery.html',
-      nasClientUrl: s.nasClientUrl || 'https://coastaltravelcompany.com/client-gallery.html',
+      mainSiteUrl:  s.mainSiteUrl  || 'https://coastaltravelcompany.com/gallery/gallery.html',
+      nasClientUrl: s.nasClientUrl || 'https://coastaltravelcompany.com/gallery/client-gallery.html',
       workerUrl:    s.workerUrl    || ''
     };
   }
