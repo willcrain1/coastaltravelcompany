@@ -22,15 +22,15 @@ cleanup() { rm -f "$TMP"; }
 trap cleanup EXIT
 
 # ── Load and validate config ──────────────────────────────────────────────────
-if [ ! -f "$CONFIG" ]; then
-  echo "Error: $CONFIG not found."
-  echo "Run: cp worker/.worker-config.example worker/.worker-config  and fill in your credentials."
-  exit 1
+# Config file is optional — CI supplies credentials via environment variables.
+if [ -f "$CONFIG" ]; then
+  source "$CONFIG"
 fi
-source "$CONFIG"
 
 if [ -z "$CF_ACCOUNT_ID" ] || [ -z "$CF_API_TOKEN" ] || [ -z "$CF_WORKER_NAME" ]; then
-  echo "Error: CF_ACCOUNT_ID, CF_API_TOKEN, and CF_WORKER_NAME must all be set in .worker-config"
+  echo "Error: CF_ACCOUNT_ID, CF_API_TOKEN, and CF_WORKER_NAME must be set."
+  echo "Local: cp worker/.worker-config.example worker/.worker-config and fill in values."
+  echo "CI:    add them as repository secrets (Settings → Secrets → Actions)."
   exit 1
 fi
 
