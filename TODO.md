@@ -4,6 +4,20 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
+## 0. Capture Live NAS Configuration (Quick Ops Task)
+
+**Goal:** Populate the `nas/` IaC files with the actual running configuration from the NAS so the setup can be fully rebuilt from scratch using the repo alone.
+
+- [ ] SSH into the NAS and export the live Docker Compose config:
+  - Via Synology Container Manager UI: Projects → select project → Action → Export → save as `nas/docker-compose.yml`
+  - Or via SSH: `docker compose config` (from the project directory) or `docker inspect <container-name>` per container
+- [ ] Copy the live Cloudflare Tunnel ingress config:
+  - `cat /volume1/docker/cloudflared/config.yml` (adjust path if different) → update `nas/cloudflare-tunnel/config.example.yml` with the real hostname and service entries
+- [ ] Commit and push the updated files — `credentials.json` and the live `config.yml` stay on the NAS only (already gitignored)
+- [ ] Verify the `nas/README.md` rebuild steps match actual paths and container names on the NAS
+
+---
+
 ## 1. Functional Contact Form
 
 **Goal:** Form submissions on `contact.html` actually send an inquiry email instead of doing nothing.
