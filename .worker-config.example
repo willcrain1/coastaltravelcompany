@@ -1,0 +1,6 @@
+# Cloudflare Worker deployment config
+# Copy to .worker-config and fill in your values (never commit .worker-config)
+
+CF_ACCOUNT_ID="your-account-id-here"
+CF_API_TOKEN="your-api-token-here"
+CF_WORKER_NAME="coastal-gallery-proxy"
