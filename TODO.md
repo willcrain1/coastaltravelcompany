@@ -300,3 +300,48 @@
 - [ ] Update the Worker's thumbnail and download endpoints to read edit params from D1, fetch the raw image from the NAS, apply adjustments server-side via **Sharp** (running in a Docker container on the NAS, called by the Worker), and return the processed image — keeps originals untouched
 - [ ] For download at full resolution: same pipeline, Sharp processes the original full-res file with the stored params
 - [ ] Cache processed thumbnails in Cloudflare R2 keyed by `{photo_id}:{hash_of_edit_params}` to avoid reprocessing on every view — invalidate cache entry when edits are updated
+
+---
+
+## 20. AI-Powered Auto Edit
+
+**Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 19 edit system so admins can review, tweak, or approve with one click.
+
+### Analysis approach
+- [ ] Use the **Claude API (claude-opus-4-7 with vision)** as the primary analysis engine — send a downscaled JPEG of the photo (800px long edge is sufficient for analysis) and prompt it to return a structured JSON edit recommendation; Claude can reason about scene context ("beachfront suite at golden hour, pool is the hero element, slight haze on the horizon") in ways a pure algorithmic approach cannot
+- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 19 `edit_params` schema
+- [ ] Implement a deterministic algorithmic fallback (no API call) for fast batch processing: histogram-based auto exposure (stretch to fill tonal range), gray world white balance correction, and shadow/highlight analysis — use this when Claude API is unavailable or for quick previews
+- [ ] Run the two approaches in parallel when both are available; prefer the Claude recommendation but fall back to algorithmic if the API call fails or times out
+
+### Scene & subject detection
+- [ ] Detect scene type from Claude's response and use it to bias the edit profile:
+  - **Interior — bedroom/suite**: lift shadows, reduce highlights, warm slightly, boost clarity on textures
+  - **Interior — lobby/common areas**: balance mixed lighting (tungsten + daylight), increase local contrast
+  - **Exterior — poolside/oceanfront**: protect sky highlights, lift foreground shadows, increase vibrance on water/foliage, slight dehaze
+  - **Exterior — golden hour**: preserve warm tones, add graduated warmth to highlights, increase saturation selectively in oranges/yellows
+  - **Detail/macro shots** (amenities, food, décor): increase clarity and texture, boost local contrast, precise white balance
+  - **Aerial/drone**: protect sky, reduce haze, increase global contrast, cool slightly
+- [ ] Detect and correct common hospitality photography problems automatically: mixed tungsten/daylight (common in lobbies), heavy vignetting from wide-angle lenses, converging verticals on architecture shots, overexposed windows vs. dark interiors (flag for HDR note if severe)
+
+### Edit parameter output
+- [ ] Claude returns a structured JSON object matching the item 19 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
+- [ ] Include a `reasoning` field in the response (a 1–2 sentence plain-English explanation of the main corrections applied) — display this in the admin UI so the admin understands why the edits were suggested
+- [ ] Low-confidence parameters (below a threshold) are flagged in the UI so the admin knows which adjustments are speculative vs. well-founded
+
+### Admin review workflow
+- [ ] Add an "Auto Edit" button per photo and an "Auto Edit All" button at the gallery level in `gallery-admin.html`
+- [ ] "Auto Edit All" runs analysis in batches of 5 photos in parallel (respecting Claude API rate limits) with a progress indicator
+- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 19 editor pre-populated with the suggestions), or "Discard"
+- [ ] Add an "Auto Edit confidence" badge to each photo card in the admin view — green (high confidence, minimal touch needed), amber (moderate, worth reviewing), red (low confidence, manual edit recommended)
+- [ ] Store `auto_edit_params`, `auto_edit_reasoning`, `auto_edit_confidence`, and `auto_edit_reviewed` columns in the `photo_edits` D1 table alongside the final `edit_params` — preserve the original suggestion even after the admin modifies it
+
+### Learning from admin feedback
+- [ ] Track which auto-edit suggestions the admin accepts as-is vs. modifies vs. discards — store deltas (diff between suggested params and final params) in a `photo_edit_feedback` table in D1
+- [ ] Periodically summarize accepted edits by scene type and feed them back into the Claude prompt as few-shot examples ("for this photographer, interior shots typically get +0.4 exposure and +12 shadows — here are 5 examples") to align the auto-edit output with the photographer's house style over time
+- [ ] Expose a "Style profile" summary in `gallery-admin.html` showing the average adjustments the admin makes per scene type — useful for understanding and communicating the house look
+
+### Cost & performance
+- [ ] Downscale photos to 800px long edge before sending to Claude API — reduces token cost significantly vs. full resolution; color and tonal analysis does not require full resolution
+- [ ] Cache auto-edit results in D1: if the same `photo_id` has already been analyzed and the source file hasn't changed, return the cached recommendation without another API call
+- [ ] Estimate cost at roughly $0.003–0.006 per photo at claude-opus-4-7 vision pricing for an 800px image — for a 300-photo gallery, ~$1–2 per auto-edit run; display an estimated cost to the admin before triggering "Auto Edit All"
+- [ ] Add `ANTHROPIC_API_KEY` to the list of Cloudflare Worker secrets (set in Cloudflare dashboard → Worker → Settings → Variables)
