@@ -4,14 +4,10 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 0. Capture Live NAS Configuration (Quick Ops Task)
+## ~~0. Capture Live NAS Configuration~~ ✅ Done
 
-**Goal:** Populate the `nas/` IaC files with the actual running configuration from the NAS so the setup can be fully rebuilt from scratch using the repo alone.
-
-- [x] `cloudflared` container captured — `nas/docker-compose.yml` is up to date
-- [x] Tunnel uses token-based auth — ingress rules documented in `nas/cloudflare-tunnel/config.example.yml` and `nas/README.md` (single route: `nas.coastaltravelcompany.com` → `https://192.168.68.2:5001`, `noTLSVerify`)
-- [ ] Copy the tunnel token to `nas/.env` on the NAS (see `nas/.env.example`) so `docker compose up` works on a fresh machine
-- [ ] If any other containers are added in future, transcribe their settings from Container Manager into `nas/docker-compose.yml` and commit
+- `cloudflared` container: standalone token-based container, no Docker Compose
+- Tunnel ingress documented in `nas/cloudflare-tunnel/config.example.yml` and `nas/README.md` (single route: `nas.coastaltravelcompany.com` → `https://192.168.68.2:5001`, `noTLSVerify`)
 
 ---
 
