@@ -196,7 +196,33 @@
 
 ---
 
-## 16. Video Support in Client Gallery
+## 17. 3D Property Walkthroughs (Gaussian Splatting)
+
+**Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
+
+### Capture
+- [ ] Establish a capture workflow: record slow, overlapping video passes of the space (phone or mirrorless — 4K, steady movement, good exposure) or use a dedicated capture app (Luma AI mobile app is the lowest-friction starting point)
+- [ ] Document lighting requirements: even ambient light, no harsh shadows or moving subjects during capture passes
+
+### Processing
+- [ ] Evaluate processing tools: **Luma AI** (cloud, fast, free tier) vs. **Postshot** (local GPU, high quality, paid) vs. **COLMAP + nerfstudio/3DGS** (open source, technical) — Luma AI is the recommended starting point for speed
+- [ ] Output a `.splat` or `.ply` file per scene after processing
+- [ ] Establish a naming convention and folder structure on the NAS for raw capture footage and processed splat files
+
+### Hosting & Display
+- [ ] Evaluate hosting options for `.splat` files: **SuperSplat** (PlayCanvas) for hosted/shareable scenes with iframe embed, vs. self-hosted viewer using `@playcanvas/splat` or `three-gaussian-splat` JS libraries, vs. Cloudflare R2 for file hosting with an open-source viewer on the site
+- [ ] For portfolio use: embed SuperSplat-published scenes via `<iframe>` on `collections.html` or a new `/walkthroughs.html` page
+- [ ] For client delivery: add a "3D Walkthrough" section to the client gallery (`client-gallery.html`) that loads the scene viewer when a splat URL is present in the gallery config
+- [ ] Add `splat_url` (nullable) to the `galleries` table in D1 so walkthrough scenes are linked to their gallery delivery (see database architecture)
+
+### Services & Portfolio
+- [ ] Add "3D Walkthrough" as a deliverable option to `services.html` — position as a premium add-on to The Editorial Stay and similar property collections
+- [ ] Build `/walkthroughs.html` as a showcase page: grid of property cards, each opening a full-screen splat viewer — use as a sales tool for prospective hotel clients
+- [ ] Add walkthrough pricing to `faq.html` alongside print pricing
+
+---
+
+## 18. Video Support in Client Gallery
 
 **Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
 
@@ -208,3 +234,114 @@
 - [ ] Handle mixed galleries gracefully — photos and videos interleaved in chronological order
 - [ ] Test with Synology video formats (MP4, MOV) — confirm the Worker can stream binary video data without buffering issues at Cloudflare Worker memory limits
 - [ ] Consider file size: large video files may need to be linked for direct download rather than streamed through the Worker (Cloudflare Workers have a 128MB response limit)
+
+---
+
+## 19. Admin Photo Editing
+
+**Goal:** Give admins a browser-based, non-destructive photo editor inside the gallery admin tool — adjust individual photos or apply edits globally across a gallery before client delivery. Edit parameters are stored in D1 and applied at serve time; original NAS files are never modified.
+
+### Editing interface
+- [ ] Add an "Edit" button to each photo in `gallery-admin.html` that opens a full-screen editing panel
+- [ ] Add a "Global Adjustments" mode that applies a set of edits to every photo in the gallery (useful for consistent look across a shoot)
+- [ ] Show a real-time preview using WebGL (via `glfx.js` or custom GLSL shaders on a `<canvas>`) — fast enough for interactive sliders without hitting the server
+- [ ] Add a before/after toggle (split-screen or A/B) so the admin can compare against the original
+- [ ] Add an "Apply to all" action that copies current photo edits as the gallery-wide baseline
+
+### Tone & exposure controls
+- [ ] Exposure (overall brightness in stops)
+- [ ] Contrast
+- [ ] Highlights (pull down bright areas without clipping)
+- [ ] Shadows (lift or crush shadow detail)
+- [ ] Whites (set the white point)
+- [ ] Blacks (set the black point)
+- [ ] Clarity (local contrast / midtone punch)
+- [ ] Dehaze (remove atmospheric haze — useful for outdoor/landscape property shots)
+
+### Color controls
+- [ ] White balance: Temperature (cool/warm) and Tint (green/magenta)
+- [ ] Vibrance (boost muted colors without oversaturating skin/neutrals)
+- [ ] Saturation (global color intensity)
+- [ ] HSL mixer: per-channel Hue, Saturation, Luminance for the 8 color ranges (Reds, Oranges, Yellows, Greens, Aquas, Blues, Purples, Magentas) — critical for interior shots where you want to shift wall colors or correct mixed lighting
+- [ ] Split toning: assign a color cast independently to shadows and highlights (e.g. warm highlights, cool shadows for a cinematic look)
+
+### Tone curve
+- [ ] RGB tone curve with draggable control points
+- [ ] Per-channel curves (R, G, B) for precise color grading
+- [ ] Preset curve shapes: Linear, Contrast S, Film (lifted blacks), Matte (flat)
+
+### Black & white
+- [ ] One-click B&W conversion toggle
+- [ ] B&W luminosity mixer: per-channel brightness contribution (same 8 ranges as HSL) — lets the admin control how much each color contributes to gray value, e.g. darken blue sky, brighten foliage
+- [ ] Film grain overlay with adjustable amount and size
+- [ ] Selenium / sepia tone option (split tone applied post-desaturation)
+
+### Effects
+- [ ] Vignette: amount, midpoint, feather, and roundness
+- [ ] Sharpening: amount and radius (applied via unsharp mask)
+- [ ] Noise reduction: luminance smoothing (useful for low-light interior shots)
+- [ ] Texture (fine detail enhancement, less aggressive than clarity)
+
+### Crop & transform
+- [ ] Crop with aspect ratio lock (free, 1:1, 4:3, 16:9, 3:2)
+- [ ] Straighten (rotation with auto-crop)
+- [ ] Horizontal and vertical perspective correction (fix converging verticals on architecture shots)
+- [ ] Flip horizontal / vertical
+
+### Presets
+- [ ] Save current edit settings as a named preset, stored per admin in D1
+- [ ] Ship a set of branded starting presets: "Coastal Clean" (neutral, airy), "Editorial Dark" (rich contrast, lifted blacks), "Golden Hour" (warm split tone), "B&W Architecture" (high-contrast monochrome)
+- [ ] Apply any preset to the current photo or to all photos in the gallery
+- [ ] Export and import presets as JSON for sharing between admin accounts
+
+### Storage & rendering pipeline
+- [ ] Add a `photo_edits` table to D1: `(gallery_id, photo_id, edit_params JSON, created_at, updated_at)` — one row per photo, `edit_params` is the full edit state as a JSON object
+- [ ] Add a `gallery_edits` table for gallery-wide baseline adjustments that are merged with per-photo overrides at serve time
+- [ ] Update the Worker's thumbnail and download endpoints to read edit params from D1, fetch the raw image from the NAS, apply adjustments server-side via **Sharp** (running in a Docker container on the NAS, called by the Worker), and return the processed image — keeps originals untouched
+- [ ] For download at full resolution: same pipeline, Sharp processes the original full-res file with the stored params
+- [ ] Cache processed thumbnails in Cloudflare R2 keyed by `{photo_id}:{hash_of_edit_params}` to avoid reprocessing on every view — invalidate cache entry when edits are updated
+
+---
+
+## 20. AI-Powered Auto Edit
+
+**Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 19 edit system so admins can review, tweak, or approve with one click.
+
+### Analysis approach
+- [ ] Use the **Claude API (claude-opus-4-7 with vision)** as the primary analysis engine — send a downscaled JPEG of the photo (800px long edge is sufficient for analysis) and prompt it to return a structured JSON edit recommendation; Claude can reason about scene context ("beachfront suite at golden hour, pool is the hero element, slight haze on the horizon") in ways a pure algorithmic approach cannot
+- [ ] Prompt engineering: instruct Claude to identify scene type, lighting condition, dominant color cast, exposure quality, subject prominence, and any specific problem areas (blown highlights, crushed shadows, mixed color temperature), then map its findings to numeric values for every parameter in the item 19 `edit_params` schema
+- [ ] Implement a deterministic algorithmic fallback (no API call) for fast batch processing: histogram-based auto exposure (stretch to fill tonal range), gray world white balance correction, and shadow/highlight analysis — use this when Claude API is unavailable or for quick previews
+- [ ] Run the two approaches in parallel when both are available; prefer the Claude recommendation but fall back to algorithmic if the API call fails or times out
+
+### Scene & subject detection
+- [ ] Detect scene type from Claude's response and use it to bias the edit profile:
+  - **Interior — bedroom/suite**: lift shadows, reduce highlights, warm slightly, boost clarity on textures
+  - **Interior — lobby/common areas**: balance mixed lighting (tungsten + daylight), increase local contrast
+  - **Exterior — poolside/oceanfront**: protect sky highlights, lift foreground shadows, increase vibrance on water/foliage, slight dehaze
+  - **Exterior — golden hour**: preserve warm tones, add graduated warmth to highlights, increase saturation selectively in oranges/yellows
+  - **Detail/macro shots** (amenities, food, décor): increase clarity and texture, boost local contrast, precise white balance
+  - **Aerial/drone**: protect sky, reduce haze, increase global contrast, cool slightly
+- [ ] Detect and correct common hospitality photography problems automatically: mixed tungsten/daylight (common in lobbies), heavy vignetting from wide-angle lenses, converging verticals on architecture shots, overexposed windows vs. dark interiors (flag for HDR note if severe)
+
+### Edit parameter output
+- [ ] Claude returns a structured JSON object matching the item 19 `edit_params` schema exactly — every slider value, curve points, crop/straighten if needed, B&W conversion flag, and a `confidence` field (0–1) per parameter group
+- [ ] Include a `reasoning` field in the response (a 1–2 sentence plain-English explanation of the main corrections applied) — display this in the admin UI so the admin understands why the edits were suggested
+- [ ] Low-confidence parameters (below a threshold) are flagged in the UI so the admin knows which adjustments are speculative vs. well-founded
+
+### Admin review workflow
+- [ ] Add an "Auto Edit" button per photo and an "Auto Edit All" button at the gallery level in `gallery-admin.html`
+- [ ] "Auto Edit All" runs analysis in batches of 5 photos in parallel (respecting Claude API rate limits) with a progress indicator
+- [ ] After auto edit runs, show a side-by-side diff view: original vs. proposed edits, with the `reasoning` text beneath — admin clicks "Apply", "Tweak" (opens item 19 editor pre-populated with the suggestions), or "Discard"
+- [ ] Add an "Auto Edit confidence" badge to each photo card in the admin view — green (high confidence, minimal touch needed), amber (moderate, worth reviewing), red (low confidence, manual edit recommended)
+- [ ] Store `auto_edit_params`, `auto_edit_reasoning`, `auto_edit_confidence`, and `auto_edit_reviewed` columns in the `photo_edits` D1 table alongside the final `edit_params` — preserve the original suggestion even after the admin modifies it
+
+### Learning from admin feedback
+- [ ] Track which auto-edit suggestions the admin accepts as-is vs. modifies vs. discards — store deltas (diff between suggested params and final params) in a `photo_edit_feedback` table in D1
+- [ ] Periodically summarize accepted edits by scene type and feed them back into the Claude prompt as few-shot examples ("for this photographer, interior shots typically get +0.4 exposure and +12 shadows — here are 5 examples") to align the auto-edit output with the photographer's house style over time
+- [ ] Expose a "Style profile" summary in `gallery-admin.html` showing the average adjustments the admin makes per scene type — useful for understanding and communicating the house look
+
+### Cost & performance
+- [ ] Downscale photos to 800px long edge before sending to Claude API — reduces token cost significantly vs. full resolution; color and tonal analysis does not require full resolution
+- [ ] Cache auto-edit results in D1: if the same `photo_id` has already been analyzed and the source file hasn't changed, return the cached recommendation without another API call
+- [ ] Estimate cost at roughly $0.003–0.006 per photo at claude-opus-4-7 vision pricing for an 800px image — for a 300-photo gallery, ~$1–2 per auto-edit run; display an estimated cost to the admin before triggering "Auto Edit All"
+- [ ] Add `ANTHROPIC_API_KEY` to the list of Cloudflare Worker secrets (set in Cloudflare dashboard → Worker → Settings → Variables)
