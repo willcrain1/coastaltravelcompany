@@ -524,3 +524,36 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Cache auto-edit results in D1: if the same `photo_id` has already been analyzed and the source file hasn't changed, return the cached recommendation without another API call
 - [ ] Estimate cost at roughly $0.003–0.006 per photo at claude-opus-4-7 vision pricing for an 800px image — for a 300-photo gallery, ~$1–2 per auto-edit run; display an estimated cost to the admin before triggering "Auto Edit All"
 - [ ] Add `ANTHROPIC_API_KEY` to the list of Cloudflare Worker secrets (set in Cloudflare dashboard → Worker → Settings → Variables)
+
+---
+
+## 24. Photo License Enforcement & Monitoring
+
+**Goal:** Deter misuse of purchased photos and enable discovery of violations through invisible watermarking, metadata embedding, a public license lookup URL, and automated reverse image search monitoring. Cannot prevent misuse of delivered digital files, but makes violations traceable and creates strong deterrents.
+
+### Invisible watermarking (steganographic)
+- [ ] Add invisible watermark injection to the purchase delivery pipeline — run before the download file is generated; embed buyer's `license_id` and `user_email` into the pixel data using the `invisible-watermark` Python library (runs in the same Docker container on the NAS already planned for Sharp photo editing)
+- [ ] The embedded watermark survives JPEG re-compression and moderate resizing — if the photo appears somewhere unauthorized, extract the watermark to identify the buyer and license held
+- [ ] Add a Worker endpoint `POST /licenses/extract-watermark` (admin-only, behind item 4 auth) that accepts an uploaded image, sends it to the NAS Docker container for watermark extraction, and returns the embedded `license_id` — used to investigate suspected violations
+- [ ] Add a note to the purchase confirmation email and license certificate: "This image is digitally fingerprinted with your license ID" — acts as a deterrent without being adversarial
+
+### EXIF/XMP metadata injection
+- [ ] Inject license metadata into every delivered file via Sharp before download — write to the following fields:
+  - `IPTC:CopyrightNotice` → "© Coastal Travel Company — Licensed to [Buyer Name], [Purchase Date]"
+  - `IPTC:RightsUsageTerms` → plain-English permitted uses for the purchased license tier
+  - `XMP:WebStatement` → `https://coastaltravelcompany.com/verify/[license-id]`
+  - `XMP:UsageTerms` → same as IPTC rights string
+- [ ] Metadata travels with the file in most professional workflows (Photoshop, Lightroom, InDesign, stock agency submissions) — puts any downstream user on notice that the file is licensed and traceable
+
+### License lookup page
+- [ ] Build a public `/verify/{license-id}` page — no login required, returns: buyer display name (first name + last initial), purchase date, license type, permitted uses, geographic scope, duration, and current status (active / expired / revoked)
+- [ ] Worker reads license record from D1 `photo_purchases` table on each request — include the URL in EXIF metadata and on the license certificate so it travels with the file
+- [ ] Add a `GET /verify/{license-id}` JSON endpoint alongside the HTML page for programmatic verification (publishers and stock agencies sometimes check programmatically)
+- [ ] If a license ID is not found or has been revoked, return a clear "No valid license found" response — useful when investigating suspected unauthorized use
+
+### Automated reverse image search monitoring
+- [ ] Set up a Cloudflare Worker cron trigger (runs weekly) that submits each active store photo to the **TinEye API** — compares against TinEye's index of billions of web images and returns any matches
+- [ ] For each match found: look up the matched URL's domain against the `photo_purchases` D1 table — if the domain matches a buyer's declared use case, flag as likely compliant; if no matching license exists, flag as potential violation and email admin via Resend
+- [ ] Evaluate **Pixsy** or **Copytrack** as managed alternatives to the custom TinEye integration — both continuously crawl the web, identify unauthorized uses, and can initiate takedowns or compensation claims; recommended for ongoing production use once the store has meaningful volume
+- [ ] Store monitoring results in a `license_monitoring` D1 table: `photo_id`, `match_url`, `match_domain`, `detected_at`, `matched_license_id` (nullable), `status` (compliant / potential_violation / resolved / ignored)
+- [ ] Add a "License monitoring" panel in `gallery-admin.html` showing recent matches, their status, and quick actions (Mark compliant / Send takedown notice / Ignore)
