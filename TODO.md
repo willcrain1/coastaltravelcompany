@@ -199,3 +199,29 @@
 - [ ] Send invoice links to clients via email (Resend, shared with auth infrastructure in item 2)
 - [ ] Add invoice history to the client portal (item 2) so clients can view and download past invoices
 - [ ] Handle sales tax if applicable (Stripe Tax can automate this)
+
+---
+
+## 17. 3D Property Walkthroughs (Gaussian Splatting)
+
+**Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
+
+### Capture
+- [ ] Establish a capture workflow: record slow, overlapping video passes of the space (phone or mirrorless — 4K, steady movement, good exposure) or use a dedicated capture app (Luma AI mobile app is the lowest-friction starting point)
+- [ ] Document lighting requirements: even ambient light, no harsh shadows or moving subjects during capture passes
+
+### Processing
+- [ ] Evaluate processing tools: **Luma AI** (cloud, fast, free tier) vs. **Postshot** (local GPU, high quality, paid) vs. **COLMAP + nerfstudio/3DGS** (open source, technical) — Luma AI is the recommended starting point for speed
+- [ ] Output a `.splat` or `.ply` file per scene after processing
+- [ ] Establish a naming convention and folder structure on the NAS for raw capture footage and processed splat files
+
+### Hosting & Display
+- [ ] Evaluate hosting options for `.splat` files: **SuperSplat** (PlayCanvas) for hosted/shareable scenes with iframe embed, vs. self-hosted viewer using `@playcanvas/splat` or `three-gaussian-splat` JS libraries, vs. Cloudflare R2 for file hosting with an open-source viewer on the site
+- [ ] For portfolio use: embed SuperSplat-published scenes via `<iframe>` on `collections.html` or a new `/walkthroughs.html` page
+- [ ] For client delivery: add a "3D Walkthrough" section to the client gallery (`client-gallery.html`) that loads the scene viewer when a splat URL is present in the gallery config
+- [ ] Add `splat_url` (nullable) to the `galleries` table in D1 so walkthrough scenes are linked to their gallery delivery (see database architecture)
+
+### Services & Portfolio
+- [ ] Add "3D Walkthrough" as a deliverable option to `services.html` — position as a premium add-on to The Editorial Stay and similar property collections
+- [ ] Build `/walkthroughs.html` as a showcase page: grid of property cards, each opening a full-screen splat viewer — use as a sales tool for prospective hotel clients
+- [ ] Add walkthrough pricing to `faq.html` alongside print pricing
