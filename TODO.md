@@ -68,14 +68,22 @@
 
 ## 6. Photo Favorites / Proofing in Client Gallery
 
-**Goal:** Clients can star/heart photos in their gallery to indicate selections — admin can see which photos were favorited.
+**Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
 
-- [ ] Add a heart/star button to each photo card in `client-gallery.html` (alongside or replacing the Save button)
-- [ ] Store favorites in `localStorage` keyed by gallery ID so selections persist across sessions on the same device
-- [ ] Add a "My Selections" view — filtered grid showing only favorited photos, with a count in the nav
-- [ ] Add a "Copy Selections List" or "Submit Selections" action — generates a list of filenames or photo indices the client can send back
-- [ ] In `gallery-admin.html`, consider a way to view submitted selections per gallery (requires either a Worker endpoint to receive the list, or a simple mailto link with the selection data)
-- [ ] Dependency: full per-client persistence requires the auth system (item 2) — localStorage version works standalone in the meantime
+**Client favorites**
+- [ ] Add a heart button to each photo card in `client-gallery.html` — visible to the client only
+- [ ] Store client favorites in `localStorage` keyed by gallery ID so selections persist across sessions on the same device
+- [ ] Add a "My Selections" view — filtered grid showing only the client's starred photos, with a count in the nav
+- [ ] Add a "Submit Selections" action — compiles filenames/indices and either opens a pre-filled mailto or POSTs to a Worker endpoint that emails the list to the admin
+- [ ] Dependency: full cross-device persistence requires the auth system (item 2); localStorage works as a standalone first version
+
+**Admin favorites (separate track)**
+- [ ] Add an admin preview mode to `client-gallery.html` — activated by a secret URL param (e.g. `&admin=1`) or via the admin portal, not visible to clients
+- [ ] In admin mode, show a separate star icon (different color/shape from the client heart) on each photo
+- [ ] Store admin stars in Cloudflare KV keyed by gallery ID and photo ID — persists across devices and sessions without requiring client auth
+- [ ] Display admin stars as a read-only overlay when the client views the gallery — e.g. a small badge indicating "Admin pick" — so clients can see which shots the photographer recommends
+- [ ] In `gallery-admin.html`, show admin-starred photos per gallery with a "View Admin Picks" filtered view
+- [ ] Allow admin to submit their star list to the client as a curated recommendation alongside (not replacing) the client's own selects
 
 ---
 
