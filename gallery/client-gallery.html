@@ -559,8 +559,8 @@ async function loadGallery() {
 
 async function fetchAll() {
   const BATCH = 500;
-  let offset = 0, total = null, all = [];
-  do {
+  let offset = 0, all = [];
+  while (true) {
     const body = new URLSearchParams({
       api: 'SYNO.Foto.Browse.Item',
       method: 'list',
@@ -580,10 +580,11 @@ async function fetchAll() {
     if (!res.ok) throw new Error('Server returned HTTP ' + res.status);
     const data = await res.json();
     if (!data.success) throw new Error('Synology API error ' + (data.error?.code ?? ''));
-    all = all.concat(data.data.list ?? []);
-    total = data.data.total;
+    const page = data.data.list ?? [];
+    all = all.concat(page);
+    if (page.length < BATCH) break;
     offset += BATCH;
-  } while (offset < total);
+  }
   return all;
 }
 
