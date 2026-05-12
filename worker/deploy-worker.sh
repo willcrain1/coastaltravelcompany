@@ -80,7 +80,7 @@ fi
 # ── Deploy Worker with KV binding ─────────────────────────────────────────────
 echo "Deploying $WORKER_FILE → $CF_WORKER_NAME ..."
 
-METADATA="{\"bindings\":[{\"type\":\"kv_namespace\",\"name\":\"KV\",\"namespace_id\":\"$KV_ID\"}]}"
+METADATA="{\"body_part\":\"script\",\"bindings\":[{\"type\":\"kv_namespace\",\"name\":\"KV\",\"namespace_id\":\"$KV_ID\"}]}"
 
 curl -s -X PUT "$BASE/workers/scripts/$CF_WORKER_NAME" \
   -H "Authorization: Bearer $CF_API_TOKEN" \
