@@ -67,13 +67,21 @@ The URL hash is never sent in HTTP requests, so the config and pwHash are never 
 
 ### Cloudflare Worker (`worker/cloudflare-worker.js`)
 
-Acts as a CORS proxy because the browser cannot set the headers Synology requires for cross-origin requests. On each request, the Worker:
-1. Extracts `passphrase` from the POST body or GET query string
-2. Loads `nas.coastaltravelcompany.com/mo/sharing/{passphrase}` to obtain a `sharing_sid` session cookie (cached per isolate for 2 hours)
-3. Forwards the request to `/mo/sharing/webapi/entry.cgi` with `Cookie: sharing_sid=...` and `X-SYNO-SHARING: {passphrase}` — **both are required**; `sharing_sid` alone returns Synology error 119
-4. Returns the response with CORS headers restricted to `https://coastaltravelcompany.com`
+Acts as a CORS proxy because the browser cannot set the headers Synology requires for cross-origin requests.
 
-No Worker secrets or environment variables are required for the current gallery proxy. The deploy script also creates and binds a `CTC_AUTH` KV namespace (for the planned OAuth auth system in TODO.md item 2).
+**Security hardening** (four layers):
+1. **Origin header validation** — rejects all requests not from `https://coastaltravelcompany.com`; browsers enforce this and cannot spoof it via JS.
+2. **Session token exchange** — `POST /token {passphrase}` returns a short-lived `sid` (stored in KV, 4-hour TTL). All subsequent requests use `?sid=...`; the passphrase never appears in GET URLs and is never written to Cloudflare's request logs.
+3. **Synology API allowlist** — only `SYNO.Foto.Browse.Item`, `SYNO.Foto.Thumbnail`, and `SYNO.Foto.Download` are forwarded; all other API methods are rejected with 403.
+4. **KV rate limiting** — 300 requests per 60 seconds per gallery passphrase; excess requests return 429.
+
+**Request flow for each gallery session:**
+1. After password unlock, `client-gallery.html` calls `POST /token` → Worker validates passphrase, stores `tok:{uuid}` → `passphrase` in KV, returns `{sid}`
+2. All photo list, thumbnail, and download requests send `sid=<uuid>` instead of `passphrase=...`
+3. Worker resolves sid → passphrase from KV, gets a `sharing_sid` session cookie (cached per isolate for 2 hours), forwards the request to `/mo/sharing/webapi/entry.cgi` with `Cookie: sharing_sid=...` and `X-SYNO-SHARING: {passphrase}` — **both are required**; `sharing_sid` alone returns Synology error 119
+4. Returns the NAS response with CORS headers restricted to `https://coastaltravelcompany.com`
+
+The `CTC_AUTH` KV namespace is bound as `KV` and used by both the token exchange and rate limiting. No other Worker secrets are required for the gallery proxy.
 
 ## Design conventions
 

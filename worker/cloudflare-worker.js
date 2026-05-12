@@ -1,18 +1,27 @@
 // Cloudflare Worker — Synology Photos sharing CORS proxy
-// Deploy at: Workers & Pages → Create Worker → paste → Deploy
-// No secrets or credentials required.
+// Deploy via: ./worker/deploy-worker.sh
 //
-// How it works:
-// 1. Loads the NAS sharing page to get a sharing_sid session cookie
-// 2. Forwards all requests (JSON API + thumbnails + downloads) to the NAS
-//    with the sharing cookie AND the X-SYNO-SHARING header that Synology
-//    requires to activate the sharing session for data API calls
+// Security model:
+//  1. Origin header validation — rejects requests not from coastaltravelcompany.com
+//  2. Session token exchange — POST /token exchanges passphrase for a short-lived
+//     sid stored in KV; thumbnails/downloads use ?sid=... so the passphrase is
+//     never logged in Cloudflare's request logs
+//  3. Synology API allowlist — only Browse.Item, Thumbnail, Download are forwarded
+//  4. KV rate limiting — 300 requests/min per gallery passphrase
 
 const NAS_SHARE_API  = 'https://nas.coastaltravelcompany.com/mo/sharing/webapi/entry.cgi';
 const NAS_SHARE_PAGE = 'https://nas.coastaltravelcompany.com/mo/sharing/';
+const ALLOWED_ORIGIN = 'https://coastaltravelcompany.com';
+const RATE_LIMIT     = 300; // max requests per 60 s per gallery
+
+const ALLOWED_APIS = new Set([
+  'SYNO.Foto.Browse.Item',
+  'SYNO.Foto.Thumbnail',
+  'SYNO.Foto.Download',
+]);
 
 const CORS = {
-  'Access-Control-Allow-Origin':   'https://coastaltravelcompany.com',
+  'Access-Control-Allow-Origin':   ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods':  'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers':  'Content-Type',
   'Access-Control-Expose-Headers': 'Content-Disposition',
@@ -53,20 +62,75 @@ function extractPassphrase(raw) {
   return raw;
 }
 
+async function checkRateLimit(passphrase) {
+  const key = 'rl:' + passphrase;
+  const countStr = await KV.get(key);
+  const count = countStr ? parseInt(countStr, 10) : 0;
+  if (count >= RATE_LIMIT) return false;
+  await KV.put(key, String(count + 1), { expirationTtl: 60 });
+  return true;
+}
+
 async function handleRequest(request) {
+  // Preflight
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS });
   }
 
+  // Browsers always send Origin for cross-origin requests; non-browser callers don't.
+  const origin = request.headers.get('Origin');
+  if (origin !== ALLOWED_ORIGIN) {
+    return new Response('Forbidden', { status: 403 });
+  }
+
   const url = new URL(request.url);
+
+  // ── Token exchange: POST /token {passphrase} → {sid} ──────────────────
+  if (request.method === 'POST' && url.pathname === '/token') {
+    const body = await request.text();
+    const passphrase = extractPassphrase(new URLSearchParams(body).get('passphrase'));
+    if (!passphrase) {
+      return new Response(JSON.stringify({ error: 'Missing passphrase' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } });
+    }
+    try {
+      await getSharingSid(passphrase);
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid passphrase' }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...CORS } });
+    }
+    const sid = crypto.randomUUID();
+    await KV.put('tok:' + sid, passphrase, { expirationTtl: 14400 }); // 4 hours
+    return new Response(JSON.stringify({ sid }),
+      { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } });
+  }
+
+  // ── Proxy requests ────────────────────────────────────────────────────
   const bodyText = request.method === 'POST' ? await request.text() : '';
 
-  // Passphrase comes from POST body or GET query string
+  // Resolve passphrase — sid token (preferred, keeps passphrase out of logs) or direct
   let passphrase;
+  let rawSid, rawPassphrase;
   if (request.method === 'POST') {
-    passphrase = extractPassphrase(new URLSearchParams(bodyText).get('passphrase'));
+    const params = new URLSearchParams(bodyText);
+    rawSid        = params.get('sid');
+    rawPassphrase = params.get('passphrase');
   } else {
-    passphrase = extractPassphrase(url.searchParams.get('passphrase'));
+    rawSid        = url.searchParams.get('sid');
+    rawPassphrase = url.searchParams.get('passphrase');
+  }
+
+  if (rawSid) {
+    const stored = await KV.get('tok:' + rawSid);
+    if (!stored) {
+      return new Response(
+        JSON.stringify({ success: false, error: { code: 401, message: 'Session expired — reload the gallery' } }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...CORS } }
+      );
+    }
+    passphrase = stored;
+  } else if (rawPassphrase) {
+    passphrase = extractPassphrase(rawPassphrase);
   }
 
   if (!passphrase) {
@@ -76,6 +140,26 @@ async function handleRequest(request) {
     );
   }
 
+  // API method allowlist
+  const apiMethod = request.method === 'POST'
+    ? new URLSearchParams(bodyText).get('api') || ''
+    : url.searchParams.get('api') || '';
+  if (!ALLOWED_APIS.has(apiMethod)) {
+    return new Response(
+      JSON.stringify({ success: false, error: { code: 403, message: 'API method not permitted' } }),
+      { status: 403, headers: { 'Content-Type': 'application/json', ...CORS } }
+    );
+  }
+
+  // Rate limit per gallery
+  if (!await checkRateLimit(passphrase)) {
+    return new Response(
+      JSON.stringify({ success: false, error: { code: 429, message: 'Too many requests — try again in a minute' } }),
+      { status: 429, headers: { 'Content-Type': 'application/json', ...CORS } }
+    );
+  }
+
+  // Get NAS sharing session cookie
   let nasCookie;
   try {
     nasCookie = await getSharingSid(passphrase);
@@ -86,10 +170,21 @@ async function handleRequest(request) {
     );
   }
 
-  // Forward the request to the NAS sharing API
-  const nasUrl = request.method === 'GET'
-    ? NAS_SHARE_API + url.search   // thumbnail / download — preserve query string
-    : NAS_SHARE_API;               // JSON API calls via POST
+  // Build forwarded request — strip sid, inject passphrase for Synology
+  let nasUrl, nasBody;
+  if (request.method === 'GET') {
+    const nasParams = new URLSearchParams(url.search);
+    nasParams.delete('sid');
+    nasParams.delete('passphrase');
+    nasParams.set('_sharing_id', JSON.stringify(passphrase));
+    nasUrl = NAS_SHARE_API + '?' + nasParams.toString();
+  } else {
+    const nasParams = new URLSearchParams(bodyText);
+    nasParams.delete('sid');
+    nasParams.set('passphrase', JSON.stringify(passphrase));
+    nasUrl = NAS_SHARE_API;
+    nasBody = nasParams.toString();
+  }
 
   const nasReqHeaders = {
     'Cookie':          nasCookie,
@@ -104,7 +199,7 @@ async function handleRequest(request) {
     nasResponse = await fetch(nasUrl, {
       method:  request.method,
       headers: nasReqHeaders,
-      body:    request.method === 'POST' ? bodyText : undefined,
+      body:    request.method === 'POST' ? nasBody : undefined,
     });
   } catch (err) {
     return new Response(
