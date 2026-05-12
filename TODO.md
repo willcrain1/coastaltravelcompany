@@ -8,9 +8,13 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 **Goal:** Populate the `nas/` IaC files with the actual running configuration from the NAS so the setup can be fully rebuilt from scratch using the repo alone.
 
-- [ ] SSH into the NAS and export the live Docker Compose config:
-  - Via Synology Container Manager UI: Projects → select project → Action → Export → save as `nas/docker-compose.yml`
-  - Or via SSH: `docker compose config` (from the project directory) or `docker inspect <container-name>` per container
+- [ ] Open each container in Container Manager and record the following into `nas/docker-compose.yml`:
+  - **General** tab → image name and tag (`image:`), restart policy (`restart:`)
+  - **Port Settings** tab → host port : container port mappings (`ports:`)
+  - **Volume Settings** tab → host path : container path mappings (`volumes:`)
+  - **Environment** tab → all key=value pairs (`environment:`)
+  - **Network** tab → network mode (`network_mode:`)
+  - Note: Container Manager only exports Compose projects, not standalone containers — this is a manual transcription step
 - [ ] Copy the live Cloudflare Tunnel ingress config:
   - `cat /volume1/docker/cloudflared/config.yml` (adjust path if different) → update `nas/cloudflare-tunnel/config.example.yml` with the real hostname and service entries
 - [ ] Commit and push the updated files — `credentials.json` and the live `config.yml` stay on the NAS only (already gitignored)
