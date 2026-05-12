@@ -42,13 +42,20 @@ docker compose up -d
 docker compose ps   # verify all containers are running
 ```
 
-### 3. Updating from Container Manager
+### 3. Capturing a standalone container
 
-If you make changes via the Synology Container Manager UI and want to capture them:
+Container Manager only exports Compose projects, not standalone containers. To record a standalone container's config, click it in the UI and transcribe each tab into `nas/docker-compose.yml`:
 
-1. Container Manager → Projects → select the project → **Action → Export**
-2. Replace the relevant service block in `docker-compose.yml` with the exported config
-3. Commit and push
+| Container Manager tab | `docker-compose.yml` key |
+|---|---|
+| General — image name and tag | `image:` |
+| General — restart policy | `restart:` |
+| Port Settings | `ports:` |
+| Volume Settings | `volumes:` |
+| Environment | `environment:` |
+| Network | `network_mode:` |
+
+Commit and push the updated `docker-compose.yml` after transcribing.
 
 ## Files
 
