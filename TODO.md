@@ -68,14 +68,22 @@
 
 ## 6. Photo Favorites / Proofing in Client Gallery
 
-**Goal:** Clients can star/heart photos in their gallery to indicate selections — admin can see which photos were favorited.
+**Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
 
-- [ ] Add a heart/star button to each photo card in `client-gallery.html` (alongside or replacing the Save button)
-- [ ] Store favorites in `localStorage` keyed by gallery ID so selections persist across sessions on the same device
-- [ ] Add a "My Selections" view — filtered grid showing only favorited photos, with a count in the nav
-- [ ] Add a "Copy Selections List" or "Submit Selections" action — generates a list of filenames or photo indices the client can send back
-- [ ] In `gallery-admin.html`, consider a way to view submitted selections per gallery (requires either a Worker endpoint to receive the list, or a simple mailto link with the selection data)
-- [ ] Dependency: full per-client persistence requires the auth system (item 2) — localStorage version works standalone in the meantime
+**Client favorites**
+- [ ] Add a heart button to each photo card in `client-gallery.html` — visible to the client only
+- [ ] Store client favorites in `localStorage` keyed by gallery ID so selections persist across sessions on the same device
+- [ ] Add a "My Selections" view — filtered grid showing only the client's starred photos, with a count in the nav
+- [ ] Add a "Submit Selections" action — compiles filenames/indices and either opens a pre-filled mailto or POSTs to a Worker endpoint that emails the list to the admin
+- [ ] Dependency: full cross-device persistence requires the auth system (item 2); localStorage works as a standalone first version
+
+**Admin favorites (separate track)**
+- [ ] Add an admin preview mode to `client-gallery.html` — activated by a secret URL param (e.g. `&admin=1`) or via the admin portal, not visible to clients
+- [ ] In admin mode, show a separate star icon (different color/shape from the client heart) on each photo
+- [ ] Store admin stars in Cloudflare KV keyed by gallery ID and photo ID — persists across devices and sessions without requiring client auth
+- [ ] Display admin stars as a read-only overlay when the client views the gallery — e.g. a small badge indicating "Admin pick" — so clients can see which shots the photographer recommends
+- [ ] In `gallery-admin.html`, show admin-starred photos per gallery with a "View Admin Picks" filtered view
+- [ ] Allow admin to submit their star list to the client as a curated recommendation alongside (not replacing) the client's own selects
 
 ---
 
@@ -147,21 +155,7 @@
 
 ---
 
-## 13. Proofing & Selection
-
-**Goal:** Structured proofing workflow where clients review their full gallery, mark selects, and submit a final list — replacing informal back-and-forth over email.
-
-- [ ] Add a heart/star toggle to each photo in `client-gallery.html` — persists in `localStorage` keyed by gallery ID
-- [ ] Add a "Selections" counter to the gallery nav showing how many photos are favorited
-- [ ] Add a "View Selections" mode — filtered grid showing only starred photos
-- [ ] Build a "Submit Selections" action that compiles filenames/indices and either: (a) opens a pre-filled mailto, or (b) POSTs to a Worker endpoint that emails the list to the admin
-- [ ] Add a selection deadline field to the gallery config in `gallery-admin.html` — display a countdown or reminder in the gallery UI
-- [ ] Show submitted selections per gallery in `gallery-admin.html`
-- [ ] Dependency: full cross-device persistence requires the auth system (item 2); localStorage works as a standalone first version
-
----
-
-## 14. Print Ordering
+## 13. Print Ordering
 
 **Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
 
@@ -175,7 +169,7 @@
 
 ---
 
-## 15. Licensing Information
+## 14. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
 
@@ -188,7 +182,7 @@
 
 ---
 
-## 16. Billing & Invoicing
+## 15. Billing & Invoicing
 
 **Goal:** Send, track, and collect payment on invoices directly — no third-party tool required unless a full CRM (HoneyBook/Dubsado) is preferred.
 
@@ -225,3 +219,15 @@
 - [ ] Add "3D Walkthrough" as a deliverable option to `services.html` — position as a premium add-on to The Editorial Stay and similar property collections
 - [ ] Build `/walkthroughs.html` as a showcase page: grid of property cards, each opening a full-screen splat viewer — use as a sales tool for prospective hotel clients
 - [ ] Add walkthrough pricing to `faq.html` alongside print pricing
+## 16. Video Support in Client Gallery
+
+**Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
+
+- [ ] Research Synology Photos API for video items — check whether `SYNO.Foto.Browse.Item` returns videos in a shared album and what fields differ from photos (likely a `type` or `mime_type` field)
+- [ ] Update `fetchAll()` in `client-gallery.html` to include video items in the results
+- [ ] Render video cards in the masonry grid differently from photos — show a play icon overlay, use the video thumbnail returned by the Synology API
+- [ ] On click, open the lightbox with an HTML `<video>` element instead of an `<img>` — proxy the video stream through the Worker the same way thumbnails are proxied
+- [ ] Add video download support — route through `SYNO.Foto.Download` via the Worker (same as photo downloads)
+- [ ] Handle mixed galleries gracefully — photos and videos interleaved in chronological order
+- [ ] Test with Synology video formats (MP4, MOV) — confirm the Worker can stream binary video data without buffering issues at Cloudflare Worker memory limits
+- [ ] Consider file size: large video files may need to be linked for direct download rather than streamed through the Worker (Cloudflare Workers have a 128MB response limit)
