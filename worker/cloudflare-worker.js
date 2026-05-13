@@ -288,12 +288,12 @@ async function handleRequest(request, env) {
     nasParams.delete('sid');
     nasParams.delete('passphrase');
     nasParams.delete('watermark');
-    nasParams.set('_sharing_id', JSON.stringify(passphrase));
+    nasParams.set('_sharing_id', passphrase);
     nasUrl = NAS_SHARE_API + '?' + nasParams.toString();
   } else {
     const nasParams = new URLSearchParams(bodyText);
     nasParams.delete('sid');
-    nasParams.set('passphrase', JSON.stringify(passphrase));
+    nasParams.set('passphrase', passphrase);
     nasUrl = NAS_SHARE_API;
     nasBody = nasParams.toString();
   }
