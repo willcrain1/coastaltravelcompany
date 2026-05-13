@@ -11,28 +11,23 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 1. Functional Contact Form
+## ~~1. Functional Contact Form~~ ✅ Done
 
-**Goal:** Form submissions on `contact.html` actually send an inquiry email instead of doing nothing.
-
-- [x] Decided on Cloudflare Worker + Resend — `POST /contact` endpoint added to existing Worker
-- [ ] **One-time setup:** Create Resend account → verify `coastaltravelcompany.com` domain (add DNS records) → copy API key → add `RESEND_API_KEY` as a Worker secret in Cloudflare dashboard (Worker → Settings → Variables & Secrets)
-- [x] **Fill in Worker URL:** `https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev`
-- [ ] Deploy Worker: `./worker/deploy-worker.sh`
-- [ ] Confirm submissions arrive at `thecoastaltravelcompany@gmail.com` (reply-to is set to the submitter's email)
+- Worker `POST /contact` endpoint → Resend → `thecoastaltravelcompany@gmail.com`
+- Reply-to set to submitter's email; rate limited 5/hour per IP
+- Worker URL: `https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev`
 
 ---
 
 ## 2. Real Watermarking
 
-**Goal:** Photos downloaded by clients have Coastal Travel Company watermark burned in by Synology — not just a CSS overlay.
+**Goal:** Photos downloaded by clients have Coastal Travel Company watermark burned in — not just a CSS overlay.
 
-- [ ] Configure watermark in Synology Photos (gear icon → Watermark tab) — set text, position, opacity
-- [ ] When creating a watermarked share in Synology Photos, enable "Add watermark to photos" on that share
-- [ ] Update `dlUrl()` in `client-gallery.html`: when `cfg.watermark`, return `thumbUrl(photo, 'xl')` instead of `SYNO.Foto.Download` — this routes downloads through Synology's watermarked thumbnail path
-- [ ] Re-enable download buttons for watermarked galleries (downloads are now safe — they carry the Synology watermark)
-- [ ] Update watermark checkbox label in `gallery-admin.html` to explain the Synology requirement
-- [ ] Test end-to-end: verify XL thumbnails from a watermark-enabled share have the watermark burned in
+- [ ] **Check Synology Photos version** — watermark settings (if available) are under Synology Photos → top-right avatar/settings menu → Sharing Settings → Watermark tab. Not present in all DSM versions; may require DSM 7.2+ and Synology Photos 1.7+. If missing, Synology doesn't support server-side watermarking on this NAS.
+- [ ] If Synology watermark IS available: enable it on the shared album, then update `dlUrl()` in `client-gallery.html` to return `thumbUrl(photo, 'xl')` instead of `SYNO.Foto.Download` — XL thumbnails carry the burned-in watermark
+- [ ] If Synology watermark IS NOT available: implement Worker-side watermarking — fetch the image from Synology, overlay text/logo using Canvas API or a lightweight image library (e.g. `@cf-wasm/photon` which runs in Workers), return the composited image
+- [ ] Re-enable download buttons for watermarked galleries once server-side watermark is confirmed working
+- [ ] Update watermark checkbox label in `gallery-admin.html` to explain the approach in use
 
 ---
 
