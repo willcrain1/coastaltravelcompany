@@ -49,17 +49,28 @@ async function getSharingSid(passphrase) {
   const cached = sidCache[passphrase];
   if (cached && cached.exp > Date.now()) return cached;
 
+  // 1. Fetch the sharing page to trigger session creation
   const res = await fetch(NAS_SHARE_PAGE + passphrase, { redirect: 'follow' });
   
-  // Extract the specific sharing_sid from the Set-Cookie headers
-  const setCookie = res.headers.get('set-cookie') || '';
-  const sidMatch = setCookie.match(/sharing_sid=([^;]+)/);
+  // 2. Extract the specific sharing_sid value for API parameters
+  const setCookieHeader = res.headers.get('set-cookie') || '';
+  const sidMatch = setCookieHeader.match(/sharing_sid=([^;]+)/);
   const sid = sidMatch ? sidMatch[1] : null;
   
-  const cookie = parseCookies(res.headers);
-  if (!cookie) throw new Error('NAS sharing page returned no session cookie');
+  // 3. Parse all cookies into a single string for the 'Cookie' header
+  const cookieString = parseCookies(res.headers);
+  
+  if (!cookieString) {
+    throw new Error('NAS sharing page returned no session cookie');
+  }
 
-  const data = { cookie, sid, exp: Date.now() + 2 * 60 * 60 * 1000 };
+  // 4. Return the object used by handleRequest
+  const data = { 
+    cookie: cookieString, 
+    sid: sid, 
+    exp: Date.now() + 2 * 60 * 60 * 1000 // Cache for 2 hours
+  };
+  
   sidCache[passphrase] = data;
   return data;
 }
@@ -276,9 +287,8 @@ async function handleRequest(request, env) {
     );
   }
 
-  let nasAuth; 
+  let nasAuth;
   try {
-    // getSharingSid now returns { cookie, sid, exp }
     nasAuth = await getSharingSid(passphrase);
   } catch (err) {
     return new Response(
@@ -287,9 +297,9 @@ async function handleRequest(request, env) {
     );
   }
 
-  // Capture watermark flag before stripping params
   const wantsWatermark = request.method === 'GET' && url.searchParams.get('watermark') === '1';
 
+  // 2. Build the NAS request parameters
   let nasUrl, nasBody;
   if (request.method === 'GET') {
     const nasParams = new URLSearchParams(url.search);
@@ -298,7 +308,7 @@ async function handleRequest(request, env) {
     nasParams.delete('watermark');
     nasParams.set('_sharing_id', passphrase);
     
-    // Use the real SID from nasAuth
+    // Inject the REAL SID from the auth object
     if (nasAuth.sid) nasParams.set('sid', nasAuth.sid);
     
     nasUrl = NAS_SHARE_API + '?' + nasParams.toString();
@@ -307,13 +317,14 @@ async function handleRequest(request, env) {
     nasParams.delete('sid');
     nasParams.set('passphrase', passphrase);
     
-    // Use the real SID from nasAuth
+    // Inject the REAL SID from the auth object
     if (nasAuth.sid) nasParams.set('sid', nasAuth.sid);
     
     nasUrl = NAS_SHARE_API;
     nasBody = nasParams.toString();
   }
 
+  // 3. Use the .cookie property for the header
   const nasReqHeaders = {
     'Cookie':            nasAuth.cookie, // .cookie contains the actual string
     'X-SYNO-SHARING': passphrase,
