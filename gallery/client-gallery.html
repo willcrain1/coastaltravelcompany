@@ -490,6 +490,64 @@ function dlUrl(photo) {
   });
 }
 
+// ── Watermark download ────────────────────────────────────
+// Fetches the XL thumbnail, draws it to a canvas, tiles diagonal copyright
+// text burned in, then triggers a download of the composited JPEG.
+async function downloadWithWatermark(photo, filename) {
+  const res = await fetch(thumbUrl(photo, 'xl'));
+  if (!res.ok) throw new Error('Image fetch failed');
+  const blob = await res.blob();
+
+  const img = new Image();
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+    img.src = URL.createObjectURL(blob);
+  });
+  URL.revokeObjectURL(img.src);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+
+  const text     = '© Coastal Travel Company';
+  const fontSize = Math.max(14, Math.round(Math.min(canvas.width, canvas.height) / 18));
+  const spacing  = fontSize * 9;
+  ctx.font        = `bold ${fontSize}px Arial, sans-serif`;
+  ctx.textAlign   = 'center';
+  ctx.textBaseline = 'middle';
+
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate(-Math.PI / 6);
+  for (let y = -canvas.height * 1.5; y < canvas.height * 1.5; y += spacing) {
+    for (let x = -canvas.width * 1.5; x < canvas.width * 1.5; x += spacing) {
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle   = 'rgba(0,0,0,0.7)';
+      ctx.fillText(text, x + 1, y + 1);
+      ctx.globalAlpha = 0.38;
+      ctx.fillStyle   = 'white';
+      ctx.fillText(text, x, y);
+    }
+  }
+  ctx.restore();
+
+  await new Promise(resolve => {
+    canvas.toBlob(wm => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(wm);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      resolve();
+    }, 'image/jpeg', 0.92);
+  });
+}
+
 // ── Session token exchange ────────────────────────────────
 // Exchanges the gallery passphrase for a 4-hour sid stored in Worker KV.
 async function getGallerySid() {
@@ -522,11 +580,27 @@ function init() {
   document.getElementById('navClient').textContent = cfg.clientName;
 
   if (cfg.watermark) {
-    document.getElementById('dlAll').style.display = 'none';
-    document.getElementById('lbDl').style.display = 'none';
+    // Keep CSS overlay visible in lightbox as a visual watermark on the preview.
+    // Downloads are allowed but will have the copyright burned in via Canvas.
     const lbWm = document.createElement('div');
     lbWm.className = 'wm-overlay';
     document.querySelector('.lb-img-wrap').appendChild(lbWm);
+
+    // Wire lightbox download button to the watermark download function
+    const lbDl = document.getElementById('lbDl');
+    lbDl.addEventListener('click', async e => {
+      e.preventDefault();
+      if (lbDl.dataset.busy) return;
+      lbDl.dataset.busy = '1';
+      const orig = lbDl.textContent;
+      lbDl.textContent = 'Saving…';
+      try {
+        await downloadWithWatermark(photos[lbIndex], lbDl.download || 'coastal.jpg');
+      } catch { /* fail silently */ } finally {
+        delete lbDl.dataset.busy;
+        lbDl.textContent = orig;
+      }
+    });
   }
 }
 
@@ -652,21 +726,37 @@ function renderPhotos() {
     const hover = document.createElement('div');
     hover.className = 'p-hover';
 
-    const dlBtn = document.createElement('a');
-    dlBtn.className = 'p-dl';
-    dlBtn.href = dlUrl(photo);
-    dlBtn.download = 'coastal-' + (i + 1) + '.jpg';
-    dlBtn.textContent = '↓ Save';
-    dlBtn.addEventListener('click', e => e.stopPropagation());
-
-    if (!cfg.watermark) hover.appendChild(dlBtn);
-    item.appendChild(img);
-    item.appendChild(hover);
     if (cfg.watermark) {
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'p-dl';
+      dlBtn.textContent = '↓ Save';
+      dlBtn.addEventListener('click', async e => {
+        e.stopPropagation();
+        if (dlBtn.disabled) return;
+        dlBtn.disabled = true;
+        dlBtn.textContent = '…';
+        try {
+          await downloadWithWatermark(photo, 'coastal-' + (i + 1) + '.jpg');
+        } catch { /* fail silently */ } finally {
+          dlBtn.disabled = false;
+          dlBtn.textContent = '↓ Save';
+        }
+      });
+      hover.appendChild(dlBtn);
       const wm = document.createElement('div');
       wm.className = 'wm-overlay';
       item.appendChild(wm);
+    } else {
+      const dlBtn = document.createElement('a');
+      dlBtn.className = 'p-dl';
+      dlBtn.href = dlUrl(photo);
+      dlBtn.download = 'coastal-' + (i + 1) + '.jpg';
+      dlBtn.textContent = '↓ Save';
+      dlBtn.addEventListener('click', e => e.stopPropagation());
+      hover.appendChild(dlBtn);
     }
+    item.appendChild(img);
+    item.appendChild(hover);
     item.addEventListener('click', () => openLb(i));
     masonry.appendChild(item);
   });
@@ -723,8 +813,9 @@ function showLbPhoto(i) {
   img.onerror = () => { spin.style.display = 'none'; };
   img.src = thumbUrl(photo, 'xl');
 
-  document.getElementById('lbDl').href = dlUrl(photo);
-  document.getElementById('lbDl').download = 'coastal-' + (i + 1) + '.jpg';
+  const lbDl = document.getElementById('lbDl');
+  lbDl.download = 'coastal-' + (i + 1) + '.jpg';
+  if (!cfg.watermark) lbDl.href = dlUrl(photo);
   document.getElementById('lbCount').textContent = (i + 1) + ' / ' + photos.length;
   document.getElementById('lbName').textContent = photo.filename ?? '';
 
@@ -755,21 +846,33 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Download All ──────────────────────────────────────────
-document.getElementById('dlAll').addEventListener('click', () => {
+document.getElementById('dlAll').addEventListener('click', async function() {
   const MAX = 20;
+  const limit = Math.min(photos.length, MAX);
   if (photos.length > MAX) {
     if (!confirm(`This gallery has ${photos.length} photos.\n\nBrowsers limit batch downloads, so only the first ${MAX} will download automatically.\n\nFor all photos, use the Synology Photos app with your share link, or download individually.\n\nContinue with first ${MAX}?`)) return;
   }
-  const limit = Math.min(photos.length, MAX);
-  for (let i = 0; i < limit; i++) {
-    setTimeout(() => {
-      const a = document.createElement('a');
-      a.href = dlUrl(photos[i]);
-      a.download = 'coastal-' + (i + 1) + '.jpg';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }, i * 200);
+
+  if (cfg.watermark) {
+    this.textContent = 'Saving…';
+    this.disabled = true;
+    for (let i = 0; i < limit; i++) {
+      try { await downloadWithWatermark(photos[i], 'coastal-' + (i + 1) + '.jpg'); }
+      catch { /* skip failed */ }
+    }
+    this.disabled = false;
+    this.textContent = 'Download All';
+  } else {
+    for (let i = 0; i < limit; i++) {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = dlUrl(photos[i]);
+        a.download = 'coastal-' + (i + 1) + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 200);
+    }
   }
 });
 

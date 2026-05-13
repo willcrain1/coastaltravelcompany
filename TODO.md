@@ -19,15 +19,13 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 2. Real Watermarking
+## ~~2. Real Watermarking~~ ✅ Done
 
-**Goal:** Photos downloaded by clients have Coastal Travel Company watermark burned in — not just a CSS overlay.
-
-- [ ] **Check Synology Photos version** — watermark settings (if available) are under Synology Photos → top-right avatar/settings menu → Sharing Settings → Watermark tab. Not present in all DSM versions; may require DSM 7.2+ and Synology Photos 1.7+. If missing, Synology doesn't support server-side watermarking on this NAS.
-- [ ] If Synology watermark IS available: enable it on the shared album, then update `dlUrl()` in `client-gallery.html` to return `thumbUrl(photo, 'xl')` instead of `SYNO.Foto.Download` — XL thumbnails carry the burned-in watermark
-- [ ] If Synology watermark IS NOT available: implement Worker-side watermarking — fetch the image from Synology, overlay text/logo using Canvas API or a lightweight image library (e.g. `@cf-wasm/photon` which runs in Workers), return the composited image
-- [ ] Re-enable download buttons for watermarked galleries once server-side watermark is confirmed working
-- [ ] Update watermark checkbox label in `gallery-admin.html` to explain the approach in use
+- Synology Photos does not expose watermarking on this DSM version
+- Implemented client-side Canvas watermarking in `client-gallery.html`:
+  - Downloads from watermark galleries fetch the XL thumbnail, composite diagonal "© Coastal Travel Company" text (tiled, semi-transparent white + dark shadow), then trigger a JPEG download with the watermark burned in
+  - Per-photo Save button, lightbox Save button, and Download All all use the watermark path
+  - CSS overlay on thumbnails/lightbox preserved as a visual preview indicator
 
 ---
 
