@@ -11,7 +11,7 @@
 //  5. Server-side watermarking — watermark=1 on a GET causes the Worker to burn
 //     "© Coastal Travel Company" text into the image before returning it
 
-import { PhotonImage, draw_text_with_transparency } from '@cf-wasm/photon';
+import { PhotonImage, draw_text_with_border } from '@cf-wasm/photon';
 
 const NAS_SHARE_API  = 'https://nas.coastaltravelcompany.com/mo/sharing/webapi/entry.cgi';
 const NAS_SHARE_PAGE = 'https://nas.coastaltravelcompany.com/mo/sharing/';
@@ -83,9 +83,8 @@ function escHtml(s) {
 }
 
 // Burn tiled "© Coastal Travel Company" into the image bytes and return a JPEG.
-// Uses @cf-wasm/photon which runs the Photon image library as WASM in the Worker.
-// Text is drawn at 30px (Photon's built-in Roboto Regular) in a staggered grid
-// so every region of the image is covered regardless of aspect ratio.
+// Uses @cf-wasm/photon (WASM) with draw_text_with_border — white text + dark outline,
+// visible on any background. Staggered grid covers the full image regardless of aspect ratio.
 async function applyWatermark(imageBytes) {
   const photon = PhotonImage.new_from_byteslice(new Uint8Array(imageBytes));
   const w = photon.get_width();
@@ -101,7 +100,7 @@ async function applyWatermark(imageBytes) {
     for (let col = -1; col * colW + xOff < w + colW; col++) {
       const x = col * colW + xOff;
       if (x >= 0) {
-        draw_text_with_transparency(photon, WM_TEXT, x, y, 0.4);
+        draw_text_with_border(photon, WM_TEXT, x, y, 24.0);
       }
     }
   }
