@@ -571,3 +571,17 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Create addresses for each employee/role (e.g. `will@coastaltravelcompany.com`, `hello@coastaltravelcompany.com`)
 - [ ] Update the contact form delivery address and any Resend sending addresses to use the new domain emails
 - [ ] Add DMARC reporting (`rua=mailto:...`) so you can monitor for spoofing of the domain
+
+---
+
+## 26. Preprod Environment
+
+**Goal:** Create a staging environment that mirrors production so changes can be tested end-to-end before going live — particularly for Worker changes that can't be rolled back easily once deployed.
+
+- [ ] Create a `preprod` branch in the repo; configure GitHub Pages to serve it at a separate URL (e.g. a `preprod` environment under GitHub Pages settings, or a subdomain like `preprod.coastaltravelcompany.com`)
+- [ ] Deploy a second Cloudflare Worker (`coastal-gallery-proxy-preprod`) for the preprod environment — copy `worker/cloudflare-worker.js` with the CORS origin allowlist updated to the preprod domain
+- [ ] Create a separate KV namespace (`CTC_AUTH_PREPROD`) bound to the preprod Worker so rate limiting and session state are isolated from production
+- [ ] Update `worker/.worker-config.example` with a `CF_WORKER_NAME_PREPROD` entry and document the two-environment setup in `worker/README.md` (or create it)
+- [ ] Add a `--preprod` flag (or `deploy-worker-preprod.sh`) so the preprod Worker can be deployed independently from production without touching `deploy-worker.sh`
+- [ ] Update `admin/gallery-admin.html` to let the admin choose which environment to generate gallery links for (production vs. preprod Worker URL)
+- [ ] Document the preprod workflow in `CLAUDE.md`: what to test before merging to `master`, and how to promote a change from `preprod` → `master`
