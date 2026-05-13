@@ -503,7 +503,7 @@ async function getGallerySid() {
   const res = await fetch(proxyBase() + '/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ passphrase: JSON.stringify(cfg.passphrase) }).toString(),
+    body: new URLSearchParams({ passphrase: cfg.passphrase }).toString(),
   });
   if (!res.ok) throw new Error('Gallery session failed (HTTP ' + res.status + ')');
   const data = await res.json();
