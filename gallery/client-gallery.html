@@ -725,7 +725,7 @@ function showLbPhoto(i) {
 
   img.onload = () => { img.classList.add('loaded'); spin.style.display = 'none'; };
   img.onerror = () => { spin.style.display = 'none'; };
-  img.src = thumbUrl(photo, 'xl');
+  img.src = cfg.watermark ? thumbUrl(photo, 'xl') + '&watermark=1' : thumbUrl(photo, 'xl');
 
   const lbDl = document.getElementById('lbDl');
   lbDl.download = 'coastal-' + (i + 1) + '.jpg';
