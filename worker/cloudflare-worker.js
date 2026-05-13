@@ -108,17 +108,18 @@ async function applyWatermark(imageBytes) {
   const w = photon.get_width();
   const h = photon.get_height();
 
-  const colW = 440;  // horizontal distance between text repetitions
-  const rowH = 80;   // vertical distance between rows
+  const fontSize = 40.0; // visible at XL thumbnail resolution (2560px wide)
+  const colW = 520;      // horizontal distance between text repetitions
+  const rowH = 110;      // vertical distance between rows
 
   for (let row = 0; row * rowH < h + rowH; row++) {
     const y = row * rowH;
-    // Offset every other row by half a column width to create a staggered pattern
+    // Offset every other row by half a column width to create a staggered grid
     const xOff = (row % 2) * Math.round(colW / 2);
     for (let col = -1; col * colW + xOff < w + colW; col++) {
       const x = col * colW + xOff;
       if (x >= 0) {
-        draw_text_with_border(photon, WM_TEXT, x, y, 24.0);
+        draw_text_with_border(photon, WM_TEXT, x, y, fontSize);
       }
     }
   }
@@ -348,31 +349,29 @@ async function handleRequest(request, env) {
     );
   }
 
-  // Apply watermark server-side — watermark=1 was stripped before forwarding,
-  // so Synology returns the clean image; we composite the text before responding.
-  if (wantsWatermark) {
-    const ct = nasResponse.headers.get('Content-Type') || '';
-    if (ct.startsWith('image/')) {
-      try {
-        const imageBytes = await nasResponse.arrayBuffer();
-        const watermarked = await applyWatermark(imageBytes);
-        const resHeaders = new Headers(CORS);
-        resHeaders.set('Content-Type', 'image/jpeg');
-        resHeaders.set('Content-Disposition', 'attachment; filename="coastal.jpg"');
-        return new Response(watermarked, { status: 200, headers: resHeaders });
-      } catch {
-        // Watermark processing failed — fall through and return the original image
-      }
+  // Read body once — shared by both the watermark path and the plain return path.
+  // Must happen before any conditional branch so the body is never consumed twice.
+  const body = await nasResponse.arrayBuffer();
+  const ct   = nasResponse.headers.get('Content-Type') || '';
+  const cd   = nasResponse.headers.get('Content-Disposition');
+
+  // Apply watermark server-side. watermark=1 was stripped before forwarding so
+  // Synology returns the clean image; we composite text onto it here.
+  if (wantsWatermark && ct.startsWith('image/')) {
+    try {
+      const watermarked = await applyWatermark(body);
+      const resHeaders = new Headers(CORS);
+      resHeaders.set('Content-Type', 'image/jpeg');
+      resHeaders.set('Content-Disposition', 'attachment; filename="coastal.jpg"');
+      return new Response(watermarked, { status: 200, headers: resHeaders });
+    } catch (e) {
+      console.error('[watermark] applyWatermark failed:', e?.message ?? e);
     }
   }
 
-  const body = await nasResponse.arrayBuffer();
   const resHeaders = new Headers(CORS);
-  const ct = nasResponse.headers.get('Content-Type');
   if (ct) resHeaders.set('Content-Type', ct);
-  const cd = nasResponse.headers.get('Content-Disposition');
   if (cd) resHeaders.set('Content-Disposition', cd);
-
   return new Response(body, { status: nasResponse.status, headers: resHeaders });
 }
 
