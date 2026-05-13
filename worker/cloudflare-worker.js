@@ -316,7 +316,7 @@ async function handleRequest(request, env) {
 
   const nasReqHeaders = {
     'Cookie':            nasAuth.cookie, // .cookie contains the actual string
-    'X-SYNO-SHARING-ID': passphrase,
+    'X-SYNO-SHARING': passphrase,
   };
   if (request.method === 'POST') {
     nasReqHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
