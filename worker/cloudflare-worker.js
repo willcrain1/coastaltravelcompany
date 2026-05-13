@@ -123,7 +123,8 @@ async function handleRequest(request, env) {
   }
 
   const origin = request.headers.get('Origin');
-  if (origin !== ALLOWED_ORIGIN) {
+  const referer = request.headers.get('Referer') || '';
+  if (origin !== ALLOWED_ORIGIN && !referer.startsWith(ALLOWED_ORIGIN)) {
     return new Response('Forbidden', { status: 403 });
   }
 
