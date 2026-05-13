@@ -19,15 +19,14 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 2. Real Watermarking
+## ~~2. Real Watermarking~~ ✅ Done
 
-**Goal:** Photos downloaded by clients have Coastal Travel Company watermark burned in — not just a CSS overlay.
-
-- [ ] **Check Synology Photos version** — watermark settings (if available) are under Synology Photos → top-right avatar/settings menu → Sharing Settings → Watermark tab. Not present in all DSM versions; may require DSM 7.2+ and Synology Photos 1.7+. If missing, Synology doesn't support server-side watermarking on this NAS.
-- [ ] If Synology watermark IS available: enable it on the shared album, then update `dlUrl()` in `client-gallery.html` to return `thumbUrl(photo, 'xl')` instead of `SYNO.Foto.Download` — XL thumbnails carry the burned-in watermark
-- [ ] If Synology watermark IS NOT available: implement Worker-side watermarking — fetch the image from Synology, overlay text/logo using Canvas API or a lightweight image library (e.g. `@cf-wasm/photon` which runs in Workers), return the composited image
-- [ ] Re-enable download buttons for watermarked galleries once server-side watermark is confirmed working
-- [ ] Update watermark checkbox label in `gallery-admin.html` to explain the approach in use
+- Synology Photos does not expose watermarking on this DSM version
+- Implemented server-side watermarking in the Cloudflare Worker using `@cf-wasm/photon` (WASM):
+  - Client passes `watermark=1` on XL thumbnail requests; Worker strips it before forwarding to Synology, composites tiled "© Coastal Travel Company" text (staggered grid, 0.4 opacity) via `draw_text_with_transparency`, returns a processed JPEG — the clean image bytes never cross the network
+  - Per-photo Save, lightbox Download, and Download All all route through the Worker watermark path for watermark galleries
+  - CSS overlay on thumbnails/lightbox preserved as a visual preview indicator
+  - Worker converted to ES modules format; deployment switched from raw curl PUT to `wrangler deploy` (bundles WASM + npm dependencies); `worker/package.json` and `worker/wrangler.toml.example` added
 
 ---
 
