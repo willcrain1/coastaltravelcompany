@@ -491,10 +491,63 @@ function dlUrl(photo) {
   });
 }
 
-// ── Watermarked download URL ──────────────────────────────
-// Worker applies the watermark server-side when watermark=1 is present.
-function dlUrlWm(photo) {
-  return thumbUrl(photo, 'xl') + '&watermark=1';
+// ── Client-side watermarked download ──────────────────────
+// Composites "© Coastal Travel Company" onto the XL thumbnail in a canvas
+// and downloads the result as JPEG. Runs entirely in the browser — the
+// previous worker-side approach using @cf-wasm/photon text drawing was
+// unreliable in the workerd runtime.
+const WM_TEXT = '© Coastal Travel Company';
+
+async function downloadWatermarked(photo, filename) {
+  const res = await fetch(thumbUrl(photo, 'xl'));
+  if (!res.ok) throw new Error('Image fetch failed: HTTP ' + res.status);
+  const blob = await res.blob();
+  const bitmap = await createImageBitmap(blob);
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close && bitmap.close();
+
+  // Scale watermark to image so it's legible at any resolution
+  const fontSize = Math.max(28, Math.floor(canvas.width / 55));
+  ctx.font = '600 ' + fontSize + 'px Montserrat, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+
+  const textWidth = ctx.measureText(WM_TEXT).width;
+  const colW = Math.round(textWidth + fontSize * 1.5);
+  const rowH = Math.round(fontSize * 3);
+
+  for (let row = 0; row * rowH < canvas.height + rowH; row++) {
+    const y = row * rowH;
+    const xOff = (row % 2) * Math.round(colW / 2);
+    for (let col = -1; col * colW + xOff < canvas.width + colW; col++) {
+      const x = col * colW + xOff;
+      if (x + textWidth < 0) continue;
+      // Dark drop shadow so the text reads on light backgrounds
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillText(WM_TEXT, x + 2, y + 2);
+      // Main translucent white text
+      ctx.fillStyle = 'rgba(255,255,255,0.70)';
+      ctx.fillText(WM_TEXT, x, y);
+    }
+  }
+
+  const wmBlob = await new Promise(resolve =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.92)
+  );
+  if (!wmBlob) throw new Error('Canvas encode returned no blob');
+  const dlUrl = URL.createObjectURL(wmBlob);
+  const a = document.createElement('a');
+  a.href = dlUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(dlUrl); }, 5000);
 }
 
 // ── Session token exchange ────────────────────────────────
@@ -659,10 +712,22 @@ function renderPhotos() {
 
     const dlBtn = document.createElement('a');
     dlBtn.className = 'p-dl';
-    dlBtn.href = cfg.watermark ? dlUrlWm(photo) : dlUrl(photo);
+    dlBtn.href = dlUrl(photo); // fallback for non-watermark mode and if JS errors
     dlBtn.download = 'coastal-' + (i + 1) + '.jpg';
     dlBtn.textContent = '↓ Save';
-    dlBtn.addEventListener('click', e => e.stopPropagation());
+    dlBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      if (!cfg.watermark) return;
+      e.preventDefault();
+      const original = dlBtn.textContent;
+      dlBtn.textContent = '…';
+      try {
+        await downloadWatermarked(photo, 'coastal-' + (i + 1) + '.jpg');
+      } catch (err) {
+        alert('Download failed: ' + err.message);
+      }
+      dlBtn.textContent = original;
+    });
     hover.appendChild(dlBtn);
     item.appendChild(img);
     item.appendChild(hover);
@@ -725,11 +790,23 @@ function showLbPhoto(i) {
 
   img.onload = () => { img.classList.add('loaded'); spin.style.display = 'none'; };
   img.onerror = () => { spin.style.display = 'none'; };
-  img.src = cfg.watermark ? thumbUrl(photo, 'xl') + '&watermark=1' : thumbUrl(photo, 'xl');
+  img.src = thumbUrl(photo, 'xl');
 
   const lbDl = document.getElementById('lbDl');
   lbDl.download = 'coastal-' + (i + 1) + '.jpg';
-  lbDl.href = cfg.watermark ? dlUrlWm(photo) : dlUrl(photo);
+  lbDl.href = dlUrl(photo); // fallback; watermark path handled by onclick below
+  lbDl.onclick = async (ev) => {
+    if (!cfg.watermark) return;
+    ev.preventDefault();
+    const original = lbDl.innerHTML;
+    lbDl.innerHTML = '… Preparing';
+    try {
+      await downloadWatermarked(photo, 'coastal-' + (i + 1) + '.jpg');
+    } catch (err) {
+      alert('Download failed: ' + err.message);
+    }
+    lbDl.innerHTML = original;
+  };
   document.getElementById('lbCount').textContent = (i + 1) + ' / ' + photos.length;
   document.getElementById('lbName').textContent = photo.filename ?? '';
 
@@ -766,15 +843,29 @@ document.getElementById('dlAll').addEventListener('click', () => {
     if (!confirm(`This gallery has ${photos.length} photos.\n\nBrowsers limit batch downloads, so only the first ${MAX} will download automatically.\n\nFor all photos, use the Synology Photos app with your share link, or download individually.\n\nContinue with first ${MAX}?`)) return;
   }
   const limit = Math.min(photos.length, MAX);
-  for (let i = 0; i < limit; i++) {
-    setTimeout(() => {
-      const a = document.createElement('a');
-      a.href = cfg.watermark ? dlUrlWm(photos[i]) : dlUrl(photos[i]);
-      a.download = 'coastal-' + (i + 1) + '.jpg';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }, i * 200);
+  if (cfg.watermark) {
+    // Process sequentially — each canvas watermark takes 1–3s on a large image,
+    // and running them in parallel would peg the browser and trip rate limits.
+    (async () => {
+      for (let i = 0; i < limit; i++) {
+        try {
+          await downloadWatermarked(photos[i], 'coastal-' + (i + 1) + '.jpg');
+        } catch (err) {
+          console.error('Watermark download failed for photo', i, err);
+        }
+      }
+    })();
+  } else {
+    for (let i = 0; i < limit; i++) {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = dlUrl(photos[i]);
+        a.download = 'coastal-' + (i + 1) + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 200);
+    }
   }
 });
 
