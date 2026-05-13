@@ -39,22 +39,29 @@ const CORS = {
 const sidCache = {};
 
 function parseCookies(headers) {
-  const all = headers.getAll
-    ? headers.getAll('set-cookie')
-    : [headers.get('set-cookie')].filter(Boolean);
-  return all.map(c => c.split(';')[0].trim()).filter(Boolean).join('; ');
+  const setCookie = headers.get('set-cookie');
+  if (!setCookie) return '';
+  // Splits multiple cookies while ignoring commas inside dates (e.g., Expires=Tue, 12-May...)
+  return setCookie.split(/,(?=\s*[^,;]+=[^,;]+)/).map(c => c.split(';')[0].trim()).join('; ');
 }
 
 async function getSharingSid(passphrase) {
   const cached = sidCache[passphrase];
-  if (cached && cached.exp > Date.now()) return cached.cookie;
+  if (cached && cached.exp > Date.now()) return cached;
 
   const res = await fetch(NAS_SHARE_PAGE + passphrase, { redirect: 'follow' });
+  
+  // Extract the specific sharing_sid from the Set-Cookie headers
+  const setCookie = res.headers.get('set-cookie') || '';
+  const sidMatch = setCookie.match(/sharing_sid=([^;]+)/);
+  const sid = sidMatch ? sidMatch[1] : null;
+  
   const cookie = parseCookies(res.headers);
   if (!cookie) throw new Error('NAS sharing page returned no session cookie');
 
-  sidCache[passphrase] = { cookie, exp: Date.now() + 2 * 60 * 60 * 1000 };
-  return cookie;
+  const data = { cookie, sid, exp: Date.now() + 2 * 60 * 60 * 1000 };
+  sidCache[passphrase] = data;
+  return data;
 }
 
 function extractPassphrase(raw) {
@@ -289,11 +296,13 @@ async function handleRequest(request, env) {
     nasParams.delete('passphrase');
     nasParams.delete('watermark');
     nasParams.set('_sharing_id', passphrase);
+    if (nasAuth.sid) nasParams.set('sid', nasAuth.sid);
     nasUrl = NAS_SHARE_API + '?' + nasParams.toString();
   } else {
     const nasParams = new URLSearchParams(bodyText);
     nasParams.delete('sid');
     nasParams.set('passphrase', passphrase);
+    if (nasAuth.sid) nasParams.set('sid', nasAuth.sid);
     nasUrl = NAS_SHARE_API;
     nasBody = nasParams.toString();
   }
