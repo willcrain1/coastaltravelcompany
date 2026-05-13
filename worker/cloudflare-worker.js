@@ -326,8 +326,8 @@ async function handleRequest(request, env) {
 
   // 3. Use the .cookie property for the header
   const nasReqHeaders = {
-    'Cookie':            nasAuth.cookie,  // Correct: sends the string, not the object
-    'X-SYNO-SHARING-ID': passphrase,
+    'Cookie':            nasAuth.cookie, // .cookie contains the actual string
+    'X-SYNO-SHARING': passphrase,
   };
   if (request.method === 'POST') {
     nasReqHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
