@@ -1,4 +1,4 @@
-// Cloudflare Worker — Synology Photos sharing CORS proxy
+// Cloudflare Worker — Synology Photos CORS proxy + contact form relay
 // Deploy via: ./worker/deploy-worker.sh
 //
 // Security model:
@@ -7,12 +7,14 @@
 //     sid stored in KV; thumbnails/downloads use ?sid=... so the passphrase is
 //     never logged in Cloudflare's request logs
 //  3. Synology API allowlist — only Browse.Item, Thumbnail, Download are forwarded
-//  4. KV rate limiting — 300 requests/min per gallery passphrase
+//  4. KV rate limiting — 300 requests/min per gallery passphrase; 5/hour for contact
 
 const NAS_SHARE_API  = 'https://nas.coastaltravelcompany.com/mo/sharing/webapi/entry.cgi';
 const NAS_SHARE_PAGE = 'https://nas.coastaltravelcompany.com/mo/sharing/';
 const ALLOWED_ORIGIN = 'https://coastaltravelcompany.com';
-const RATE_LIMIT     = 300; // max requests per 60 s per gallery
+const RATE_LIMIT         = 300; // max requests per 60 s per gallery
+const CONTACT_RATE_LIMIT = 5;   // max contact form submissions per hour per IP
+const CONTACT_TO         = 'thecoastaltravelcompany@gmail.com';
 
 const ALLOWED_APIS = new Set([
   'SYNO.Foto.Browse.Item',
@@ -31,6 +33,14 @@ const CORS = {
 addEventListener('fetch', event => {
   event.respondWith(handleRequest(event.request));
 });
+
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 // ── Per-isolate session cache (passphrase → sharing_sid cookie) ───────────
 const sidCache = {};
@@ -102,6 +112,82 @@ async function handleRequest(request) {
     const sid = crypto.randomUUID();
     await KV.put('tok:' + sid, passphrase, { expirationTtl: 14400 }); // 4 hours
     return new Response(JSON.stringify({ sid }),
+      { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } });
+  }
+
+  // ── Contact form: POST /contact ───────────────────────────────────────
+  if (request.method === 'POST' && url.pathname === '/contact') {
+    const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const rlKey = 'contact_rl:' + ip;
+    const countStr = await KV.get(rlKey);
+    const count = countStr ? parseInt(countStr, 10) : 0;
+    if (count >= CONTACT_RATE_LIMIT) {
+      return new Response(
+        JSON.stringify({ error: 'Too many submissions. Please try again later.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', ...CORS } }
+      );
+    }
+    await KV.put(rlKey, String(count + 1), { expirationTtl: 3600 });
+
+    const body = await request.text();
+    const p = new URLSearchParams(body);
+    const firstName  = (p.get('first-name') || '').trim();
+    const lastName   = (p.get('last-name')  || '').trim();
+    const email      = (p.get('email')      || '').trim();
+    const property   = (p.get('property')   || '').trim();
+    const location   = (p.get('location')   || '').trim();
+    const collection = (p.get('collection') || '').trim();
+    const timeline   = (p.get('timeline')   || '').trim();
+    const message    = (p.get('message')    || '').trim();
+
+    if (!firstName || !email || !message) {
+      return new Response(
+        JSON.stringify({ error: 'Please fill in all required fields.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json', ...CORS } }
+      );
+    }
+
+    const row = (label, val) =>
+      `<tr><td style="padding:4px 16px 4px 0;color:#666;white-space:nowrap"><strong>${label}</strong></td>` +
+      `<td style="padding:4px 0">${escHtml(val) || '—'}</td></tr>`;
+
+    const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1C1C1C;max-width:600px">
+<h2 style="color:#2A5C45">New Inquiry — Coastal Travel Company</h2>
+<table style="border-collapse:collapse;margin-bottom:24px">
+  ${row('Name',       firstName + (lastName ? ' ' + lastName : ''))}
+  ${row('Email',      email)}
+  ${row('Property',   property)}
+  ${row('Location',   location)}
+  ${row('Collection', collection)}
+  ${row('Timeline',   timeline)}
+</table>
+<h3 style="color:#2A5C45;margin-bottom:8px">Message</h3>
+<p style="line-height:1.7;white-space:pre-wrap">${escHtml(message)}</p>
+</body></html>`;
+
+    const resendRes = await fetch('https://api.resend.com/emails', {
+      method:  'POST',
+      headers: {
+        'Authorization': 'Bearer ' + RESEND_API_KEY,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        from:     'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+        to:       [CONTACT_TO],
+        reply_to: email,
+        subject:  `Inquiry: ${firstName}${lastName ? ' ' + lastName : ''}${property ? ' — ' + property : ''}`,
+        html,
+      }),
+    });
+
+    if (!resendRes.ok) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to send. Please try again or email us directly.' }),
+        { status: 502, headers: { 'Content-Type': 'application/json', ...CORS } }
+      );
+    }
+
+    return new Response(JSON.stringify({ ok: true }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } });
   }
 

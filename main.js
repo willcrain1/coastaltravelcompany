@@ -1,3 +1,5 @@
+const WORKER_URL = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+
 // ── Nav scroll behavior ────────────────────────────────────
 const nav = document.getElementById('main-nav');
 
@@ -71,14 +73,49 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
   });
 });
 
-// ── Form submit (placeholder) ──────────────────────────────
+// ── Contact form submit ────────────────────────────────────
 const form = document.querySelector('form');
 if (form) {
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
-    const btn = form.querySelector('button[type="submit"]');
-    btn.textContent = 'Thank You — We\'ll Be In Touch';
-    btn.style.background = 'var(--forest-green)';
-    btn.disabled = true;
+    const btn    = form.querySelector('button[type="submit"]');
+    const status = document.getElementById('form-status');
+    const orig   = btn.textContent;
+
+    btn.textContent = 'Sending…';
+    btn.disabled    = true;
+    if (status) { status.style.color = ''; status.textContent = ''; }
+
+    try {
+      const res  = await fetch(WORKER_URL + '/contact', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body:    new URLSearchParams(new FormData(form)).toString(),
+      });
+      const json = await res.json();
+
+      if (res.ok) {
+        btn.textContent      = 'Inquiry Sent — We’ll Be In Touch';
+        btn.style.background = 'var(--forest-green)';
+        if (status) {
+          status.style.color  = 'var(--forest-green)';
+          status.textContent  = 'Your message has been received. We’ll respond within 48 hours.';
+        }
+      } else {
+        btn.textContent = orig;
+        btn.disabled    = false;
+        if (status) {
+          status.style.color = '#c0392b';
+          status.textContent = json.error || 'Something went wrong. Please try again.';
+        }
+      }
+    } catch {
+      btn.textContent = orig;
+      btn.disabled    = false;
+      if (status) {
+        status.style.color = '#c0392b';
+        status.textContent = 'Network error. Please check your connection and try again.';
+      }
+    }
   });
 }
