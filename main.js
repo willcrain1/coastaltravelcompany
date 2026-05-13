@@ -1,5 +1,4 @@
-// TODO: set this to your Cloudflare Worker URL (find it in Cloudflare dashboard → Workers & Pages)
-const WORKER_URL = '';
+const WORKER_URL = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
 
 // ── Nav scroll behavior ────────────────────────────────────
 const nav = document.getElementById('main-nav');
