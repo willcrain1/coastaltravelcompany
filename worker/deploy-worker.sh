@@ -77,25 +77,30 @@ else
   echo "Found existing KV namespace: $KV_ID"
 fi
 
-# ── Deploy Worker with KV binding ─────────────────────────────────────────────
-echo "Deploying $WORKER_FILE → $CF_WORKER_NAME ..."
+# ── Generate wrangler.toml ────────────────────────────────────────────────────
+echo "Generating wrangler.toml..."
+cat > "$SCRIPT_DIR/wrangler.toml" <<TOML
+name = "$CF_WORKER_NAME"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-09-23"
 
-METADATA="{\"body_part\":\"script\",\"bindings\":[{\"type\":\"kv_namespace\",\"name\":\"KV\",\"namespace_id\":\"$KV_ID\"}]}"
+[[kv_namespaces]]
+binding = "KV"
+id = "$KV_ID"
+TOML
 
-curl -s -X PUT "$BASE/workers/scripts/$CF_WORKER_NAME" \
-  -H "Authorization: Bearer $CF_API_TOKEN" \
-  -F "metadata=$METADATA;type=application/json" \
-  -F "script=@$WORKER_FILE;type=application/javascript" > "$TMP"
+# ── Deploy via wrangler ───────────────────────────────────────────────────────
+echo "Installing dependencies..."
+cd "$SCRIPT_DIR"
+npm install
 
-if python3 -c "import json; d=json.load(open('$TMP')); exit(0 if d.get('success') else 1)"; then
-  echo "Done. Worker deployed with KV binding (namespace: $KV_NAME, id: $KV_ID)."
-  echo ""
-  echo "Required Worker secrets (set once in Cloudflare dashboard → Worker → Settings → Variables):"
-  echo "  JWT_SECRET      — random string, used to sign session tokens"
-  echo "  RESEND_API_KEY  — from resend.com"
-  echo "  GOOGLE_CLIENT_ID — from Google Cloud Console"
-else
-  echo "Deploy failed. Cloudflare response:"
-  cat "$TMP"
-  exit 1
-fi
+echo "Deploying $CF_WORKER_NAME via wrangler..."
+export CLOUDFLARE_ACCOUNT_ID="$CF_ACCOUNT_ID"
+export CLOUDFLARE_API_TOKEN="$CF_API_TOKEN"
+npx wrangler deploy
+
+echo ""
+echo "Done. Worker deployed with KV binding (namespace: $KV_NAME, id: $KV_ID)."
+echo ""
+echo "Required Worker secrets (set once in Cloudflare dashboard → Worker → Settings → Variables):"
+echo "  RESEND_API_KEY  — from resend.com"

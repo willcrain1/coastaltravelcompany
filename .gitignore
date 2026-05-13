@@ -1,3 +1,5 @@
 worker/.worker-config
+worker/wrangler.toml
+worker/node_modules/
 .DS_Store
 .claude/

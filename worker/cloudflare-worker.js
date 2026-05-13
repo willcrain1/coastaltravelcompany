@@ -1,5 +1,5 @@
-// Cloudflare Worker — Synology Photos CORS proxy + contact form relay
-// Deploy via: ./worker/deploy-worker.sh
+// Cloudflare Worker — Synology Photos CORS proxy + contact form relay + watermarking
+// Deploy via: ./worker/deploy-worker.sh  (uses wrangler + npm)
 //
 // Security model:
 //  1. Origin header validation — rejects requests not from coastaltravelcompany.com
@@ -8,6 +8,10 @@
 //     never logged in Cloudflare's request logs
 //  3. Synology API allowlist — only Browse.Item, Thumbnail, Download are forwarded
 //  4. KV rate limiting — 300 requests/min per gallery passphrase; 5/hour for contact
+//  5. Server-side watermarking — watermark=1 on a GET causes the Worker to burn
+//     "© Coastal Travel Company" text into the image before returning it
+
+import { PhotonImage, draw_text_with_transparency } from '@cf-wasm/photon';
 
 const NAS_SHARE_API  = 'https://nas.coastaltravelcompany.com/mo/sharing/webapi/entry.cgi';
 const NAS_SHARE_PAGE = 'https://nas.coastaltravelcompany.com/mo/sharing/';
@@ -15,6 +19,7 @@ const ALLOWED_ORIGIN = 'https://coastaltravelcompany.com';
 const RATE_LIMIT         = 300; // max requests per 60 s per gallery
 const CONTACT_RATE_LIMIT = 5;   // max contact form submissions per hour per IP
 const CONTACT_TO         = 'thecoastaltravelcompany@gmail.com';
+const WM_TEXT            = '© Coastal Travel Company'; // © Coastal Travel Company
 
 const ALLOWED_APIS = new Set([
   'SYNO.Foto.Browse.Item',
@@ -29,18 +34,6 @@ const CORS = {
   'Access-Control-Expose-Headers': 'Content-Disposition',
   'Access-Control-Max-Age':        '86400',
 };
-
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request));
-});
-
-function escHtml(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 // ── Per-isolate session cache (passphrase → sharing_sid cookie) ───────────
 const sidCache = {};
@@ -72,22 +65,57 @@ function extractPassphrase(raw) {
   return raw;
 }
 
-async function checkRateLimit(passphrase) {
+async function checkRateLimit(passphrase, kv) {
   const key = 'rl:' + passphrase;
-  const countStr = await KV.get(key);
+  const countStr = await kv.get(key);
   const count = countStr ? parseInt(countStr, 10) : 0;
   if (count >= RATE_LIMIT) return false;
-  await KV.put(key, String(count + 1), { expirationTtl: 60 });
+  await kv.put(key, String(count + 1), { expirationTtl: 60 });
   return true;
 }
 
-async function handleRequest(request) {
-  // Preflight
+function escHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Burn tiled "© Coastal Travel Company" into the image bytes and return a JPEG.
+// Uses @cf-wasm/photon which runs the Photon image library as WASM in the Worker.
+// Text is drawn at 30px (Photon's built-in Roboto Regular) in a staggered grid
+// so every region of the image is covered regardless of aspect ratio.
+async function applyWatermark(imageBytes) {
+  const photon = PhotonImage.new_from_byteslice(new Uint8Array(imageBytes));
+  const w = photon.get_width();
+  const h = photon.get_height();
+
+  const colW = 440;  // horizontal distance between text repetitions
+  const rowH = 80;   // vertical distance between rows
+
+  for (let row = 0; row * rowH < h + rowH; row++) {
+    const y = row * rowH;
+    // Offset every other row by half a column width to create a staggered pattern
+    const xOff = (row % 2) * Math.round(colW / 2);
+    for (let col = -1; col * colW + xOff < w + colW; col++) {
+      const x = col * colW + xOff;
+      if (x >= 0) {
+        draw_text_with_transparency(photon, WM_TEXT, x, y, 0.4);
+      }
+    }
+  }
+
+  const result = photon.get_bytes_jpeg(85);
+  photon.free();
+  return result;
+}
+
+async function handleRequest(request, env) {
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS });
   }
 
-  // Browsers always send Origin for cross-origin requests; non-browser callers don't.
   const origin = request.headers.get('Origin');
   if (origin !== ALLOWED_ORIGIN) {
     return new Response('Forbidden', { status: 403 });
@@ -110,7 +138,7 @@ async function handleRequest(request) {
         { status: 401, headers: { 'Content-Type': 'application/json', ...CORS } });
     }
     const sid = crypto.randomUUID();
-    await KV.put('tok:' + sid, passphrase, { expirationTtl: 14400 }); // 4 hours
+    await env.KV.put('tok:' + sid, passphrase, { expirationTtl: 14400 }); // 4 hours
     return new Response(JSON.stringify({ sid }),
       { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } });
   }
@@ -119,7 +147,7 @@ async function handleRequest(request) {
   if (request.method === 'POST' && url.pathname === '/contact') {
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
     const rlKey = 'contact_rl:' + ip;
-    const countStr = await KV.get(rlKey);
+    const countStr = await env.KV.get(rlKey);
     const count = countStr ? parseInt(countStr, 10) : 0;
     if (count >= CONTACT_RATE_LIMIT) {
       return new Response(
@@ -127,7 +155,7 @@ async function handleRequest(request) {
         { status: 429, headers: { 'Content-Type': 'application/json', ...CORS } }
       );
     }
-    await KV.put(rlKey, String(count + 1), { expirationTtl: 3600 });
+    await env.KV.put(rlKey, String(count + 1), { expirationTtl: 3600 });
 
     const body = await request.text();
     const p = new URLSearchParams(body);
@@ -168,7 +196,7 @@ async function handleRequest(request) {
     const resendRes = await fetch('https://api.resend.com/emails', {
       method:  'POST',
       headers: {
-        'Authorization': 'Bearer ' + RESEND_API_KEY,
+        'Authorization': 'Bearer ' + env.RESEND_API_KEY,
         'Content-Type':  'application/json',
       },
       body: JSON.stringify({
@@ -194,7 +222,6 @@ async function handleRequest(request) {
   // ── Proxy requests ────────────────────────────────────────────────────
   const bodyText = request.method === 'POST' ? await request.text() : '';
 
-  // Resolve passphrase — sid token (preferred, keeps passphrase out of logs) or direct
   let passphrase;
   let rawSid, rawPassphrase;
   if (request.method === 'POST') {
@@ -207,7 +234,7 @@ async function handleRequest(request) {
   }
 
   if (rawSid) {
-    const stored = await KV.get('tok:' + rawSid);
+    const stored = await env.KV.get('tok:' + rawSid);
     if (!stored) {
       return new Response(
         JSON.stringify({ success: false, error: { code: 401, message: 'Session expired — reload the gallery' } }),
@@ -226,7 +253,6 @@ async function handleRequest(request) {
     );
   }
 
-  // API method allowlist
   const apiMethod = request.method === 'POST'
     ? new URLSearchParams(bodyText).get('api') || ''
     : url.searchParams.get('api') || '';
@@ -237,15 +263,13 @@ async function handleRequest(request) {
     );
   }
 
-  // Rate limit per gallery
-  if (!await checkRateLimit(passphrase)) {
+  if (!await checkRateLimit(passphrase, env.KV)) {
     return new Response(
       JSON.stringify({ success: false, error: { code: 429, message: 'Too many requests — try again in a minute' } }),
       { status: 429, headers: { 'Content-Type': 'application/json', ...CORS } }
     );
   }
 
-  // Get NAS sharing session cookie
   let nasCookie;
   try {
     nasCookie = await getSharingSid(passphrase);
@@ -256,12 +280,15 @@ async function handleRequest(request) {
     );
   }
 
-  // Build forwarded request — strip sid, inject passphrase for Synology
+  // Capture watermark flag before stripping params from the forwarded request
+  const wantsWatermark = request.method === 'GET' && url.searchParams.get('watermark') === '1';
+
   let nasUrl, nasBody;
   if (request.method === 'GET') {
     const nasParams = new URLSearchParams(url.search);
     nasParams.delete('sid');
     nasParams.delete('passphrase');
+    nasParams.delete('watermark');
     nasParams.set('_sharing_id', JSON.stringify(passphrase));
     nasUrl = NAS_SHARE_API + '?' + nasParams.toString();
   } else {
@@ -273,8 +300,8 @@ async function handleRequest(request) {
   }
 
   const nasReqHeaders = {
-    'Cookie':          nasCookie,
-    'X-SYNO-SHARING':  passphrase,
+    'Cookie':         nasCookie,
+    'X-SYNO-SHARING': passphrase,
   };
   if (request.method === 'POST') {
     nasReqHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -294,14 +321,36 @@ async function handleRequest(request) {
     );
   }
 
+  // Apply watermark server-side — watermark=1 was stripped before forwarding,
+  // so Synology returns the clean image; we composite the text before responding.
+  if (wantsWatermark) {
+    const ct = nasResponse.headers.get('Content-Type') || '';
+    if (ct.startsWith('image/')) {
+      try {
+        const imageBytes = await nasResponse.arrayBuffer();
+        const watermarked = await applyWatermark(imageBytes);
+        const resHeaders = new Headers(CORS);
+        resHeaders.set('Content-Type', 'image/jpeg');
+        resHeaders.set('Content-Disposition', 'attachment; filename="coastal.jpg"');
+        return new Response(watermarked, { status: 200, headers: resHeaders });
+      } catch {
+        // Watermark processing failed — fall through and return the original image
+      }
+    }
+  }
+
   const body = await nasResponse.arrayBuffer();
   const resHeaders = new Headers(CORS);
-
   const ct = nasResponse.headers.get('Content-Type');
   if (ct) resHeaders.set('Content-Type', ct);
-
   const cd = nasResponse.headers.get('Content-Disposition');
   if (cd) resHeaders.set('Content-Disposition', cd);
 
   return new Response(body, { status: nasResponse.status, headers: resHeaders });
 }
+
+export default {
+  async fetch(request, env) {
+    return handleRequest(request, env);
+  },
+};

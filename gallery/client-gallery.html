@@ -490,6 +490,12 @@ function dlUrl(photo) {
   });
 }
 
+// ── Watermarked download URL ──────────────────────────────
+// Worker applies the watermark server-side when watermark=1 is present.
+function dlUrlWm(photo) {
+  return thumbUrl(photo, 'xl') + '&watermark=1';
+}
+
 // ── Session token exchange ────────────────────────────────
 // Exchanges the gallery passphrase for a 4-hour sid stored in Worker KV.
 async function getGallerySid() {
@@ -522,8 +528,6 @@ function init() {
   document.getElementById('navClient').textContent = cfg.clientName;
 
   if (cfg.watermark) {
-    document.getElementById('dlAll').style.display = 'none';
-    document.getElementById('lbDl').style.display = 'none';
     const lbWm = document.createElement('div');
     lbWm.className = 'wm-overlay';
     document.querySelector('.lb-img-wrap').appendChild(lbWm);
@@ -578,7 +582,7 @@ async function loadGallery() {
       return;
     }
     document.getElementById('gCount').textContent = photos.length + ' photos';
-    if (!cfg.watermark) document.getElementById('dlAll').classList.add('show');
+    document.getElementById('dlAll').classList.add('show');
     document.getElementById('loading').style.display = 'none';
     document.getElementById('grid').classList.add('show');
     renderPhotos();
@@ -654,12 +658,11 @@ function renderPhotos() {
 
     const dlBtn = document.createElement('a');
     dlBtn.className = 'p-dl';
-    dlBtn.href = dlUrl(photo);
+    dlBtn.href = cfg.watermark ? dlUrlWm(photo) : dlUrl(photo);
     dlBtn.download = 'coastal-' + (i + 1) + '.jpg';
     dlBtn.textContent = '↓ Save';
     dlBtn.addEventListener('click', e => e.stopPropagation());
-
-    if (!cfg.watermark) hover.appendChild(dlBtn);
+    hover.appendChild(dlBtn);
     item.appendChild(img);
     item.appendChild(hover);
     if (cfg.watermark) {
@@ -723,8 +726,9 @@ function showLbPhoto(i) {
   img.onerror = () => { spin.style.display = 'none'; };
   img.src = thumbUrl(photo, 'xl');
 
-  document.getElementById('lbDl').href = dlUrl(photo);
-  document.getElementById('lbDl').download = 'coastal-' + (i + 1) + '.jpg';
+  const lbDl = document.getElementById('lbDl');
+  lbDl.download = 'coastal-' + (i + 1) + '.jpg';
+  lbDl.href = cfg.watermark ? dlUrlWm(photo) : dlUrl(photo);
   document.getElementById('lbCount').textContent = (i + 1) + ' / ' + photos.length;
   document.getElementById('lbName').textContent = photo.filename ?? '';
 
@@ -764,7 +768,7 @@ document.getElementById('dlAll').addEventListener('click', () => {
   for (let i = 0; i < limit; i++) {
     setTimeout(() => {
       const a = document.createElement('a');
-      a.href = dlUrl(photos[i]);
+      a.href = cfg.watermark ? dlUrlWm(photos[i]) : dlUrl(photos[i]);
       a.download = 'coastal-' + (i + 1) + '.jpg';
       document.body.appendChild(a);
       a.click();

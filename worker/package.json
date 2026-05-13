@@ -1,0 +1,14 @@
+{
+  "name": "coastal-gallery-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@cf-wasm/photon": "^0.3.3"
+  },
+  "devDependencies": {
+    "wrangler": "^3.75.0"
+  }
+}
