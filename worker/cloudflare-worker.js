@@ -276,9 +276,10 @@ async function handleRequest(request, env) {
     );
   }
 
-  let nasCookie;
+  let nasAuth; 
   try {
-    nasCookie = await getSharingSid(passphrase);
+    // getSharingSid now returns { cookie, sid, exp }
+    nasAuth = await getSharingSid(passphrase);
   } catch (err) {
     return new Response(
       JSON.stringify({ success: false, error: { code: 502, message: 'Sharing session failed: ' + err.message } }),
@@ -286,7 +287,7 @@ async function handleRequest(request, env) {
     );
   }
 
-  // Capture watermark flag before stripping params from the forwarded request
+  // Capture watermark flag before stripping params
   const wantsWatermark = request.method === 'GET' && url.searchParams.get('watermark') === '1';
 
   let nasUrl, nasBody;
@@ -296,19 +297,25 @@ async function handleRequest(request, env) {
     nasParams.delete('passphrase');
     nasParams.delete('watermark');
     nasParams.set('_sharing_id', passphrase);
+    
+    // Use the real SID from nasAuth
     if (nasAuth.sid) nasParams.set('sid', nasAuth.sid);
+    
     nasUrl = NAS_SHARE_API + '?' + nasParams.toString();
   } else {
     const nasParams = new URLSearchParams(bodyText);
     nasParams.delete('sid');
     nasParams.set('passphrase', passphrase);
+    
+    // Use the real SID from nasAuth
     if (nasAuth.sid) nasParams.set('sid', nasAuth.sid);
+    
     nasUrl = NAS_SHARE_API;
     nasBody = nasParams.toString();
   }
 
   const nasReqHeaders = {
-    'Cookie':            nasCookie,
+    'Cookie':            nasAuth.cookie, // .cookie contains the actual string
     'X-SYNO-SHARING-ID': passphrase,
   };
   if (request.method === 'POST') {
