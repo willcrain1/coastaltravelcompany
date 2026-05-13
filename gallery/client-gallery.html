@@ -467,7 +467,8 @@ function decodeCfg(hash) {
 // All requests go through the Worker. Thumbnails and downloads use a short-lived
 // sid token (obtained via POST /token) so the passphrase never appears in GET URLs
 // and is therefore never written to Cloudflare's request logs.
-const PROXY_API = () => cfg.proxyUrl || (cfg.nasUrl + '/mo/sharing/webapi/entry.cgi');
+const proxyBase = () => (cfg.proxyUrl || '').replace(/\/+$/, '');
+const PROXY_API = () => proxyBase() || (cfg.nasUrl + '/mo/sharing/webapi/entry.cgi');
 
 function thumbUrl(photo, size) {
   const thumb = photo.additional?.thumbnail ?? {};
@@ -499,7 +500,7 @@ function dlUrlWm(photo) {
 // ── Session token exchange ────────────────────────────────
 // Exchanges the gallery passphrase for a 4-hour sid stored in Worker KV.
 async function getGallerySid() {
-  const res = await fetch(cfg.proxyUrl + '/token', {
+  const res = await fetch(proxyBase() + '/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({ passphrase: JSON.stringify(cfg.passphrase) }).toString(),
