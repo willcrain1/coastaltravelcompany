@@ -15,10 +15,11 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 **Goal:** Form submissions on `contact.html` actually send an inquiry email instead of doing nothing.
 
-- [ ] Decide on delivery method: Formspree/Web3Forms (no backend, 2-minute setup) vs. Cloudflare Worker + Resend (more control, shares infrastructure with auth work)
-- [ ] Wire up form `action` to the chosen endpoint
-- [ ] Add success/error feedback in the UI after submit (replace the button state, show a confirmation message)
-- [ ] Confirm submissions arrive at `thecoastaltravelcompany@gmail.com`
+- [x] Decided on Cloudflare Worker + Resend — `POST /contact` endpoint added to existing Worker
+- [ ] **One-time setup:** Create Resend account → verify `coastaltravelcompany.com` domain (add DNS records) → copy API key → add `RESEND_API_KEY` as a Worker secret in Cloudflare dashboard (Worker → Settings → Variables & Secrets)
+- [ ] **Fill in Worker URL:** set `WORKER_URL` constant at top of `main.js`
+- [ ] Deploy Worker: `./worker/deploy-worker.sh`
+- [ ] Confirm submissions arrive at `thecoastaltravelcompany@gmail.com` (reply-to is set to the submitter's email)
 
 ---
 
