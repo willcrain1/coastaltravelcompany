@@ -477,7 +477,7 @@ function thumbUrl(photo, size) {
   return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Thumbnail', version: '2', method: 'get',
     id: unitId,
-    cache_key: JSON.stringify(cacheKey),
+    cache_key: cacheKey,
     type: 'unit', size,
     sid: gallerySid,
   });
@@ -486,7 +486,7 @@ function thumbUrl(photo, size) {
 function dlUrl(photo) {
   return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Download', version: '1', method: 'download',
-    unit_id: JSON.stringify([photo.id]),
+    unit_id: photo.id,
     sid: gallerySid,
   });
 }
