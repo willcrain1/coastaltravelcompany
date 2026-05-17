@@ -45,6 +45,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 **Goal:** Clients log in with email/password or Google, and see only their own galleries — no shared password links.
 
+- [ ] Verify if user creates initially with password flow then they can do google login later and it merges the local account with the google login and they can login with either the password or the google token.
 - [ ] Create Resend account, verify `coastaltravelcompany.com` domain for transactional email
 - [ ] Get Google Client ID from Google Cloud Console (authorized JS origin: `https://coastaltravelcompany.com`)
 - [ ] Set Worker secrets in Cloudflare dashboard: `JWT_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`
