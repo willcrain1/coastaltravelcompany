@@ -8,3 +8,22 @@ compatibility_date = "2024-09-23"
 [[kv_namespaces]]
 binding = "KV"
 id = "your-kv-namespace-id"   # filled in by deploy-worker.sh
+
+# ── Required secrets ────────────────────────────────────────────────────────
+# Set each secret once via: wrangler secret put <NAME>
+#
+#   wrangler secret put JWT_SECRET
+#     → Enter a long random string (e.g. openssl rand -hex 32).
+#       Used to sign 7-day auth tokens. Rotate if compromised.
+#
+#   wrangler secret put RESEND_API_KEY
+#     → Already set from contact form setup (item 1).
+#
+# ── Optional variables (set in Cloudflare dashboard → Worker → Settings → Variables) ──
+#
+#   GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"
+#     → Enables Google Sign-In on login.html.
+#       Create OAuth 2.0 credentials at console.cloud.google.com/apis/credentials.
+#       Add https://coastaltravelcompany.com to "Authorized JavaScript origins".
+#       The worker uses this to verify Google ID tokens.
+#       Also update the GOOGLE_CLIENT_ID constant in login.html.

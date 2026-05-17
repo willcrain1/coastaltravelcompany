@@ -55,6 +55,8 @@
       font-size: 24px;
       color: var(--teal);
     }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .admin-email { font-size: 11px; color: var(--dim); }
     .badge {
       font-size: 9px;
       font-weight: 600;
@@ -130,7 +132,8 @@
       text-transform: uppercase;
       color: var(--dim);
     }
-    input[type=text], input[type=url], input[type=password], input[type=email] {
+    input[type=text], input[type=url], input[type=password], input[type=email],
+    select {
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--border);
       padding: 11px 14px;
@@ -142,7 +145,8 @@
       width: 100%;
       transition: border-color 0.25s;
     }
-    input:focus { border-color: var(--teal); }
+    select { cursor: pointer; }
+    input:focus, select:focus { border-color: var(--teal); }
     input::placeholder { color: rgba(255,255,255,0.18); }
     .hint { font-size: 10.5px; color: var(--dim); margin-top: 4px; line-height: 1.55; }
 
@@ -184,6 +188,22 @@
       padding: 8px 16px; font-size: 9px;
     }
     .btn-danger:hover { background: rgba(229,115,115,0.08); }
+    .btn-sm {
+      padding: 7px 14px;
+      font-size: 9px;
+    }
+    .sign-out-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.28em; text-transform: uppercase;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.12);
+      color: var(--dim);
+      padding: 7px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sign-out-btn:hover { border-color: var(--border-hover); color: var(--white); }
 
     /* ── Result box ── */
     .result-box {
@@ -230,6 +250,60 @@
     .gr-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
     .empty { text-align: center; padding: 52px; color: var(--dim); font-size: 13px; }
 
+    select option { background: #2a2a2a; }
+
+    /* ── User rows ── */
+    .user-row {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 18px 22px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+    .user-row:hover { border-color: var(--border-hover); }
+    .user-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .ur-email { font-size: 14px; color: var(--white); margin-bottom: 3px; }
+    .ur-meta  { font-size: 11px; color: var(--dim); }
+    .ur-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+
+    /* Gallery assignment panel */
+    .assign-panel {
+      display: none;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .assign-panel.open { display: block; }
+    .assign-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.38em;
+      text-transform: uppercase; color: var(--dim); margin-bottom: 12px;
+    }
+    .gallery-checks {
+      display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;
+    }
+    .gallery-check-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 12px; color: var(--text); cursor: pointer;
+    }
+    .gallery-check-item input[type=checkbox] {
+      width: auto; accent-color: var(--teal); cursor: pointer; flex-shrink: 0;
+    }
+    .assign-save-row { display: flex; gap: 8px; }
+
+    /* Gallery assignment for create-user form */
+    .create-gallery-checks {
+      display: flex; flex-direction: column; gap: 8px;
+      max-height: 180px; overflow-y: auto;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+    }
+
     /* ── Toast ── */
     .toast {
       position: fixed; bottom: 28px; right: 28px;
@@ -247,7 +321,7 @@
       header, .main { padding-left: 20px; padding-right: 20px; }
       .form-grid { grid-template-columns: 1fr; }
       .full { grid-column: span 1; }
-      .gallery-row { grid-template-columns: 1fr; }
+      .gallery-row, .user-header { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -258,18 +332,23 @@
     <span class="logo-main">Coastal</span>
     <span class="logo-script">Travel Company</span>
   </div>
-  <span class="badge">Gallery Admin</span>
+  <div class="header-right">
+    <span class="admin-email" id="adminEmail"></span>
+    <span class="badge">Gallery Admin</span>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
 </header>
 
 <main class="main">
 
   <!-- Setup instructions -->
   <div class="callout">
-    <strong>One-time setup required.</strong> Three things need to be in place before you create galleries:
+    <strong>One-time setup required.</strong> Before creating galleries, deploy the Worker with the required secrets:
     <ol>
-      <li><strong>Deploy the Cloudflare Worker</strong> — log in to <code>dash.cloudflare.com</code> → Workers &amp; Pages → Create Worker → paste the contents of <code>cloudflare-worker.js</code> → Deploy. Copy the <code>*.workers.dev</code> URL and paste it into the Worker URL setting below.</li>
-      <li><strong>GitHub Pages</strong> — <code>gallery.html</code> and <code>client-gallery.html</code> are already live on <code>coastaltravelcompany.com</code> from the GitHub repo. No NAS hosting needed.</li>
-      <li>Fill in the three URL settings below, then create galleries using a Synology Photos share link.</li>
+      <li>Deploy the Cloudflare Worker: <code>cd worker && ./deploy-worker.sh</code></li>
+      <li>Set the <code>JWT_SECRET</code> secret: <code>wrangler secret put JWT_SECRET</code> (use a long random string)</li>
+      <li>Optionally set <code>GOOGLE_CLIENT_ID</code> in the Cloudflare dashboard under Worker → Settings → Variables to enable Google login.</li>
+      <li>Fill in the Worker URL below and save settings.</li>
     </ol>
   </div>
 
@@ -287,14 +366,14 @@
       <div class="fg">
         <label>Client Gallery URL — where client-gallery.html lives</label>
         <input type="url" id="nasClientUrl" placeholder="https://coastaltravelcompany.com/gallery/client-gallery.html" />
-        <p class="hint">The URL of client-gallery.html — now hosted on GitHub Pages alongside the rest of the site. Embedded inside gallery.html as an iframe.</p>
+        <p class="hint">The URL of client-gallery.html — hosted on GitHub Pages alongside the rest of the site.</p>
       </div>
     </div>
     <div class="settings-row">
       <div class="fg">
         <label>Cloudflare Worker URL — your deployed CORS proxy</label>
         <input type="url" id="workerUrl" placeholder="https://ctc-nas-proxy.yourname.workers.dev" />
-        <p class="hint">Deploy <code>cloudflare-worker.js</code> to Cloudflare Workers (free tier). Paste the <code>*.workers.dev</code> URL here — it proxies Synology API calls and adds CORS headers so the gallery can fetch from any browser.</p>
+        <p class="hint">Deploy <code>cloudflare-worker.js</code> to Cloudflare Workers. Paste the <code>*.workers.dev</code> URL here.</p>
       </div>
     </div>
     <div style="display:flex; justify-content:flex-end;">
@@ -365,16 +444,111 @@
   <h2 class="sh">Active Galleries</h2>
   <div id="galleryList"></div>
 
+  <!-- Client accounts -->
+  <h2 class="sh" style="margin-top:56px;">Client Accounts</h2>
+
+  <!-- Create user card -->
+  <div class="card">
+    <form id="createUserForm">
+      <div class="form-grid">
+
+        <div class="fg">
+          <label>Email</label>
+          <input type="email" id="userEmail" required placeholder="client@example.com" />
+        </div>
+
+        <div class="fg">
+          <label>Role</label>
+          <select id="userRole">
+            <option value="client">Client</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div class="fg full">
+          <label>Password (optional — leave blank to allow Google login only)</label>
+          <input type="password" id="userPassword" placeholder="Min 8 characters" minlength="8" />
+          <p class="hint">If blank, the client must log in with Google. You can set or reset a password later.</p>
+        </div>
+
+        <div class="fg full">
+          <label>Assign Galleries</label>
+          <div class="create-gallery-checks" id="createGalleryChecks">
+            <span style="color:var(--dim); font-size:12px;">No galleries yet.</span>
+          </div>
+          <p class="hint">Check galleries the client can access through their portal. You can change this later.</p>
+        </div>
+
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:26px;">
+        <button type="submit" class="btn btn-primary" id="createUserBtn">Create Account</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="userList"></div>
+
 </main>
 
 <div class="toast" id="toast"></div>
 
 <script>
-  const STORE = 'ctc_galleries_v1';
-  const SETTINGS = 'ctc_settings_v1';
-  let currentResultUrl = '';
+  // ── Config ─────────────────────────────────────────────────────────────────
+  const JWT_KEY    = 'ctc_jwt';
+  const USER_KEY   = 'ctc_user';
+  const LEGACY_KEY = 'ctc_galleries_v1';
+  const SETTINGS   = 'ctc_settings_v1';
 
-  // ── Settings ──────────────────────────────────────────────
+  let currentResultUrl = '';
+  let galleries        = []; // loaded from server
+  let users            = []; // loaded from server
+
+  // ── Worker URL ─────────────────────────────────────────────────────────────
+  function getWorkerUrl() {
+    try {
+      const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
+      return (s.workerUrl || '').replace(/\/$/, '') ||
+        'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+    } catch { return 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev'; }
+  }
+
+  function token() { return localStorage.getItem(JWT_KEY) || ''; }
+
+  async function apiFetch(path, opts = {}) {
+    const url = getWorkerUrl() + path;
+    const headers = { 'Authorization': 'Bearer ' + token(), ...opts.headers };
+    if (opts.body && typeof opts.body !== 'string') {
+      headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(opts.body);
+    }
+    const res = await fetch(url, { ...opts, headers });
+    const data = await res.json();
+    return { ok: res.ok, status: res.status, data };
+  }
+
+  // ── Auth gate ───────────────────────────────────────────────────────────────
+  async function authGate() {
+    const tok = token();
+    if (!tok) { window.location.href = '/login.html'; return false; }
+    try {
+      const { ok, data } = await apiFetch('/auth/me', { method: 'GET' });
+      if (!ok) { window.location.href = '/login.html'; return false; }
+      if (data.role !== 'admin') { window.location.href = '/portal.html'; return false; }
+      document.getElementById('adminEmail').textContent = data.email;
+      return true;
+    } catch {
+      window.location.href = '/login.html';
+      return false;
+    }
+  }
+
+  function signOut() {
+    localStorage.removeItem(JWT_KEY);
+    localStorage.removeItem(USER_KEY);
+    window.location.href = '/login.html';
+  }
+
+  // ── Settings ────────────────────────────────────────────────────────────────
   function loadSettings() {
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
     if (s.mainSiteUrl)  document.getElementById('mainSiteUrl').value  = s.mainSiteUrl;
@@ -386,7 +560,7 @@
     const s = {
       mainSiteUrl:  document.getElementById('mainSiteUrl').value.trim(),
       nasClientUrl: document.getElementById('nasClientUrl').value.trim(),
-      workerUrl:    document.getElementById('workerUrl').value.trim()
+      workerUrl:    document.getElementById('workerUrl').value.trim(),
     };
     localStorage.setItem(SETTINGS, JSON.stringify(s));
     toast('Settings saved');
@@ -397,17 +571,17 @@
     return {
       mainSiteUrl:  s.mainSiteUrl  || 'https://coastaltravelcompany.com/gallery/gallery.html',
       nasClientUrl: s.nasClientUrl || 'https://coastaltravelcompany.com/gallery/client-gallery.html',
-      workerUrl:    s.workerUrl    || ''
+      workerUrl:    s.workerUrl    || getWorkerUrl(),
     };
   }
 
-  // ── SHA-256 ───────────────────────────────────────────────
+  // ── SHA-256 ─────────────────────────────────────────────────────────────────
   async function sha256(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
   }
 
-  // ── Parse Synology share URL ──────────────────────────────
+  // ── Parse Synology share URL ────────────────────────────────────────────────
   function parseShareUrl(raw) {
     try {
       const url = new URL(raw);
@@ -417,24 +591,75 @@
     } catch { return null; }
   }
 
-  // ── Encode config for URL hash ────────────────────────────
+  // ── Encode config for URL hash ──────────────────────────────────────────────
   function encode(obj) {
     return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
   }
 
-  // ── Create form ───────────────────────────────────────────
+  // ── Build gallery URL from config object ────────────────────────────────────
+  function buildUrl(g) {
+    const { mainSiteUrl, workerUrl } = getSettings();
+    const config = {
+      id: g.id, nasUrl: g.nasUrl,
+      nasClientUrl: g.nasClientUrl || 'https://coastaltravelcompany.com/gallery/client-gallery.html',
+      proxyUrl:     g.proxyUrl || workerUrl,
+      passphrase:   g.passphrase, eventName: g.eventName,
+      clientName:   g.clientName, pwHash: g.pwHash,
+      created:      g.created, watermark: g.watermark || false,
+    };
+    return mainSiteUrl + '#' + encode(config);
+  }
+
+  // ── Gallery API ─────────────────────────────────────────────────────────────
+  async function loadGalleries() {
+    const { ok, data } = await apiFetch('/admin/galleries', { method: 'GET' });
+    if (!ok) { toast('Failed to load galleries', true); return; }
+    galleries = data;
+
+    // Auto-migrate legacy localStorage galleries on first load
+    if (galleries.length === 0) {
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || '[]');
+      if (legacy.length > 0) {
+        toast(`Migrating ${legacy.length} local galleries to server…`);
+        for (const g of legacy) {
+          g.assignedUsers = g.assignedUsers || [];
+          await apiFetch('/admin/galleries', { method: 'POST', body: g });
+        }
+        const { data: fresh } = await apiFetch('/admin/galleries', { method: 'GET' });
+        galleries = fresh || [];
+        toast(`Migrated ${legacy.length} galleries`);
+      }
+    }
+
+    renderGalleryList();
+    renderCreateGalleryChecks();
+  }
+
+  async function deleteGalleryFromServer(id) {
+    if (!confirm('Remove this gallery? Photos on Synology are not affected.')) return;
+    const { ok } = await apiFetch('/admin/galleries/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    galleries = galleries.filter(g => g.id !== id);
+    renderGalleryList();
+    renderCreateGalleryChecks();
+    // Refresh user list to reflect removed gallery
+    renderUserList();
+    toast('Gallery removed');
+  }
+
+  // ── Create gallery form ──────────────────────────────────────────────────────
   document.getElementById('createForm').addEventListener('submit', async e => {
     e.preventDefault();
     const btn = document.getElementById('createBtn');
     btn.disabled = true;
     btn.textContent = 'Generating…';
 
-    const shareRaw = document.getElementById('shareUrl').value.trim();
-    const eventName = document.getElementById('eventName').value.trim();
+    const shareRaw   = document.getElementById('shareUrl').value.trim();
+    const eventName  = document.getElementById('eventName').value.trim();
     const clientName = document.getElementById('clientName').value.trim();
-    const pw = document.getElementById('clientPw').value;
-    const notes = document.getElementById('notes').value.trim();
-    const watermark = document.getElementById('watermark').checked;
+    const pw         = document.getElementById('clientPw').value;
+    const notes      = document.getElementById('notes').value.trim();
+    const watermark  = document.getElementById('watermark').checked;
 
     const parsed = parseShareUrl(shareRaw);
     if (!parsed) {
@@ -443,24 +668,31 @@
       return;
     }
 
-    const pwHash = await sha256(pw);
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    const pwHash   = await sha256(pw);
+    const id       = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const created  = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    const { nasClientUrl, workerUrl } = getSettings();
 
-    const { mainSiteUrl, nasClientUrl, workerUrl } = getSettings();
-    const config = { id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: workerUrl,
-                     passphrase: parsed.passphrase, eventName, clientName, pwHash, created, watermark };
+    const gallery = {
+      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: workerUrl,
+      passphrase: parsed.passphrase, eventName, clientName,
+      pwHash, pw, created, notes, watermark, assignedUsers: [],
+    };
 
-    currentResultUrl = mainSiteUrl + '#' + encode(config);
+    const { ok, data } = await apiFetch('/admin/galleries', { method: 'POST', body: gallery });
+    if (!ok) {
+      toast(data.error || 'Failed to save gallery', true);
+      btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+      return;
+    }
+
+    galleries.unshift(data);
+    currentResultUrl = buildUrl(gallery);
     document.getElementById('resultUrl').textContent = currentResultUrl;
     document.getElementById('resultBox').classList.add('show');
 
-    // Persist (store plain pw for admin display only)
-    const list = JSON.parse(localStorage.getItem(STORE) || '[]');
-    list.unshift({ ...config, pw, notes });
-    localStorage.setItem(STORE, JSON.stringify(list));
-
-    renderList();
+    renderGalleryList();
+    renderCreateGalleryChecks();
     toast('Gallery link created');
     btn.disabled = false; btn.textContent = 'Generate Gallery Link';
   });
@@ -470,7 +702,7 @@
   }
   function previewResult() { window.open(currentResultUrl, '_blank'); }
 
-  // ── Password eye toggle ───────────────────────────────────
+  // ── Password eye toggle ──────────────────────────────────────────────────────
   document.getElementById('pwEyeBtn').addEventListener('click', () => {
     const inp = document.getElementById('clientPw');
     const btn = document.getElementById('pwEyeBtn');
@@ -478,59 +710,186 @@
     btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
   });
 
-  // ── Render gallery list ───────────────────────────────────
-  function buildUrl(g) {
-    const { mainSiteUrl, workerUrl } = getSettings();
-    const config = { id: g.id, nasUrl: g.nasUrl, nasClientUrl: g.nasClientUrl,
-                     proxyUrl: g.proxyUrl || workerUrl,
-                     passphrase: g.passphrase, eventName: g.eventName,
-                     clientName: g.clientName, pwHash: g.pwHash, created: g.created,
-                     watermark: g.watermark || false };
-    return mainSiteUrl + '#' + encode(config);
+  // ── Render gallery list ──────────────────────────────────────────────────────
+  function renderCreateGalleryChecks() {
+    const el = document.getElementById('createGalleryChecks');
+    if (!galleries.length) {
+      el.innerHTML = '<span style="color:var(--dim); font-size:12px;">No galleries yet.</span>';
+      return;
+    }
+    el.innerHTML = galleries.map(g => `
+      <label class="gallery-check-item">
+        <input type="checkbox" name="createGallery" value="${esc(g.id)}" />
+        ${esc(g.eventName)} <span style="color:var(--dim); margin-left:4px;">· ${esc(g.clientName)}</span>
+      </label>`).join('');
   }
 
-  function renderList() {
-    const list = JSON.parse(localStorage.getItem(STORE) || '[]');
+  function renderGalleryList() {
     const el = document.getElementById('galleryList');
-    if (!list.length) {
+    if (!galleries.length) {
       el.innerHTML = '<div class="empty">No galleries yet — create your first one above.</div>';
       return;
     }
-    el.innerHTML = list.map((g, i) => `
+    el.innerHTML = galleries.map(g => `
       <div class="gallery-row">
         <div>
-          <div class="gr-name">${g.eventName}</div>
-          <div class="gr-meta">${g.clientName} &nbsp;·&nbsp; Created ${g.created}${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}${g.notes ? ' &nbsp;·&nbsp; ' + g.notes : ''}</div>
-          <div class="gr-pw">Password: ${g.pw}</div>
+          <div class="gr-name">${esc(g.eventName)}</div>
+          <div class="gr-meta">
+            ${esc(g.clientName)}
+            &nbsp;·&nbsp; Created ${esc(g.created)}
+            ${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}
+            ${g.notes ? ' &nbsp;·&nbsp; ' + esc(g.notes) : ''}
+            ${g.assignedUsers && g.assignedUsers.length
+              ? ' &nbsp;·&nbsp; <span style="color:var(--ok)">' + g.assignedUsers.length + ' user' + (g.assignedUsers.length > 1 ? 's' : '') + '</span>'
+              : ''}
+          </div>
+          <div class="gr-pw">Password: ${esc(g.pw || '—')}</div>
         </div>
         <div class="gr-actions">
-          <button class="btn btn-ghost" onclick="copyRow(${i})">Copy Link</button>
-          <button class="btn btn-ghost" onclick="window.open(buildUrl(getRow(${i})),'_blank')">Preview</button>
-          <button class="btn btn-danger" onclick="deleteRow(${i})">Delete</button>
+          <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
+          <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
+          <button class="btn btn-danger" onclick="deleteGalleryFromServer('${esc(g.id)}')">Delete</button>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
 
-  function getRow(i) {
-    return JSON.parse(localStorage.getItem(STORE) || '[]')[i];
-  }
+  function getGallery(id) { return galleries.find(g => g.id === id); }
 
-  function copyRow(i) {
-    const g = getRow(i);
+  function copyGallery(id) {
+    const g = getGallery(id);
+    if (!g) return;
     navigator.clipboard.writeText(buildUrl(g)).then(() => toast('Link copied'));
   }
 
-  function deleteRow(i) {
-    if (!confirm('Remove this gallery from the list? Photos on Synology are not affected.')) return;
-    const list = JSON.parse(localStorage.getItem(STORE) || '[]');
-    list.splice(i, 1);
-    localStorage.setItem(STORE, JSON.stringify(list));
-    renderList();
-    toast('Gallery removed');
+  // ── User API ─────────────────────────────────────────────────────────────────
+  async function loadUsers() {
+    const { ok, data } = await apiFetch('/admin/users', { method: 'GET' });
+    if (!ok) { toast('Failed to load users', true); return; }
+    users = data;
+    renderUserList();
   }
 
-  // ── Toast ─────────────────────────────────────────────────
+  async function createUser(e) {
+    e.preventDefault();
+    const btn  = document.getElementById('createUserBtn');
+    btn.disabled = true; btn.textContent = 'Creating…';
+
+    const email    = document.getElementById('userEmail').value.trim();
+    const password = document.getElementById('userPassword').value || undefined;
+    const role     = document.getElementById('userRole').value;
+    const selected = [...document.querySelectorAll('input[name="createGallery"]:checked')]
+      .map(cb => cb.value);
+
+    const { ok, data } = await apiFetch('/admin/users', {
+      method: 'POST',
+      body:   { email, password, role, galleries: selected },
+    });
+
+    btn.disabled = false; btn.textContent = 'Create Account';
+
+    if (!ok) { toast(data.error || 'Failed to create user', true); return; }
+    users.push(data);
+    // Refresh gallery list to show updated assignedUsers counts
+    await loadGalleries();
+    renderUserList();
+    e.target.reset();
+    toast('Account created');
+  }
+
+  document.getElementById('createUserForm').addEventListener('submit', createUser);
+
+  async function sendResetEmail(email) {
+    await apiFetch('/auth/reset-request', { method: 'POST', body: { email } });
+    toast('Password reset email sent to ' + email);
+  }
+
+  async function deleteUser(id) {
+    if (!confirm('Delete this user? They will lose access to all galleries.')) return;
+    const { ok } = await apiFetch('/admin/users/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    users = users.filter(u => u.id !== id);
+    await loadGalleries(); // refresh assignedUsers counts
+    renderUserList();
+    toast('User deleted');
+  }
+
+  function toggleAssignPanel(id) {
+    const panel = document.getElementById('assign-' + id);
+    if (!panel) return;
+    panel.classList.toggle('open');
+  }
+
+  async function saveGalleryAssignment(userId) {
+    const panel = document.getElementById('assign-' + userId);
+    const selected = [...panel.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
+    const { ok, data } = await apiFetch('/admin/users/' + userId, {
+      method: 'PUT', body: { galleries: selected },
+    });
+    if (!ok) { toast(data.error || 'Save failed', true); return; }
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx >= 0) users[idx] = data;
+    panel.classList.remove('open');
+    await loadGalleries(); // refresh assignedUsers counts
+    renderUserList();
+    toast('Gallery access updated');
+  }
+
+  function renderUserList() {
+    const el = document.getElementById('userList');
+    if (!users.length) {
+      el.innerHTML = '<div class="empty">No client accounts yet — create the first one above.</div>';
+      return;
+    }
+    el.innerHTML = users.map(u => {
+      const galleryNames = (u.galleries || [])
+        .map(id => { const g = getGallery(id); return g ? esc(g.eventName) : null; })
+        .filter(Boolean).join(', ') || '—';
+
+      const galleryChecks = galleries.map(g => `
+        <label class="gallery-check-item">
+          <input type="checkbox" value="${esc(g.id)}"
+            ${(u.galleries || []).includes(g.id) ? 'checked' : ''} />
+          ${esc(g.eventName)}
+          <span style="color:var(--dim); margin-left:4px;">· ${esc(g.clientName)}</span>
+        </label>`).join('');
+
+      return `
+        <div class="user-row">
+          <div class="user-header">
+            <div>
+              <div class="ur-email">${esc(u.email)}</div>
+              <div class="ur-meta">
+                ${u.role === 'admin' ? '<span style="color:var(--teal)">Admin</span>' : 'Client'}
+                &nbsp;·&nbsp; ${(u.galleries || []).length} gallery${(u.galleries || []).length !== 1 ? 's' : ''}
+                &nbsp;·&nbsp; <span style="color:var(--dim)">${galleryNames}</span>
+              </div>
+            </div>
+            <div class="ur-actions">
+              <button class="btn btn-ghost btn-sm" onclick="toggleAssignPanel('${esc(u.id)}')">Manage Galleries</button>
+              <button class="btn btn-ghost btn-sm" onclick="sendResetEmail('${esc(u.email)}')">Reset Password</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteUser('${esc(u.id)}')">Delete</button>
+            </div>
+          </div>
+          <div class="assign-panel" id="assign-${esc(u.id)}">
+            <div class="assign-label">Gallery Access</div>
+            <div class="gallery-checks">
+              ${galleryChecks || '<span style="color:var(--dim); font-size:12px;">No galleries available.</span>'}
+            </div>
+            <div class="assign-save-row">
+              <button class="btn btn-primary btn-sm" onclick="saveGalleryAssignment('${esc(u.id)}')">Save</button>
+              <button class="btn btn-ghost btn-sm" onclick="toggleAssignPanel('${esc(u.id)}')">Cancel</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   let toastTmr;
   function toast(msg, isErr = false) {
     const el = document.getElementById('toast');
@@ -540,9 +899,16 @@
     toastTmr = setTimeout(() => el.classList.remove('show'), 2800);
   }
 
-  // ── Init ──────────────────────────────────────────────────
-  loadSettings();
-  renderList();
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  async function init() {
+    const authed = await authGate();
+    if (!authed) return;
+    loadSettings();
+    await loadGalleries();
+    await loadUsers();
+  }
+
+  init();
 </script>
 </body>
 </html>
