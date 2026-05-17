@@ -588,3 +588,12 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Add a `--preprod` flag (or `deploy-worker-preprod.sh`) so the preprod Worker can be deployed independently from production without touching `deploy-worker.sh`
 - [ ] Update `admin/gallery-admin.html` to let the admin choose which environment to generate gallery links for (production vs. preprod Worker URL)
 - [ ] Document the preprod workflow in `CLAUDE.md`: what to test before merging to `master`, and how to promote a change from `preprod` → `master`
+
+---
+
+## 27. Update Gallery Admin Form
+
+**Goal:** Update to remove and add form values in the Gallery Admin page.
+
+- [ ] Remove 'Client Name' in 'Create New Gallery'.  This is not required as the site administrator will link photo albums to client accounts.
+- [ ] Add Name to the 'Client Accounts' creation section.  Also add name to required fields in the register account page.
