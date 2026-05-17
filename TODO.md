@@ -45,6 +45,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 **Goal:** Clients log in with email/password or Google, and see only their own galleries — no shared password links.
 
+- [ ] Verify if user creates initially with password flow then they can do google login later and it merges the local account with the google login and they can login with either the password or the google token.
 - [ ] Send email on account creation for user to verify account creation. (should we even do this? whats the benefit?)
 - [ ] Verify email functionality works for forgot password flow.
 - [x] Create Resend account, verify `coastaltravelcompany.com` domain for transactional email
