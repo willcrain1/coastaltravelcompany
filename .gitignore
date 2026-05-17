@@ -3,3 +3,8 @@ worker/wrangler.toml
 worker/node_modules/
 .DS_Store
 .claude/
+
+# Test dependencies and artifacts
+node_modules/
+playwright-report/
+test-results/
