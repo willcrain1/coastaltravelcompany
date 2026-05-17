@@ -102,19 +102,6 @@
     }
     .callout ol { padding-left: 18px; margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 
-    /* ── Settings bar ── */
-    .settings-bar {
-      background: var(--card);
-      border: 1px solid var(--border);
-      padding: 24px;
-      margin-bottom: 36px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .settings-bar .hint { font-size: 10.5px; color: var(--dim); margin-top: 6px; }
-    .settings-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; }
-
     /* ── Form card ── */
     .card {
       background: var(--card);
@@ -348,30 +335,8 @@
       <li>Deploy the Cloudflare Worker: <code>cd worker && ./deploy-worker.sh</code></li>
       <li>Set the <code>JWT_SECRET</code> secret: <code>wrangler secret put JWT_SECRET</code> (use a long random string)</li>
       <li>Optionally set <code>GOOGLE_CLIENT_ID</code> in the Cloudflare dashboard under Worker → Settings → Variables to enable Google login.</li>
-      <li>The Worker URL is set automatically for this environment — no further config needed.</li>
+      <li>All URLs (Worker, gallery, client) are set automatically for this environment — no further config needed.</li>
     </ol>
-  </div>
-
-  <!-- Settings -->
-  <h2 class="sh">Settings</h2>
-  <div class="settings-bar">
-    <div class="settings-row">
-      <div class="fg">
-        <label>Main Site Gallery URL — where gallery.html lives (shared with clients)</label>
-        <input type="url" id="mainSiteUrl" placeholder="https://coastaltravelcompany.com/gallery/gallery.html" />
-        <p class="hint">The URL on your main website. Client links will point here — this is what you send to clients.</p>
-      </div>
-    </div>
-    <div class="settings-row">
-      <div class="fg">
-        <label>Client Gallery URL — where client-gallery.html lives</label>
-        <input type="url" id="nasClientUrl" placeholder="https://coastaltravelcompany.com/gallery/client-gallery.html" />
-        <p class="hint">The URL of client-gallery.html — hosted on GitHub Pages alongside the rest of the site.</p>
-      </div>
-    </div>
-    <div style="display:flex; justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="saveSettings()">Save Settings</button>
-    </div>
   </div>
 
   <!-- Create gallery -->
@@ -491,7 +456,6 @@
   const JWT_KEY    = 'ctc_jwt';
   const USER_KEY   = 'ctc_user';
   const LEGACY_KEY = 'ctc_galleries_v1';
-  const SETTINGS   = 'ctc_settings_v1';
 
   let currentResultUrl = '';
   let galleries        = []; // loaded from server
@@ -539,27 +503,11 @@
   }
 
   // ── Settings ────────────────────────────────────────────────────────────────
-  function loadSettings() {
-    const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
-    if (s.mainSiteUrl)  document.getElementById('mainSiteUrl').value  = s.mainSiteUrl;
-    if (s.nasClientUrl) document.getElementById('nasClientUrl').value = s.nasClientUrl;
-  }
-
-  function saveSettings() {
-    const s = {
-      mainSiteUrl:  document.getElementById('mainSiteUrl').value.trim(),
-      nasClientUrl: document.getElementById('nasClientUrl').value.trim(),
-    };
-    localStorage.setItem(SETTINGS, JSON.stringify(s));
-    toast('Settings saved');
-  }
-
   function getSettings() {
-    const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
     return {
-      mainSiteUrl:  s.mainSiteUrl  || 'https://coastaltravelcompany.com/gallery/gallery.html',
-      nasClientUrl: s.nasClientUrl || 'https://coastaltravelcompany.com/gallery/client-gallery.html',
-      workerUrl:    getWorkerUrl(),
+      mainSiteUrl:  CTC_CONFIG.mainSiteUrl,
+      nasClientUrl: CTC_CONFIG.nasClientUrl,
+      workerUrl:    CTC_CONFIG.workerUrl,
     };
   }
 
@@ -891,7 +839,6 @@
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    loadSettings();
     await loadGalleries();
     await loadUsers();
   }
