@@ -6,6 +6,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 Static website and client photo gallery system for Coastal Travel Company. No build tools, no frameworks, no package manager — all files are plain HTML/CSS/JS served directly by GitHub Pages.
 
+## Repository layout
+
+```
+site/          ← GitHub Pages source (only this directory is deployed)
+  index.html, about.html, services.html, collections.html,
+  contact.html, login.html, portal.html, styles.css, main.js, CNAME
+  gallery/     client-gallery.html, gallery.html
+  admin/       gallery-admin.html
+worker/        ← Cloudflare Worker source and deploy tooling
+nas/           ← Docker / Cloudflare Tunnel config for the Synology NAS
+tests/e2e/     ← Playwright acceptance tests
+playwright.config.js, package.json   ← test tooling (not deployed)
+```
+
 ## Deployment
 
 **Website changes** — push to the `master` branch; GitHub Pages deploys automatically within ~2 minutes:
@@ -35,16 +49,16 @@ coastaltravelcompany.com  →  GitHub Pages (static files)
 ```
 
 ### Public website
-`index.html`, `about.html`, `services.html`, `collections.html`, `contact.html` share a single stylesheet (`styles.css`) and script (`main.js`). `main.js` handles nav scroll behavior, mobile nav toggle, fade-up scroll animations, and the (currently placeholder) contact form submit.
+`site/index.html`, `site/about.html`, `site/services.html`, `site/collections.html`, `site/contact.html` share a single stylesheet (`site/styles.css`) and script (`site/main.js`). `main.js` handles nav scroll behavior, mobile nav toggle, fade-up scroll animations, and the (currently placeholder) contact form submit.
 
 ### Gallery system
 The gallery uses a two-page iframe architecture:
 
-1. **`gallery/gallery.html`** — the shareable client-facing URL. Decodes the URL hash to extract config, then renders `client-gallery.html` in a sandboxed `<iframe>`, passing through the same hash.
+1. **`site/gallery/gallery.html`** — the shareable client-facing URL. Decodes the URL hash to extract config, then renders `client-gallery.html` in a sandboxed `<iframe>`, passing through the same hash.
 
-2. **`gallery/client-gallery.html`** — the full gallery UI (lock screen, masonry photo grid, lightbox, download). It reads its own URL hash, shows the lock screen, verifies the password client-side via SHA-256, then fetches photos through the Worker.
+2. **`site/gallery/client-gallery.html`** — the full gallery UI (lock screen, masonry photo grid, lightbox, download). It reads its own URL hash, shows the lock screen, verifies the password client-side via SHA-256, then fetches photos through the Worker.
 
-3. **`admin/gallery-admin.html`** — admin-only tool (not linked from public site). Generates gallery links by encoding a config object as base64 JSON in the URL hash. Stores settings in `localStorage`. Not password-protected currently.
+3. **`site/admin/gallery-admin.html`** — admin-only tool (not linked from public site). Generates gallery links by encoding a config object as base64 JSON in the URL hash. Stores settings in `localStorage`. Not password-protected currently.
 
 ### Gallery config in the URL hash
 
@@ -85,7 +99,7 @@ The `CTC_AUTH` KV namespace is bound as `KV` and used by both the token exchange
 
 ## Design conventions
 
-**CSS variables** (defined in `styles.css` and mirrored inline in `client-gallery.html`):
+**CSS variables** (defined in `site/styles.css` and mirrored inline in `site/gallery/client-gallery.html`):
 - `--black: #1C1C1C`, `--green: #2A5C45`, `--teal: #8FBFBE`, `--cream: #F4F1EC`, `--linen: #E8DDD0`
 
 **Typography**: Gilda Display (serif headings), Pinyon Script (script/brand accent), Montserrat (body, weight 300/400/500/600)
