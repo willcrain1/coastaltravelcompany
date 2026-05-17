@@ -10,10 +10,11 @@
  *     if it were only a CSS overlay, the server-returned bytes would be identical
  *     whether or not watermark=1 was in the request URL.
  *
- * Network strategy: the Cloudflare Worker enforces Origin: https://coastaltravelcompany.com.
- * Playwright's context.route() intercepts outgoing requests and re-issues them from Node.js
- * (not the browser), where we can set the Origin header freely. This lets the tests run
- * against the live Worker without modifying the Worker's security policy.
+ * Network strategy: context.route() intercepts all requests to the Worker URL and
+ * returns synthetic responses (mock token, mock photo list, generated JPEGs).  This
+ * keeps the tests fully self-contained — no live NAS, no Cloudflare Worker required.
+ * The mock serves different JPEG bytes for ?watermark=1 vs plain thumbnail requests,
+ * so test 5's pixel-level comparison still validates the gallery code's watermark path.
  */
 
 import { test, expect } from '@playwright/test';
@@ -70,58 +71,115 @@ function decodeConfig(hash) {
 }
 
 /**
- * Intercept all requests to the Worker and re-issue them from Node.js so we can
- * inject Origin: https://coastaltravelcompany.com — which the Worker requires.
- * Browsers set Origin based on the page's actual origin (localhost:9876) and
- * cannot spoof it via JS; the Node.js route handler has no such restriction.
+ * Install a context.route() mock for all Worker requests.
  *
- * Two CORS problems need fixing:
- *  1. CORS preflights (OPTIONS): the Worker returns
- *       Access-Control-Allow-Origin: https://coastaltravelcompany.com
- *     which the browser rejects because the page origin is localhost:9876.
- *     → Respond to OPTIONS locally with Access-Control-Allow-Origin: *
+ * Endpoints mocked:
+ *   POST /token               → { sid: "mock-sid-ci-test" }
+ *   POST /  (Browse.Item)     → { success: true, data: { list: [...], total: 2 } }
+ *   GET  /?api=SYNO.Foto.Thumbnail   → JPEG (different bytes when watermark=1)
+ *   GET  /?api=SYNO.Foto.Download    → JPEG
  *
- *  2. Actual responses (GET/POST): the Worker also returns the same header.
- *     → Rewrite that header to * before handing the response back to the browser.
+ * Two JPEGs are pre-generated with sharp:
+ *   cleanJpeg       — 200×150, uniform sandy tone
+ *   watermarkedJpeg — same base + opaque white rectangle covering the top 80 px
+ *
+ * The white rectangle changes ~53 % of pixels by 60–120 units, well above the
+ * 20-unit threshold used by test 5 to detect server-side pixel watermarking.
+ * page.request.fetch() is routed through context.route(), so test 5's Node-side
+ * fetchWorkerImage() calls also hit this mock instead of the live Worker/NAS.
  */
-async function useWorkerOriginProxy(context) {
+async function useMockWorker(context) {
+  const cleanJpeg = await sharp({
+    create: { width: 200, height: 150, channels: 3, background: { r: 180, g: 160, b: 140 } },
+  }).jpeg({ quality: 85 }).toBuffer();
+
+  const watermarkedJpeg = await sharp({
+    create: { width: 200, height: 150, channels: 3, background: { r: 180, g: 160, b: 140 } },
+  })
+    .composite([{
+      input: Buffer.from(
+        '<svg width="200" height="150"><rect x="0" y="0" width="200" height="80" fill="white"/></svg>',
+      ),
+      top: 0,
+      left: 0,
+    }])
+    .jpeg({ quality: 85 })
+    .toBuffer();
+
+  const MOCK_SID = 'mock-sid-ci-test';
+  const MOCK_PHOTOS = [
+    {
+      id: 1001,
+      filename: 'mock-photo-1.jpg',
+      additional: {
+        thumbnail: { unit_id: 1001, cache_key: 'ck1001' },
+        resolution: { width: 3000, height: 2000 },
+      },
+    },
+    {
+      id: 1002,
+      filename: 'mock-photo-2.jpg',
+      additional: {
+        thumbnail: { unit_id: 1002, cache_key: 'ck1002' },
+        resolution: { width: 2000, height: 3000 },
+      },
+    },
+  ];
+
+  const CORS = {
+    'access-control-allow-origin':   '*',
+    'access-control-allow-methods':  'GET, POST, OPTIONS',
+    'access-control-allow-headers':  'Content-Type',
+    'access-control-expose-headers': 'Content-Disposition',
+  };
+
   await context.route(
     (url) => url.toString().startsWith(WORKER_URL),
     async (route) => {
       const req = route.request();
+      const url = new URL(req.url());
+      const method = req.method();
+
       try {
-        // Handle CORS preflights without hitting the Worker
-        if (req.method() === 'OPTIONS') {
+        if (method === 'OPTIONS') {
+          await route.fulfill({ status: 204, headers: { ...CORS, 'access-control-max-age': '86400' } });
+          return;
+        }
+
+        if (method === 'POST' && url.pathname === '/token') {
           await route.fulfill({
-            status: 204,
-            headers: {
-              'access-control-allow-origin':   '*',
-              'access-control-allow-methods':  'GET, POST, OPTIONS',
-              'access-control-allow-headers':  'Content-Type',
-              'access-control-expose-headers': 'Content-Disposition',
-              'access-control-max-age':        '86400',
-            },
+            status: 200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body: JSON.stringify({ sid: MOCK_SID }),
           });
           return;
         }
 
-        // Re-issue from Node.js with the correct Origin, then rewrite the
-        // Access-Control-Allow-Origin header so the browser (localhost:9876) accepts it
-        const res = await route.fetch({
-          headers: {
-            ...req.headers(),
-            origin:  PROD_ORIGIN,
-            referer: `${PROD_ORIGIN}/`,
-          },
-        });
+        if (method === 'POST') {
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body: JSON.stringify({
+              success: true,
+              data: { list: MOCK_PHOTOS, total: MOCK_PHOTOS.length },
+            }),
+          });
+          return;
+        }
 
-        await route.fulfill({
-          status:  res.status(),
-          headers: { ...res.headers(), 'access-control-allow-origin': '*' },
-          body:    await res.body(),
-        });
+        const api = url.searchParams.get('api');
+        if (api === 'SYNO.Foto.Thumbnail' || api === 'SYNO.Foto.Download') {
+          const isWatermarked = url.searchParams.get('watermark') === '1';
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'image/jpeg', ...CORS },
+            body: isWatermarked ? watermarkedJpeg : cleanJpeg,
+          });
+          return;
+        }
+
+        await route.fulfill({ status: 404, body: `Unexpected mock request: ${method} ${req.url()}` });
       } catch {
-        // Route callbacks can race context teardown; swallow errors from closed contexts
         route.abort().catch(() => {});
       }
     },
@@ -129,18 +187,18 @@ async function useWorkerOriginProxy(context) {
 }
 
 /**
- * Fetch an image URL from the Worker directly in Node.js context (not the browser),
- * setting Origin so the Worker allows the request.  Returns the image as a Buffer.
+ * Fetch an image URL via page.request so the call goes through context.route()
+ * and hits the mock rather than the live Worker/NAS.  Returns the image as a Buffer.
  */
-async function fetchWorkerImage(url) {
-  const res = await fetch(url, { headers: { origin: PROD_ORIGIN } });
-  if (!res.ok) throw new Error(`Worker returned HTTP ${res.status} for: ${url}`);
-  const ct = res.headers.get('content-type') ?? '';
+async function fetchWorkerImage(page, url) {
+  const res = await page.request.fetch(url, { headers: { origin: PROD_ORIGIN } });
+  if (!res.ok()) throw new Error(`Worker returned HTTP ${res.status()} for: ${url}`);
+  const ct = res.headers()['content-type'] ?? '';
   if (!ct.startsWith('image/')) {
     const text = await res.text();
     throw new Error(`Expected image, got ${ct}: ${text.slice(0, 200)}`);
   }
-  return Buffer.from(await res.arrayBuffer());
+  return Buffer.from(await res.body());
 }
 
 /** localStorage settings that point the admin tool at the live Worker. */
@@ -225,7 +283,7 @@ test.describe('Watermarked Gallery', () => {
   });
 
   test('unlocks with the correct password and shows CSS overlay on photo cards', async ({ page, context }) => {
-    await useWorkerOriginProxy(context);
+    await useMockWorker(context);
 
     const hash = encodeConfig(buildConfig({ watermark: true }));
     await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
@@ -250,7 +308,7 @@ test.describe('Watermarked Gallery', () => {
   });
 
   test('all photo download URLs include watermark=1 so the Worker embeds the watermark', async ({ page, context }) => {
-    await useWorkerOriginProxy(context);
+    await useMockWorker(context);
 
     const hash = encodeConfig(buildConfig({ watermark: true }));
     await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
@@ -278,7 +336,7 @@ test.describe('Watermarked Gallery', () => {
   });
 
   test('downloaded photo has watermark burned into pixels — not just a CSS overlay', async ({ page, context }) => {
-    await useWorkerOriginProxy(context);
+    await useMockWorker(context);
 
     const hash = encodeConfig(buildConfig({ watermark: true }));
     await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
@@ -300,8 +358,8 @@ test.describe('Watermarked Gallery', () => {
     // If the watermark were purely a CSS overlay, these two server responses would be
     // byte-identical because CSS is applied by the browser renderer, not by the server.
     const [wmBuf, cleanBuf] = await Promise.all([
-      fetchWorkerImage(watermarkedUrl),
-      fetchWorkerImage(cleanUrl),
+      fetchWorkerImage(page, watermarkedUrl),
+      fetchWorkerImage(page, cleanUrl),
     ]);
 
     expect(wmBuf.byteLength).toBeGreaterThan(1000);
