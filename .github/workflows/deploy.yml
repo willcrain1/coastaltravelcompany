@@ -47,7 +47,7 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: '.'
+          path: './site'
       - uses: actions/deploy-pages@v5
         id: deployment
 

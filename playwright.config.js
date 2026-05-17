@@ -14,7 +14,7 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
   webServer: {
-    command: 'npx http-server . -p 9876 --cors -s',
+    command: 'npx http-server ./site -p 9876 --cors -s',
     url: 'http://localhost:9876',
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
