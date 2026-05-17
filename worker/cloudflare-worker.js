@@ -285,6 +285,28 @@ async function handleAuthSetup(request, env) {
   return jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
 }
 
+async function handleAuthRegister(request, env) {
+  if (!env.JWT_SECRET) return jsonResponse({ error: 'JWT_SECRET not configured' }, 503);
+  const { email, password } = await request.json();
+  if (!email || !password || password.length < 8) {
+    return jsonResponse({ error: 'Email and password (min 8 chars) required' }, 400);
+  }
+  if (await getUser(email, env.KV)) return jsonResponse({ error: 'An account with that email already exists' }, 409);
+  const id   = crypto.randomUUID();
+  const user = {
+    id, email: email.toLowerCase(),
+    passwordHash: await hashPassword(password),
+    role: 'client', created: Date.now(), galleries: [],
+  };
+  await putUser(user, env.KV);
+  const now   = Math.floor(Date.now() / 1000);
+  const token = await createJWT(
+    { sub: user.email, id, role: 'client', iat: now, exp: now + JWT_EXPIRY_SECS },
+    env.JWT_SECRET
+  );
+  return jsonResponse({ token, user: { id, email: user.email, role: 'client' } });
+}
+
 async function handleAuthLogin(request, env) {
   if (!env.JWT_SECRET) return jsonResponse({ error: 'JWT_SECRET not configured' }, 503);
   const { email, password } = await request.json();
@@ -575,6 +597,7 @@ async function handleRequest(request, env) {
   // ── Auth routes (no JWT required) ─────────────────────────────────────────
   if (method === 'GET'  && pathname === '/auth/setup-status')   return handleAuthSetupStatus(env);
   if (method === 'POST' && pathname === '/auth/setup')          return handleAuthSetup(request, env);
+  if (method === 'POST' && pathname === '/auth/register')       return handleAuthRegister(request, env);
   if (method === 'POST' && pathname === '/auth/login')          return handleAuthLogin(request, env);
   if (method === 'POST' && pathname === '/auth/google')         return handleAuthGoogle(request, env);
   if (method === 'POST' && pathname === '/auth/reset-request')  return handleAuthResetRequest(request, env);

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --black: #1C1C1C;
+      --green: #2A5C45;
+      --teal:  #8FBFBE;
+      --cream: #F4F1EC;
+      --linen: #E8DDD0;
+      --text:  #2C2C2C;
+      --mid:   #5A5A5A;
+      --light: #8A8A8A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .brand {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .brand a { text-decoration: none; color: inherit; }
+    .brand-main {
+      display: block;
+      font-family: 'Gilda Display', serif;
+      font-size: 12px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--black);
+    }
+    .brand-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 38px;
+      color: var(--green);
+      line-height: 1.1;
+    }
+
+    .card {
+      background: #fff;
+      width: 100%;
+      max-width: 400px;
+      padding: 40px 36px;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.07);
+    }
+
+    .card-title {
+      font-family: 'Gilda Display', serif;
+      font-size: 22px;
+      color: var(--black);
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: 12px;
+      color: var(--light);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    .fg { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.38em;
+      text-transform: uppercase;
+      color: var(--light);
+    }
+    input[type=email], input[type=password] {
+      background: var(--cream);
+      border: 1px solid var(--linen);
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13.5px;
+      font-weight: 300;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--teal); }
+    input::placeholder { color: rgba(28,28,28,0.3); }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      text-align: center;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      margin-top: 6px;
+    }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: #1e4532; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--mid);
+      border: 1px solid var(--linen);
+      margin-top: 10px;
+    }
+    .btn-ghost:hover { border-color: var(--teal); color: var(--green); }
+
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      font-size: 12px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      line-height: 1.5;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .link-row {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 11.5px;
+      color: var(--mid);
+    }
+    .link-row a {
+      color: var(--green);
+      text-decoration: none;
+    }
+    .link-row a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<div class="brand">
+  <a href="index.html">
+    <span class="brand-main">Coastal</span>
+    <span class="brand-script">Travel Company</span>
+  </a>
+</div>
+
+<div class="card">
+  <h1 class="card-title">Create Account</h1>
+  <p class="card-sub">Register to access your client galleries.</p>
+  <div class="error-msg" id="registerError"></div>
+  <form id="registerForm" autocomplete="on">
+    <div class="fg">
+      <label>Email</label>
+      <input type="email" id="regEmail" placeholder="you@example.com" required autocomplete="email" />
+    </div>
+    <div class="fg">
+      <label>Password (min 8 characters)</label>
+      <input type="password" id="regPassword" placeholder="••••••••" required minlength="8" autocomplete="new-password" />
+    </div>
+    <div class="fg">
+      <label>Confirm Password</label>
+      <input type="password" id="regConfirm" placeholder="••••••••" required minlength="8" autocomplete="new-password" />
+    </div>
+    <button class="btn btn-primary" type="submit" id="registerBtn">Create Account</button>
+  </form>
+  <div class="link-row">
+    Already have an account? <a href="login.html">Sign in</a>
+  </div>
+</div>
+
+<script>
+  const WORKER_URL = (() => {
+    try {
+      const s = JSON.parse(localStorage.getItem('ctc_settings_v1') || '{}');
+      return (s.workerUrl || '').replace(/\/$/, '') ||
+        'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+    } catch { return 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev'; }
+  })();
+
+  const JWT_KEY  = 'ctc_jwt';
+  const USER_KEY = 'ctc_user';
+
+  // Already logged in? Go straight to portal.
+  const existing = localStorage.getItem(JWT_KEY);
+  if (existing) window.location.href = '/portal.html';
+
+  const form     = document.getElementById('registerForm');
+  const errorEl  = document.getElementById('registerError');
+  const btn      = document.getElementById('registerBtn');
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+    errorEl.classList.add('show');
+  }
+  function hideError() { errorEl.classList.remove('show'); }
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    hideError();
+
+    const email    = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirm  = document.getElementById('regConfirm').value;
+
+    if (password !== confirm) {
+      showError('Passwords do not match.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating account…';
+
+    const res  = await fetch(WORKER_URL + '/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    }).catch(() => null);
+
+    if (!res) {
+      showError('Could not reach the server. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+      return;
+    }
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      showError(data.error || 'Registration failed. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Create Account';
+      return;
+    }
+
+    localStorage.setItem(JWT_KEY, data.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    window.location.href = '/portal.html';
+  });
+</script>
+</body>
+</html>
