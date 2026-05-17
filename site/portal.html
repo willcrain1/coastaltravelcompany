@@ -257,25 +257,15 @@
   }
 
   function buildGalleryUrl(g) {
-    const mainSiteUrl = (() => {
-      try {
-        const s = JSON.parse(localStorage.getItem('ctc_settings_v1') || '{}');
-        return s.mainSiteUrl || 'https://coastaltravelcompany.com/gallery/gallery.html';
-      } catch { return 'https://coastaltravelcompany.com/gallery/gallery.html'; }
-    })();
     const config = {
       id:          g.id,
-      nasUrl:      g.nasUrl,
-      nasClientUrl: g.nasClientUrl || 'https://coastaltravelcompany.com/gallery/client-gallery.html',
+      nasClientUrl: g.nasClientUrl || CTC_CONFIG.nasClientUrl,
       proxyUrl:    g.proxyUrl || WORKER_URL,
-      passphrase:  g.passphrase,
       eventName:   g.eventName,
       clientName:  g.clientName,
-      pwHash:      g.pwHash,
-      created:     g.created,
       watermark:   g.watermark || false,
     };
-    return mainSiteUrl + '#' + encode(config);
+    return CTC_CONFIG.mainSiteUrl + '#' + encode(config);
   }
 
   function renderGalleries(galleries) {
@@ -301,7 +291,6 @@
         <div class="card-client">${esc(g.clientName)}</div>
         ${g.watermark ? '<div class="wm-badge">Watermarked Preview</div>' : ''}
         ${created ? `<div class="card-meta">Delivered ${esc(created)}</div>` : ''}
-        ${g.pw ? `<div class="card-pw"><span class="card-pw-label">Password</span>${esc(g.pw)}</div>` : ''}
         <a href="${url}" target="_blank" class="btn-view">View Gallery</a>
       </div>`;
   }
