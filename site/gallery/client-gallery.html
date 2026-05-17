@@ -29,99 +29,8 @@
     }
 
     /* ═══════════════════════════════════════
-       LOCK SCREEN
-    ═══════════════════════════════════════ */
-    #lock {
-      position: fixed; inset: 0; z-index: 900;
-      background: var(--black);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 40px;
-      transition: opacity 0.6s ease;
-    }
-    #lock.fade-out { opacity: 0; pointer-events: none; }
-
-    .lock-brand-main {
-      font-family: 'Gilda Display', serif;
-      font-size: 13px; letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.45);
-    }
-    .lock-brand-script {
-      font-family: 'Pinyon Script', cursive;
-      font-size: 48px; color: var(--teal);
-      display: block; line-height: 1.1; margin-top: -4px;
-    }
-    .lock-rule {
-      width: 44px; height: 1px;
-      background: rgba(255,255,255,0.12);
-      margin: 30px auto;
-    }
-    #lockTitle {
-      font-family: 'Gilda Display', serif;
-      font-size: clamp(22px, 5vw, 38px);
-      color: var(--white); margin-bottom: 6px;
-    }
-    #lockClient {
-      font-size: 10px; font-weight: 500;
-      letter-spacing: 0.34em; text-transform: uppercase;
-      color: rgba(255,255,255,0.28); margin-bottom: 38px;
-    }
-    .lock-prompt {
-      font-size: 12px; color: rgba(255,255,255,0.38);
-      letter-spacing: 0.1em; margin-bottom: 20px;
-    }
-    .lock-form {
-      display: flex; flex-direction: column;
-      align-items: center; gap: 10px;
-      width: 100%; max-width: 300px;
-    }
-    #lockInput {
-      width: 100%; padding: 14px 20px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.14);
-      color: var(--white);
-      font-family: 'Montserrat', sans-serif;
-      font-size: 15px; font-weight: 300;
-      text-align: center; letter-spacing: 0.18em;
-      outline: none; transition: border-color 0.3s;
-    }
-    #lockInput:focus { border-color: var(--teal); }
-    #lockInput.shake {
-      border-color: #e57373;
-      animation: shake 0.38s ease;
-    }
-    @keyframes shake {
-      0%,100% { transform: translateX(0); }
-      25% { transform: translateX(-9px); }
-      75% { transform: translateX(9px); }
-    }
-    #lockBtn {
-      width: 100%; padding: 14px;
-      background: var(--green); color: var(--white);
-      border: none; cursor: pointer;
-      font-family: 'Montserrat', sans-serif;
-      font-size: 10px; font-weight: 600;
-      letter-spacing: 0.38em; text-transform: uppercase;
-      transition: background 0.3s;
-    }
-    #lockBtn:hover { background: var(--teal); color: var(--black); }
-    #lockBtn:disabled { opacity: 0.45; cursor: not-allowed; }
-    #lockErr {
-      font-size: 11px; color: #e57373;
-      letter-spacing: 0.06em; min-height: 15px;
-    }
-    .lock-footer {
-      position: absolute; bottom: 28px;
-      font-size: 10px; letter-spacing: 0.18em;
-      text-transform: uppercase; color: rgba(255,255,255,0.15);
-    }
-
-    /* ═══════════════════════════════════════
        GALLERY PAGE
     ═══════════════════════════════════════ */
-    #gallery { display: none; min-height: 100vh; }
-    #gallery.show { display: block; }
 
     /* Nav */
     .g-nav {
@@ -362,24 +271,6 @@
 </head>
 <body>
 
-<!-- ══ LOCK SCREEN ══════════════════════════════════════ -->
-<div id="lock">
-  <span class="lock-brand-main">Coastal</span>
-  <span class="lock-brand-script">Travel Company</span>
-  <div class="lock-rule"></div>
-  <h1 id="lockTitle">Your Gallery</h1>
-  <p id="lockClient"></p>
-  <p class="lock-prompt">Enter your access code to view your photos</p>
-  <form class="lock-form" id="lockForm">
-    <input type="password" id="lockInput"
-      placeholder="Access code"
-      autocomplete="off" autocorrect="off" spellcheck="false" />
-    <p id="lockErr"></p>
-    <button type="submit" id="lockBtn">View Gallery &rarr;</button>
-  </form>
-  <p class="lock-footer">Private gallery &nbsp;·&nbsp; Coastal Travel Company</p>
-</div>
-
 <!-- ══ GALLERY ═══════════════════════════════════════════ -->
 <div id="gallery">
 
@@ -451,11 +342,6 @@ let cfg = null;
 let photos = [];
 let lbIndex = 0;
 let gallerySid = null;
-// ── SHA-256 ───────────────────────────────────────────────
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
 
 // ── Decode URL hash ───────────────────────────────────────
 function decodeCfg(hash) {
@@ -464,11 +350,8 @@ function decodeCfg(hash) {
 }
 
 // ── API URL builders ──────────────────────────────────────
-// All requests go through the Worker. Thumbnails and downloads use a short-lived
-// sid token (obtained via POST /token) so the passphrase never appears in GET URLs
-// and is therefore never written to Cloudflare's request logs.
 const proxyBase = () => (cfg.proxyUrl || '').replace(/\/+$/, '');
-const PROXY_API = () => proxyBase() || (cfg.nasUrl + '/mo/sharing/webapi/entry.cgi');
+const PROXY_API = () => proxyBase();
 
 function thumbUrl(photo, size) {
   const thumb = photo.additional?.thumbnail ?? {};
@@ -491,20 +374,28 @@ function dlUrl(photo) {
   });
 }
 
-// ── Watermarked download URL ──────────────────────────────
-// Worker applies the watermark server-side when watermark=1 is present.
 function dlUrlWm(photo) {
   return thumbUrl(photo, 'xl') + '&watermark=1';
 }
 
 // ── Session token exchange ────────────────────────────────
-// Exchanges the gallery passphrase for a 4-hour sid stored in Worker KV.
+// Sends gallery ID + JWT to the Worker; Worker verifies access and
+// returns a short-lived sid used for all photo requests.
 async function getGallerySid() {
+  const jwt = localStorage.getItem('ctc_jwt') || '';
   const res = await fetch(proxyBase() + '/token', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ passphrase: cfg.passphrase }).toString(),
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Bearer ' + jwt,
+    },
+    body: new URLSearchParams({ galleryId: cfg.id }).toString(),
   });
+  if (res.status === 401) {
+    window.location.href = '/login.html';
+    throw new Error('Not authenticated');
+  }
+  if (res.status === 403) throw new Error('You do not have access to this gallery.');
   if (!res.ok) throw new Error('Gallery session failed (HTTP ' + res.status + ')');
   const data = await res.json();
   if (!data.sid) throw new Error('Token exchange returned no sid');
@@ -514,63 +405,32 @@ async function getGallerySid() {
 // ── Init ──────────────────────────────────────────────────
 function init() {
   const hash = location.hash.slice(1);
-  if (!hash) { showBadLink('No gallery data found in this URL.'); return; }
+  if (!hash) { showError('No gallery data found in this URL.', ''); return; }
 
   cfg = decodeCfg(hash);
-  if (!cfg?.nasUrl || !cfg?.passphrase || !cfg?.pwHash) {
-    showBadLink('This link appears to be incomplete or corrupted.');
+  if (!cfg?.id || !cfg?.proxyUrl) {
+    showError('This link appears to be incomplete or corrupted.', '');
+    return;
+  }
+
+  // Require login — redirect to login page if no JWT present
+  if (!localStorage.getItem('ctc_jwt')) {
+    window.location.href = '/login.html';
     return;
   }
 
   document.title = cfg.eventName + ' — Coastal Travel Company';
-  document.getElementById('lockTitle').textContent = cfg.eventName;
-  document.getElementById('lockClient').textContent = cfg.clientName;
-  document.getElementById('navTitle').textContent = cfg.eventName;
-  document.getElementById('navClient').textContent = cfg.clientName;
+  document.getElementById('navTitle').textContent = cfg.eventName || '';
+  document.getElementById('navClient').textContent = cfg.clientName || '';
 
   if (cfg.watermark) {
     const lbWm = document.createElement('div');
     lbWm.className = 'wm-overlay';
     document.querySelector('.lb-img-wrap').appendChild(lbWm);
   }
+
+  loadGallery();
 }
-
-function showBadLink(msg) {
-  document.getElementById('lockTitle').textContent = 'Invalid Link';
-  document.getElementById('lockClient').textContent = '';
-  document.querySelector('.lock-prompt').textContent = msg;
-  document.getElementById('lockForm').style.display = 'none';
-}
-
-// ── Lock form ─────────────────────────────────────────────
-document.getElementById('lockForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const inp = document.getElementById('lockInput');
-  const btn = document.getElementById('lockBtn');
-  const err = document.getElementById('lockErr');
-
-  btn.disabled = true;
-  btn.textContent = 'Checking…';
-  err.textContent = '';
-
-  const hash = await sha256(inp.value);
-
-  if (hash === cfg.pwHash) {
-    const lock = document.getElementById('lock');
-    lock.classList.add('fade-out');
-    document.getElementById('gallery').classList.add('show');
-    setTimeout(() => lock.style.display = 'none', 650);
-    loadGallery();
-  } else {
-    inp.classList.add('shake');
-    err.textContent = 'Incorrect code — please try again';
-    btn.disabled = false;
-    btn.textContent = 'View Gallery →';
-    setTimeout(() => inp.classList.remove('shake'), 400);
-    inp.value = '';
-    inp.focus();
-  }
-});
 
 // ── Load all photos ───────────────────────────────────────
 async function loadGallery() {
@@ -588,12 +448,8 @@ async function loadGallery() {
     document.getElementById('grid').classList.add('show');
     renderPhotos();
   } catch(err) {
-    showError(
-      'Unable to connect to the gallery server.',
-      err.message + (err.message.includes('Failed to fetch')
-        ? '\n\nThe Cloudflare Worker proxy may be unreachable. Check that the Worker URL is set correctly in Gallery Admin, or that the Worker is deployed and running.'
-        : '')
-    );
+    if (err.message === 'Not authenticated') return; // redirecting
+    showError(err.message || 'Unable to connect to the gallery server.', '');
   }
 }
 
@@ -675,7 +531,6 @@ function renderPhotos() {
     masonry.appendChild(item);
   });
 
-  // Lazy load via IntersectionObserver
   const io = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
@@ -746,12 +601,10 @@ document.getElementById('lbNext').addEventListener('click', () => {
 });
 document.getElementById('lbClose').addEventListener('click', closeLb);
 
-// Close on backdrop click
 document.getElementById('lb').addEventListener('click', e => {
   if (e.target === document.getElementById('lb')) closeLb();
 });
 
-// Keyboard nav
 document.addEventListener('keydown', e => {
   if (!document.getElementById('lb').classList.contains('show')) return;
   if (e.key === 'Escape') closeLb();

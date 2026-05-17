@@ -392,13 +392,22 @@ async function handleAuthMe(request, env) {
   return jsonResponse({ id: user.id, email: user.email, role: user.role });
 }
 
+// ── Gallery response sanitiser ────────────────────────────────────────────────
+// passphrase, pw, pwHash are internal — never sent to any client.
+
+function stripGallery(g) {
+  if (!g) return null;
+  const { passphrase, pw, pwHash, ...safe } = g;
+  return safe;
+}
+
 // ── Admin: Gallery CRUD ───────────────────────────────────────────────────────
 
 async function handleAdminListGalleries(request, env) {
   const p = await getAuth(request, env);
   if (!p) return authRequired();
   if (p.role !== 'admin') return forbidden();
-  return jsonResponse(await listGalleries(env.KV));
+  return jsonResponse((await listGalleries(env.KV)).map(stripGallery));
 }
 
 async function handleAdminCreateGallery(request, env) {
@@ -409,7 +418,7 @@ async function handleAdminCreateGallery(request, env) {
   if (!gallery.id) gallery.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   if (!gallery.assignedUsers) gallery.assignedUsers = [];
   await putGallery(gallery, env.KV);
-  return jsonResponse(gallery, 201);
+  return jsonResponse(stripGallery(gallery), 201);
 }
 
 async function handleAdminUpdateGallery(request, env, id) {
@@ -421,7 +430,7 @@ async function handleAdminUpdateGallery(request, env, id) {
   const updates = await request.json();
   const updated = { ...existing, ...updates, id };
   await putGallery(updated, env.KV);
-  return jsonResponse(updated);
+  return jsonResponse(stripGallery(updated));
 }
 
 async function handleAdminDeleteGallery(request, env, id) {
@@ -509,7 +518,8 @@ async function handlePortalGalleries(request, env) {
   const user = await getUser(payload.sub, env.KV);
   if (!user) return authRequired();
   const galleries = (await Promise.all((user.galleries || []).map(id => getGallery(id, env.KV))))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map(stripGallery);
   return jsonResponse(galleries);
 }
 
@@ -625,17 +635,30 @@ async function handleRequest(request, env) {
   // ── Portal ─────────────────────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/portal/galleries') return handlePortalGalleries(request, env);
 
-  // ── Token exchange: POST /token {passphrase} → {sid} ──────────────────────
+  // ── Token exchange: POST /token {galleryId} + JWT → {sid} ────────────────
   if (method === 'POST' && pathname === '/token') {
-    const body       = await request.text();
-    const passphrase = extractPassphrase(new URLSearchParams(body).get('passphrase'));
-    if (!passphrase) {
-      return jsonResponse({ error: 'Missing passphrase' }, 400);
+    const payload = await getAuth(request, env);
+    if (!payload) return authRequired();
+
+    const body      = await request.text();
+    const galleryId = new URLSearchParams(body).get('galleryId');
+    if (!galleryId) return jsonResponse({ error: 'Missing galleryId' }, 400);
+
+    const gallery = await getGallery(galleryId, env.KV);
+    if (!gallery) return jsonResponse({ error: 'Gallery not found' }, 404);
+
+    if (payload.role !== 'admin') {
+      const assigned = gallery.assignedUsers || [];
+      if (!assigned.includes(payload.sub)) return forbidden();
     }
+
+    const passphrase = gallery.passphrase;
+    if (!passphrase) return jsonResponse({ error: 'Gallery configuration error' }, 500);
+
     try {
       await getSharingSid(passphrase);
     } catch {
-      return jsonResponse({ error: 'Invalid passphrase' }, 401);
+      return jsonResponse({ error: 'Gallery session failed' }, 401);
     }
     const sid = crypto.randomUUID();
     await env.KV.put('tok:' + sid, passphrase, { expirationTtl: 14400 });

@@ -117,17 +117,6 @@
     input::placeholder { color: rgba(255,255,255,0.18); }
     .hint { font-size: 10.5px; color: var(--dim); margin-top: 4px; line-height: 1.55; }
 
-    /* password toggle */
-    .pw-wrap { position: relative; }
-    .pw-wrap input { padding-right: 52px; }
-    .pw-eye {
-      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-      background: none; border: none; cursor: pointer;
-      font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
-      color: var(--dim); font-family: 'Montserrat', sans-serif;
-    }
-    .pw-eye:hover { color: var(--white); }
-
     /* ── Buttons ── */
     .btn {
       padding: 11px 28px;
@@ -333,15 +322,6 @@
         </div>
 
         <div class="fg full">
-          <label>Client Password</label>
-          <div class="pw-wrap">
-            <input type="password" id="clientPw" required minlength="4" placeholder="e.g. coral2024" />
-            <button type="button" class="pw-eye" id="pwEyeBtn">Show</button>
-          </div>
-          <p class="hint">Share this with your client separately from the link — don't include it in the same email as the link.</p>
-        </div>
-
-        <div class="fg full">
           <label>Internal Notes (not visible to client)</label>
           <input type="text" id="notes" placeholder="e.g. 200 photos delivered, client approved." />
         </div>
@@ -481,12 +461,6 @@
     };
   }
 
-  // ── SHA-256 ─────────────────────────────────────────────────────────────────
-  async function sha256(str) {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-  }
-
   // ── Parse Synology share URL ────────────────────────────────────────────────
   function parseShareUrl(raw) {
     try {
@@ -504,14 +478,14 @@
 
   // ── Build gallery URL from config object ────────────────────────────────────
   function buildUrl(g) {
-    const { mainSiteUrl, workerUrl } = getSettings();
+    const { mainSiteUrl } = getSettings();
     const config = {
-      id: g.id, nasUrl: g.nasUrl,
-      nasClientUrl: g.nasClientUrl || 'https://coastaltravelcompany.com/gallery/client-gallery.html',
-      proxyUrl:     g.proxyUrl || workerUrl,
-      passphrase:   g.passphrase, eventName: g.eventName,
-      clientName:   g.clientName, pwHash: g.pwHash,
-      created:      g.created, watermark: g.watermark || false,
+      id:          g.id,
+      nasClientUrl: g.nasClientUrl || CTC_CONFIG.nasClientUrl,
+      proxyUrl:    g.proxyUrl || CTC_CONFIG.workerUrl,
+      eventName:   g.eventName,
+      clientName:  g.clientName,
+      watermark:   g.watermark || false,
     };
     return mainSiteUrl + '#' + encode(config);
   }
@@ -563,7 +537,6 @@
     const shareRaw   = document.getElementById('shareUrl').value.trim();
     const eventName  = document.getElementById('eventName').value.trim();
     const clientName = document.getElementById('clientName').value.trim();
-    const pw         = document.getElementById('clientPw').value;
     const notes      = document.getElementById('notes').value.trim();
     const watermark  = document.getElementById('watermark').checked;
 
@@ -574,15 +547,14 @@
       return;
     }
 
-    const pwHash   = await sha256(pw);
-    const id       = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const created  = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
-    const { nasClientUrl, workerUrl } = getSettings();
+    const id      = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    const { nasClientUrl } = getSettings();
 
     const gallery = {
-      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: workerUrl,
+      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: CTC_CONFIG.workerUrl,
       passphrase: parsed.passphrase, eventName, clientName,
-      pwHash, pw, created, notes, watermark, assignedUsers: [],
+      created, notes, watermark, assignedUsers: [],
     };
 
     const { ok, data } = await apiFetch('/admin/galleries', { method: 'POST', body: gallery });
@@ -607,14 +579,6 @@
     navigator.clipboard.writeText(currentResultUrl).then(() => toast('Link copied to clipboard'));
   }
   function previewResult() { window.open(currentResultUrl, '_blank'); }
-
-  // ── Password eye toggle ──────────────────────────────────────────────────────
-  document.getElementById('pwEyeBtn').addEventListener('click', () => {
-    const inp = document.getElementById('clientPw');
-    const btn = document.getElementById('pwEyeBtn');
-    inp.type = inp.type === 'password' ? 'text' : 'password';
-    btn.textContent = inp.type === 'password' ? 'Show' : 'Hide';
-  });
 
   // ── Render gallery list ──────────────────────────────────────────────────────
   function renderCreateGalleryChecks() {
@@ -649,7 +613,6 @@
               ? ' &nbsp;·&nbsp; <span style="color:var(--ok)">' + g.assignedUsers.length + ' user' + (g.assignedUsers.length > 1 ? 's' : '') + '</span>'
               : ''}
           </div>
-          <div class="gr-pw">Password: ${esc(g.pw || '—')}</div>
         </div>
         <div class="gr-actions">
           <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
