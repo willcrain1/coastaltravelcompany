@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="config.js"></script>
   <style>
     :root {
       --black: #1C1C1C;
@@ -184,13 +185,7 @@
 </div>
 
 <script>
-  const WORKER_URL = (() => {
-    try {
-      const s = JSON.parse(localStorage.getItem('ctc_settings_v1') || '{}');
-      return (s.workerUrl || '').replace(/\/$/, '') ||
-        'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-    } catch { return 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev'; }
-  })();
+  const WORKER_URL = CTC_CONFIG.workerUrl;
 
   const JWT_KEY  = 'ctc_jwt';
   const USER_KEY = 'ctc_user';

@@ -348,7 +348,7 @@
       <li>Deploy the Cloudflare Worker: <code>cd worker && ./deploy-worker.sh</code></li>
       <li>Set the <code>JWT_SECRET</code> secret: <code>wrangler secret put JWT_SECRET</code> (use a long random string)</li>
       <li>Optionally set <code>GOOGLE_CLIENT_ID</code> in the Cloudflare dashboard under Worker → Settings → Variables to enable Google login.</li>
-      <li>Fill in the Worker URL below and save settings.</li>
+      <li>The Worker URL is set automatically for this environment — no further config needed.</li>
     </ol>
   </div>
 
@@ -367,13 +367,6 @@
         <label>Client Gallery URL — where client-gallery.html lives</label>
         <input type="url" id="nasClientUrl" placeholder="https://coastaltravelcompany.com/gallery/client-gallery.html" />
         <p class="hint">The URL of client-gallery.html — hosted on GitHub Pages alongside the rest of the site.</p>
-      </div>
-    </div>
-    <div class="settings-row">
-      <div class="fg">
-        <label>Cloudflare Worker URL — your deployed CORS proxy</label>
-        <input type="url" id="workerUrl" placeholder="https://ctc-nas-proxy.yourname.workers.dev" />
-        <p class="hint">Deploy <code>cloudflare-worker.js</code> to Cloudflare Workers. Paste the <code>*.workers.dev</code> URL here.</p>
       </div>
     </div>
     <div style="display:flex; justify-content:flex-end;">
@@ -492,6 +485,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="../config.js"></script>
 <script>
   // ── Config ─────────────────────────────────────────────────────────────────
   const JWT_KEY    = 'ctc_jwt';
@@ -505,11 +499,7 @@
 
   // ── Worker URL ─────────────────────────────────────────────────────────────
   function getWorkerUrl() {
-    try {
-      const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
-      return (s.workerUrl || '').replace(/\/$/, '') ||
-        'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-    } catch { return 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev'; }
+    return CTC_CONFIG.workerUrl;
   }
 
   function token() { return localStorage.getItem(JWT_KEY) || ''; }
@@ -553,14 +543,12 @@
     const s = JSON.parse(localStorage.getItem(SETTINGS) || '{}');
     if (s.mainSiteUrl)  document.getElementById('mainSiteUrl').value  = s.mainSiteUrl;
     if (s.nasClientUrl) document.getElementById('nasClientUrl').value = s.nasClientUrl;
-    if (s.workerUrl)    document.getElementById('workerUrl').value    = s.workerUrl;
   }
 
   function saveSettings() {
     const s = {
       mainSiteUrl:  document.getElementById('mainSiteUrl').value.trim(),
       nasClientUrl: document.getElementById('nasClientUrl').value.trim(),
-      workerUrl:    document.getElementById('workerUrl').value.trim(),
     };
     localStorage.setItem(SETTINGS, JSON.stringify(s));
     toast('Settings saved');
@@ -571,7 +559,7 @@
     return {
       mainSiteUrl:  s.mainSiteUrl  || 'https://coastaltravelcompany.com/gallery/gallery.html',
       nasClientUrl: s.nasClientUrl || 'https://coastaltravelcompany.com/gallery/client-gallery.html',
-      workerUrl:    s.workerUrl    || getWorkerUrl(),
+      workerUrl:    getWorkerUrl(),
     };
   }
 
