@@ -46,9 +46,11 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 **Goal:** Clients log in with email/password or Google, and see only their own galleries — no shared password links.
 
 - [ ] Verify if user creates initially with password flow then they can do google login later and it merges the local account with the google login and they can login with either the password or the google token.
-- [ ] Create Resend account, verify `coastaltravelcompany.com` domain for transactional email
-- [ ] Get Google Client ID from Google Cloud Console (authorized JS origin: `https://coastaltravelcompany.com`)
-- [ ] Set Worker secrets in Cloudflare dashboard: `JWT_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`
+- [ ] Send email on account creation for user to verify account creation. (should we even do this? whats the benefit?)
+- [ ] Verify email functionality works for forgot password flow.
+- [x] Create Resend account, verify `coastaltravelcompany.com` domain for transactional email
+- [x] Get Google Client ID from Google Cloud Console (authorized JS origin: `https://coastaltravelcompany.com`)
+- [x] Set Worker secrets in Cloudflare dashboard: `JWT_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`
 - [x] Build login page (`/login.html`) — email/password form + Google Sign-In button, forgot/reset password flow, first-time setup card
 - [x] Build client portal page (`/portal.html`) — shows galleries assigned to the logged-in user
 - [x] Add Worker auth endpoints: `POST /auth/login`, `POST /auth/google`, `POST /auth/reset-request`, `POST /auth/reset-confirm`, `GET /auth/me`, `GET /auth/setup-status`, `POST /auth/setup` (logout handled client-side by clearing localStorage — stateless JWT needs no server-side invalidation)
