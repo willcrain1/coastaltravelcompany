@@ -48,13 +48,13 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Create Resend account, verify `coastaltravelcompany.com` domain for transactional email
 - [ ] Get Google Client ID from Google Cloud Console (authorized JS origin: `https://coastaltravelcompany.com`)
 - [ ] Set Worker secrets in Cloudflare dashboard: `JWT_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`
-- [ ] Build login page (`/login.html`) — email/password form + Google Sign-In button
-- [ ] Build client portal page (`/portal.html`) — shows galleries assigned to the logged-in user
-- [ ] Add Worker auth endpoints: `POST /auth/login`, `POST /auth/google`, `POST /auth/reset-request`, `POST /auth/reset-confirm`, `POST /auth/logout`
-- [ ] Store users, gallery assignments, and reset tokens in Cloudflare KV (`CTC_AUTH` namespace)
-- [ ] Add user management to `gallery-admin.html` — create user, assign galleries, revoke access
-- [ ] Protect `gallery-admin.html` behind admin auth
-- [ ] Session tokens: 7-day JWT, stored in `localStorage`, validated by Worker on each request
+- [x] Build login page (`/login.html`) — email/password form + Google Sign-In button, forgot/reset password flow, first-time setup card
+- [x] Build client portal page (`/portal.html`) — shows galleries assigned to the logged-in user
+- [x] Add Worker auth endpoints: `POST /auth/login`, `POST /auth/google`, `POST /auth/reset-request`, `POST /auth/reset-confirm`, `GET /auth/me`, `GET /auth/setup-status`, `POST /auth/setup` (logout handled client-side by clearing localStorage — stateless JWT needs no server-side invalidation)
+- [x] Store users, gallery assignments, and reset tokens in Cloudflare KV (`CTC_AUTH` namespace)
+- [x] Add user management to `gallery-admin.html` — create user, set password, assign galleries, manage gallery access per user, send password reset, delete user
+- [x] Protect `gallery-admin.html` behind admin auth — redirects to `/login.html` if no JWT, to `/portal.html` if non-admin role
+- [x] Session tokens: 7-day JWT, stored in `localStorage`, validated by Worker on each request
 
 ---
 
