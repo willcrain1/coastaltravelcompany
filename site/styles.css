@@ -904,6 +904,39 @@ footer {
 .mb-32 { margin-bottom: 32px; }
 .mb-48 { margin-bottom: 48px; }
 
+/* ─── Nav Profile Button ──────────────────────────────────── */
+
+.nav-profile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.88);
+  text-decoration: none;
+  transition: border-color 0.3s, color 0.3s, background 0.3s;
+  flex-shrink: 0;
+}
+
+.nav-profile:hover {
+  border-color: var(--white);
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+nav.scrolled .nav-profile {
+  border-color: rgba(44, 44, 44, 0.3);
+  color: var(--text-mid);
+}
+
+nav.scrolled .nav-profile:hover {
+  border-color: var(--forest-green);
+  color: var(--forest-green);
+  background: transparent;
+}
+
 /* ─── Responsive ──────────────────────────────────────────── */
 
 @media (max-width: 1100px) {
