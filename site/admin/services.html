@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Services — Coastal Travel Company Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </div>
+  <div class="header-right">
+    <span class="admin-email" id="adminEmail"></span>
+    <nav class="admin-nav">
+      <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
+      <a href="galleries.html" class="admin-nav-link">Galleries</a>
+      <a href="clients.html" class="admin-nav-link">Clients</a>
+      <a href="services.html" class="admin-nav-link">Services</a>
+    </nav>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <h2 class="sh">Service Packages</h2>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Package Name</label>
+        <input type="text" id="pkg-name" placeholder="The Editorial Stay" />
+      </div>
+      <div class="fg">
+        <label>Base Price</label>
+        <input type="number" id="pkg-price" min="0" step="50" placeholder="2500" />
+      </div>
+      <div class="fg full">
+        <label>Description</label>
+        <textarea id="pkg-description" placeholder="Short proposal-ready package description"></textarea>
+      </div>
+      <div class="fg full">
+        <label>Inclusions</label>
+        <textarea id="pkg-inclusions" placeholder="One inclusion per line"></textarea>
+      </div>
+      <div class="fg full">
+        <label>Hero Photo URL</label>
+        <input type="url" id="pkg-hero" placeholder="https://..." />
+      </div>
+      <div class="fg full">
+        <label>Add-Ons</label>
+        <div class="create-gallery-checks" id="pkg-addon-checks"></div>
+        <p class="hint">These reusable add-ons can be attached to any package and later offered in proposals.</p>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+      <button class="btn btn-primary btn-sm" onclick="savePackage()">Save Package</button>
+    </div>
+  </div>
+  <div class="package-list" id="packageList"></div>
+
+  <h2 class="sh" style="margin-top:56px;">Questionnaire Builder</h2>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Set Name</label>
+        <input type="text" id="qset-name" placeholder="Pre-booking property intake" />
+      </div>
+      <div class="fg">
+        <label>Phase</label>
+        <select id="qset-phase">
+          <option value="pre-booking">Pre-booking</option>
+          <option value="pre-shoot">Post-booking / Pre-shoot</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Question Type</label>
+        <select id="q-question-type">
+          <option value="text">Text</option>
+          <option value="multiple_choice">Multiple Choice</option>
+          <option value="date">Date</option>
+          <option value="file">File Upload</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Question</label>
+        <input type="text" id="q-question-label" placeholder="Property name" />
+      </div>
+      <div class="fg full">
+        <label>Choices</label>
+        <input type="text" id="q-question-options" placeholder="Hotel, Boutique, Resort, Vacation rental, Private villa" />
+        <p class="hint">Only used for multiple choice questions. Separate options with commas.</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="addQuestionDraft()">Add Question</button>
+      <button class="btn btn-primary btn-sm" onclick="saveQuestionnaireSet()">Save Set</button>
+    </div>
+    <div class="doc-list" id="questionDraftList" style="margin-top:16px;"></div>
+  </div>
+  <div class="questionnaire-list" id="questionnaireList"></div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../config.js"></script>
+<script src="admin-shared.js"></script>
+<script>
+  const PACKAGE_ADDONS = [
+    'Rush delivery',
+    'Extra edited images',
+    'Video reel',
+    '3D walkthrough',
+    'Extended license',
+    'Additional half-day',
+  ];
+
+  let packages          = [];
+  let questionnaireSets = [];
+  let questionDraft     = [];
+
+  // ── Service packages ─────────────────────────────────────────────────────────
+  async function loadPackages() {
+    renderAddonChecks();
+    const { ok, data } = await apiFetch('/admin/packages', { method: 'GET' });
+    if (!ok) return;
+    packages = Array.isArray(data) ? data : [];
+    renderPackages();
+  }
+
+  function packageAddons(pkg) {
+    if (Array.isArray(pkg.addons)) return pkg.addons;
+    try { return JSON.parse(pkg.addons || '[]'); } catch { return []; }
+  }
+
+  function renderAddonChecks() {
+    const el = document.getElementById('pkg-addon-checks');
+    el.innerHTML = PACKAGE_ADDONS.map(a => `
+      <label class="gallery-check-item">
+        <input type="checkbox" name="pkgAddon" value="${esc(a)}" />
+        ${esc(a)}
+      </label>`).join('');
+  }
+
+  function renderPackages() {
+    const el = document.getElementById('packageList');
+    if (!packages.length) {
+      el.innerHTML = '<div class="empty">No service packages yet.</div>';
+      return;
+    }
+    el.innerHTML = packages.map(pkg => {
+      const inclusions = String(pkg.inclusions || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const addons = packageAddons(pkg);
+      return `
+        <div class="package-card" id="pkg-${esc(pkg.id)}">
+          <div class="package-top">
+            <div class="package-name">${esc(pkg.name)}</div>
+            <div class="package-price">${pkg.base_price ? '$' + Number(pkg.base_price).toLocaleString('en-US') : 'Custom'}</div>
+          </div>
+          ${pkg.description ? `<div class="package-copy">${esc(pkg.description)}</div>` : ''}
+          ${pkg.hero_photo ? `<div class="package-mini">Hero: ${esc(pkg.hero_photo)}</div>` : ''}
+          ${inclusions.length ? `<div class="package-mini"><strong>Includes</strong><br>${inclusions.map(esc).join('<br>')}</div>` : ''}
+          ${addons.length ? `<div class="package-addon-row">${addons.map(a => `<span class="tag-pill">${esc(a)}</span>`).join('')}</div>` : ''}
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-danger btn-sm" onclick="deletePackage('${esc(pkg.id)}')">Delete</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function savePackage() {
+    const body = {
+      name:        document.getElementById('pkg-name').value.trim(),
+      base_price:  document.getElementById('pkg-price').value,
+      description: document.getElementById('pkg-description').value.trim(),
+      inclusions:  document.getElementById('pkg-inclusions').value.trim(),
+      hero_photo:  document.getElementById('pkg-hero').value.trim(),
+      addons:      [...document.querySelectorAll('input[name="pkgAddon"]:checked')].map(el => el.value),
+    };
+    if (!body.name) { toast('Package name is required', true); return; }
+    const { ok, data } = await apiFetch('/admin/packages', { method: 'POST', body });
+    if (!ok) { toast(data.error || 'Failed to save package', true); return; }
+    packages.unshift(data);
+    renderPackages();
+    ['pkg-name','pkg-price','pkg-description','pkg-inclusions','pkg-hero'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.querySelectorAll('input[name="pkgAddon"]').forEach(el => { el.checked = false; });
+    toast('Package saved');
+  }
+
+  async function deletePackage(id) {
+    if (!confirm('Delete this package?')) return;
+    const { ok } = await apiFetch('/admin/packages/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    packages = packages.filter(pkg => pkg.id !== id);
+    renderPackages();
+    toast('Package deleted');
+  }
+
+  // ── Questionnaire builder ────────────────────────────────────────────────────
+  async function loadQuestionnaires() {
+    const { ok, data } = await apiFetch('/admin/questionnaires', { method: 'GET' });
+    if (!ok) return;
+    questionnaireSets = Array.isArray(data) ? data : [];
+    renderQuestionnaires();
+    renderQuestionDraft();
+  }
+
+  function parseQuestions(set) {
+    if (Array.isArray(set.questions)) return set.questions;
+    try { return JSON.parse(set.questions || '[]'); } catch { return []; }
+  }
+
+  function addQuestionDraft() {
+    const label   = document.getElementById('q-question-label').value.trim();
+    const type    = document.getElementById('q-question-type').value;
+    const options = document.getElementById('q-question-options').value
+      .split(',').map(s => s.trim()).filter(Boolean);
+    if (!label) { toast('Question text is required', true); return; }
+    if (type === 'multiple_choice' && !options.length) { toast('Multiple choice questions need choices', true); return; }
+    questionDraft.push({ id: Date.now().toString(36), label, type, options });
+    document.getElementById('q-question-label').value = '';
+    document.getElementById('q-question-options').value = '';
+    renderQuestionDraft();
+  }
+
+  function removeQuestionDraft(id) {
+    questionDraft = questionDraft.filter(q => q.id !== id);
+    renderQuestionDraft();
+  }
+
+  function renderQuestionDraft() {
+    const el = document.getElementById('questionDraftList');
+    if (!questionDraft.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;">No questions added yet.</div>';
+      return;
+    }
+    el.innerHTML = questionDraft.map(q => `
+      <div class="question-draft">
+        <div>
+          <div class="question-title">${esc(q.label)}</div>
+          <div class="question-meta">${esc(q.type.replace('_', ' '))}${q.options.length ? ' · ' + esc(q.options.join(', ')) : ''}</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeQuestionDraft('${esc(q.id)}')">Remove</button>
+      </div>`).join('');
+  }
+
+  function renderQuestionnaires() {
+    const el = document.getElementById('questionnaireList');
+    if (!questionnaireSets.length) {
+      el.innerHTML = '<div class="empty">No questionnaire sets yet.</div>';
+      return;
+    }
+    el.innerHTML = questionnaireSets.map(set => {
+      const questions = parseQuestions(set);
+      return `
+        <div class="questionnaire-row" id="qset-${esc(set.id)}">
+          <div>
+            <div class="package-name">${esc(set.name)}</div>
+            <div class="question-meta">${esc(set.phase)} · ${questions.length} questions</div>
+          </div>
+          <div class="package-mini">${questions.map(q => esc(q.label)).join('<br>')}</div>
+          <div style="display:flex; justify-content:flex-end;">
+            <button class="btn btn-danger btn-sm" onclick="deleteQuestionnaireSet('${esc(set.id)}')">Delete</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function saveQuestionnaireSet() {
+    const body = {
+      name:      document.getElementById('qset-name').value.trim(),
+      phase:     document.getElementById('qset-phase').value,
+      questions: questionDraft,
+    };
+    if (!body.name) { toast('Questionnaire name is required', true); return; }
+    if (!body.questions.length) { toast('Add at least one question', true); return; }
+    const { ok, data } = await apiFetch('/admin/questionnaires', { method: 'POST', body });
+    if (!ok) { toast(data.error || 'Failed to save questionnaire', true); return; }
+    questionnaireSets.unshift(data);
+    questionDraft = [];
+    document.getElementById('qset-name').value = '';
+    renderQuestionDraft();
+    renderQuestionnaires();
+    toast('Questionnaire saved');
+  }
+
+  async function deleteQuestionnaireSet(id) {
+    if (!confirm('Delete this questionnaire set?')) return;
+    const { ok } = await apiFetch('/admin/questionnaires/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    questionnaireSets = questionnaireSets.filter(set => set.id !== id);
+    renderQuestionnaires();
+    toast('Questionnaire deleted');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  async function init() {
+    const authed = await authGate();
+    if (!authed) return;
+    await Promise.all([loadPackages(), loadQuestionnaires()]);
+  }
+
+  init();
+</script>
+</body>
+</html>
