@@ -189,7 +189,18 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 9. 3D Property Walkthroughs (Gaussian Splatting)
+## 9. Availability Calendar
+
+**Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
+
+- [ ] Choose an approach: simple manually-updated HTML calendar, or embed from a booking tool (syncs automatically if item 5 is implemented)
+- [ ] Add to `contact.html` or a new `/availability.html` page
+- [ ] Mark booked periods as unavailable, show open windows clearly
+- [ ] Add a note about travel availability (available worldwide, lead time requirements)
+
+---
+
+## 10. 3D Property Walkthroughs (Gaussian Splatting)
 
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
 
@@ -215,7 +226,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 10. Print Ordering
+## 11. Print Ordering
 
 **Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
 
@@ -229,7 +240,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 11. Individual Photo Purchase (Digital Licensing Store)
+## 12. Individual Photo Purchase (Digital Licensing Store)
 
 **Goal:** Let anyone purchase a digital license for specific portfolio photos hand-picked by the admin — generating passive revenue from the back catalog without requiring a full shoot booking.
 
@@ -261,7 +272,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 12. Email Capture / Mailing List
+## 13. Email Capture / Mailing List
 
 **Goal:** Collect visitor emails for newsletters, availability announcements, or seasonal campaigns.
 
@@ -273,7 +284,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 13. Video Reel / Showreel
+## 14. Video Reel / Showreel
 
 **Goal:** Feature short-form video work prominently, since it's a core part of the collections offering.
 
@@ -284,7 +295,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 14. Testimonials Page
+## 15. Testimonials Page
 
 **Goal:** Dedicated page (and homepage section) showing client reviews to build credibility with prospective hotel/property clients.
 
@@ -296,7 +307,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 15. Enhanced SEO & AI Search Visibility
+## 16. Enhanced SEO & AI Search Visibility
 
 **Goal:** Ensure the site ranks in traditional search and surfaces in AI-powered search engines (Google AI Overviews, Perplexity, ChatGPT Search, Bing Copilot) — both for branded queries ("Coastal Travel Company") and category queries ("hospitality photographer", "hotel photography", "luxury property photographer").
 
@@ -328,7 +339,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 16. Admin Content Editor (CMS)
+## 17. Admin Content Editor (CMS)
 
 **Goal:** Allow the admin to update text and photos on every public website page directly from the browser — no HTML editing or git knowledge required. Changes commit to the GitHub repo via the API and GitHub Pages deploys automatically within ~2 minutes.
 
@@ -366,16 +377,6 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - Add `GITHUB_TOKEN` to the Worker secrets checklist alongside `JWT_SECRET`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`
 - Mark all editable HTML zones before building the editor so zone IDs are stable; add a `data-content-id` naming convention to `CLAUDE.md` once established
 
----
-
-## 17. Availability Calendar
-
-**Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
-
-- [ ] Choose an approach: simple manually-updated HTML calendar, or embed from a booking tool (syncs automatically if item 5 is implemented)
-- [ ] Add to `contact.html` or a new `/availability.html` page
-- [ ] Mark booked periods as unavailable, show open windows clearly
-- [ ] Add a note about travel availability (available worldwide, lead time requirements)
 
 ---
 
