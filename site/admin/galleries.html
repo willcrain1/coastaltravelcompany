@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galleries — Coastal Travel Company Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </div>
+  <div class="header-right">
+    <span class="admin-email" id="adminEmail"></span>
+    <nav class="admin-nav">
+      <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
+      <a href="galleries.html" class="admin-nav-link">Galleries</a>
+      <a href="clients.html" class="admin-nav-link">Clients</a>
+      <a href="services.html" class="admin-nav-link">Services</a>
+    </nav>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <h2 class="sh">Create New Gallery</h2>
+  <div class="card">
+    <form id="createForm">
+      <div class="form-grid">
+
+        <div class="fg full">
+          <label>Synology Photos Share Link</label>
+          <input type="url" id="shareUrl" required
+            placeholder="https://coastaltravelcompany.us6.quickconnect.to/photo/mo/sharing/AbCdEfGh" />
+          <p class="hint">Synology Photos → open album → ··· menu → Share → copy the link. Paste the full URL here.</p>
+        </div>
+
+        <div class="fg full">
+          <label>Share Password <span style="color:var(--teal)">*</span></label>
+          <input type="password" id="sharePassword" required
+            placeholder="Password set on the Synology Photos share" />
+          <p class="hint">In Synology Photos, open the share settings and set a password on this album first, then enter it here.</p>
+        </div>
+
+        <div class="fg">
+          <label>Event / Gallery Name</label>
+          <input type="text" id="eventName" required placeholder="Rivera Wedding · May 2024" />
+        </div>
+
+        <div class="fg">
+          <label>Client Name</label>
+          <input type="text" id="clientName" required placeholder="Rivera Family" />
+        </div>
+
+        <div class="fg full">
+          <label>Internal Notes (not visible to client)</label>
+          <input type="text" id="notes" placeholder="e.g. 200 photos delivered, client approved." />
+        </div>
+
+        <div class="fg full" style="flex-direction:row; align-items:center; gap:10px; margin-top:2px;">
+          <input type="checkbox" id="watermark" style="width:auto; accent-color:var(--teal); cursor:pointer; flex-shrink:0;" />
+          <label for="watermark" style="font-size:11px; letter-spacing:0.08em; text-transform:none; color:var(--dim); cursor:pointer; font-weight:400;">Photos are watermarked — disable downloads in the client gallery</label>
+        </div>
+
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:26px;">
+        <button type="submit" class="btn btn-primary" id="createBtn">Generate Gallery Link</button>
+      </div>
+
+      <div class="result-box" id="resultBox">
+        <p class="result-label">Client Gallery Link</p>
+        <p class="result-url" id="resultUrl"></p>
+        <div class="result-actions">
+          <button type="button" class="btn btn-primary" style="padding:9px 20px; font-size:9px;" onclick="copyResult()">Copy Link</button>
+          <button type="button" class="btn btn-ghost" onclick="previewResult()">Preview</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <h2 class="sh">Active Galleries</h2>
+  <div id="galleryList"></div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../config.js"></script>
+<script src="admin-shared.js"></script>
+<script>
+  let galleries        = [];
+  let currentResultUrl = '';
+
+  // ── URL helpers ──────────────────────────────────────────────────────────────
+  function parseShareUrl(raw) {
+    try {
+      const url = new URL(raw);
+      const m = url.pathname.match(/\/(?:photo\/)?mo\/sharing\/([A-Za-z0-9_-]+)/);
+      if (!m) return null;
+      return { nasUrl: url.origin, passphrase: m[1] };
+    } catch { return null; }
+  }
+
+  function encode(obj) {
+    return btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+  }
+
+  function buildUrl(g) {
+    const { mainSiteUrl } = getSettings();
+    const config = {
+      id:          g.id,
+      nasClientUrl: g.nasClientUrl || CTC_CONFIG.nasClientUrl,
+      proxyUrl:    g.proxyUrl || CTC_CONFIG.workerUrl,
+      eventName:   g.eventName,
+      clientName:  g.clientName,
+      watermark:   g.watermark || false,
+    };
+    return mainSiteUrl + '#' + encode(config);
+  }
+
+  // ── Gallery API ──────────────────────────────────────────────────────────────
+  async function loadGalleries() {
+    const { ok, data } = await apiFetch('/admin/galleries', { method: 'GET' });
+    if (!ok) { toast('Failed to load galleries', true); return; }
+    galleries = data;
+
+    if (galleries.length === 0) {
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || '[]');
+      if (legacy.length > 0) {
+        toast(`Migrating ${legacy.length} local galleries to server…`);
+        for (const g of legacy) {
+          g.assignedUsers = g.assignedUsers || [];
+          await apiFetch('/admin/galleries', { method: 'POST', body: g });
+        }
+        const { data: fresh } = await apiFetch('/admin/galleries', { method: 'GET' });
+        galleries = fresh || [];
+        toast(`Migrated ${legacy.length} galleries`);
+      }
+    }
+
+    renderGalleryList();
+  }
+
+  async function deleteGallery(id) {
+    if (!confirm('Remove this gallery? Photos on Synology are not affected.')) return;
+    const { ok } = await apiFetch('/admin/galleries/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    galleries = galleries.filter(g => g.id !== id);
+    renderGalleryList();
+    toast('Gallery removed');
+  }
+
+  // ── Create gallery form ──────────────────────────────────────────────────────
+  document.getElementById('createForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+
+    const shareRaw      = document.getElementById('shareUrl').value.trim();
+    const sharePassword = document.getElementById('sharePassword').value.trim();
+    const eventName     = document.getElementById('eventName').value.trim();
+    const clientName    = document.getElementById('clientName').value.trim();
+    const notes         = document.getElementById('notes').value.trim();
+    const watermark     = document.getElementById('watermark').checked;
+
+    const parsed = parseShareUrl(shareRaw);
+    if (!parsed) {
+      toast('Could not read share URL — check the format', true);
+      btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+      return;
+    }
+
+    const id      = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+    const { nasClientUrl } = getSettings();
+
+    const gallery = {
+      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: CTC_CONFIG.workerUrl,
+      passphrase: parsed.passphrase, sharePassword, eventName, clientName,
+      created, notes, watermark, assignedUsers: [],
+    };
+
+    const { ok, data } = await apiFetch('/admin/galleries', { method: 'POST', body: gallery });
+    if (!ok) {
+      toast(data.error || 'Failed to save gallery', true);
+      btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+      return;
+    }
+
+    galleries.unshift(data);
+    currentResultUrl = buildUrl(gallery);
+    document.getElementById('resultUrl').textContent = currentResultUrl;
+    document.getElementById('resultBox').classList.add('show');
+    document.getElementById('shareUrl').value = '';
+    document.getElementById('sharePassword').value = '';
+    renderGalleryList();
+    toast('Gallery link created');
+    btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+  });
+
+  function copyResult() {
+    navigator.clipboard.writeText(currentResultUrl).then(() => toast('Link copied to clipboard'));
+  }
+  function previewResult() { window.open(currentResultUrl, '_blank'); }
+
+  // ── Gallery list ─────────────────────────────────────────────────────────────
+  function renderGalleryList() {
+    const el = document.getElementById('galleryList');
+    if (!galleries.length) {
+      el.innerHTML = '<div class="empty">No galleries yet — create your first one above.</div>';
+      return;
+    }
+    el.innerHTML = galleries.map(g => `
+      <div class="gallery-row" id="gr-${esc(g.id)}">
+        <div class="gr-header">
+          <div class="gr-info" onclick="toggleEditPanel('${esc(g.id)}')">
+            <div class="gr-name">
+              ${esc(g.eventName)}
+              <span class="gr-chevron" id="gchev-${esc(g.id)}">▾</span>
+            </div>
+            <div class="gr-meta">
+              ${esc(g.clientName)}
+              &nbsp;·&nbsp; Created ${esc(g.created)}
+              ${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}
+              ${g.notes ? ' &nbsp;·&nbsp; ' + esc(g.notes) : ''}
+              ${g.assignedUsers && g.assignedUsers.length
+                ? ' &nbsp;·&nbsp; <span style="color:var(--ok)">' + g.assignedUsers.length + ' user' + (g.assignedUsers.length > 1 ? 's' : '') + '</span>'
+                : ''}
+            </div>
+          </div>
+          <div class="gr-actions">
+            <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
+            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
+            <button class="btn btn-danger" onclick="deleteGallery('${esc(g.id)}')">Delete</button>
+          </div>
+        </div>
+        <div class="gallery-edit-panel" id="gedit-${esc(g.id)}">
+          <div class="form-grid">
+            <div class="fg full">
+              <label>Synology Photos Share Link — leave blank to keep existing</label>
+              <input type="url" id="gedit-shareUrl-${esc(g.id)}"
+                placeholder="Paste new URL to change (current host: ${esc(g.nasUrl || '')})" />
+              <p class="hint">Only needed if pointing this gallery to a different Synology album.</p>
+            </div>
+            <div class="fg full">
+              <label>Share Password — leave blank to keep existing</label>
+              <input type="password" id="gedit-sharePassword-${esc(g.id)}"
+                placeholder="Enter new password to change" />
+            </div>
+            <div class="fg">
+              <label>Event / Gallery Name</label>
+              <input type="text" id="gedit-eventName-${esc(g.id)}" value="${esc(g.eventName)}" required />
+            </div>
+            <div class="fg">
+              <label>Client Name</label>
+              <input type="text" id="gedit-clientName-${esc(g.id)}" value="${esc(g.clientName)}" required />
+            </div>
+            <div class="fg full">
+              <label>Internal Notes</label>
+              <input type="text" id="gedit-notes-${esc(g.id)}" value="${esc(g.notes || '')}" />
+            </div>
+            <div class="fg full" style="flex-direction:row; align-items:center; gap:10px; margin-top:2px;">
+              <input type="checkbox" id="gedit-watermark-${esc(g.id)}"
+                style="width:auto; accent-color:var(--teal); cursor:pointer; flex-shrink:0;"
+                ${g.watermark ? 'checked' : ''} />
+              <label for="gedit-watermark-${esc(g.id)}"
+                style="font-size:11px; letter-spacing:0.08em; text-transform:none; color:var(--dim); cursor:pointer; font-weight:400;">
+                Photos are watermarked — disable downloads in the client gallery
+              </label>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:18px;">
+            <button class="btn btn-primary btn-sm" onclick="saveGalleryEdit('${esc(g.id)}')">Save Changes</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleEditPanel('${esc(g.id)}')">Cancel</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function getGallery(id) { return galleries.find(g => g.id === id); }
+
+  function copyGallery(id) {
+    const g = getGallery(id);
+    if (!g) return;
+    navigator.clipboard.writeText(buildUrl(g)).then(() => toast('Link copied'));
+  }
+
+  function toggleEditPanel(id) {
+    const panel = document.getElementById('gedit-' + id);
+    const chev  = document.getElementById('gchev-' + id);
+    if (!panel) return;
+    const opening = !panel.classList.contains('open');
+    panel.classList.toggle('open');
+    if (chev) chev.classList.toggle('open', opening);
+  }
+
+  async function saveGalleryEdit(id) {
+    const g = getGallery(id);
+    if (!g) return;
+
+    const shareRaw      = document.getElementById('gedit-shareUrl-' + id).value.trim();
+    const sharePassword = document.getElementById('gedit-sharePassword-' + id).value;
+    const eventName     = document.getElementById('gedit-eventName-' + id).value.trim();
+    const clientName    = document.getElementById('gedit-clientName-' + id).value.trim();
+    const notes         = document.getElementById('gedit-notes-' + id).value.trim();
+    const watermark     = document.getElementById('gedit-watermark-' + id).checked;
+
+    if (!eventName || !clientName) {
+      toast('Event name and client name are required', true);
+      return;
+    }
+
+    const updates = { eventName, clientName, notes, watermark };
+
+    if (shareRaw) {
+      const parsed = parseShareUrl(shareRaw);
+      if (!parsed) { toast('Could not read share URL — check the format', true); return; }
+      updates.nasUrl     = parsed.nasUrl;
+      updates.passphrase = parsed.passphrase;
+    }
+
+    if (sharePassword) updates.sharePassword = sharePassword;
+
+    const { ok, data } = await apiFetch('/admin/galleries/' + id, { method: 'PUT', body: updates });
+    if (!ok) { toast(data.error || 'Save failed', true); return; }
+
+    const idx = galleries.findIndex(gg => gg.id === id);
+    if (idx >= 0) galleries[idx] = { ...galleries[idx], ...data };
+    renderGalleryList();
+    toast('Gallery updated');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  async function init() {
+    const authed = await authGate();
+    if (!authed) return;
+    await loadGalleries();
+  }
+
+  init();
+</script>
+</body>
+</html>
