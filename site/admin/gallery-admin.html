@@ -237,18 +237,51 @@
       gap: 16px;
       align-items: center;
     }
-    .ur-email { font-size: 14px; color: var(--white); margin-bottom: 3px; }
+    .ur-info { cursor: pointer; min-width: 0; }
+    .ur-email {
+      font-size: 14px; color: var(--white); margin-bottom: 3px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ur-chevron {
+      font-size: 10px; color: var(--dim);
+      transition: transform 0.2s; display: inline-block; flex-shrink: 0;
+    }
+    .ur-chevron.open { transform: rotate(180deg); }
     .ur-meta  { font-size: 11px; color: var(--dim); }
     .ur-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
 
-    /* Gallery assignment panel */
-    .assign-panel {
+    /* ── User detail panel ── */
+    .user-detail-panel {
       display: none;
       margin-top: 16px;
       padding-top: 16px;
       border-top: 1px solid var(--border);
     }
-    .assign-panel.open { display: block; }
+    .user-detail-panel.open { display: block; }
+    .ud-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .ud-value { font-size: 12px; color: var(--white); margin-top: 6px; font-weight: 400; }
+    .ud-pill {
+      display: inline-block;
+      font-size: 8px; font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 3px 8px;
+    }
+    .ud-pill.verified   { background: rgba(76,175,120,0.15); color: var(--ok); }
+    .ud-pill.unverified { background: rgba(229,115,115,0.15); color: var(--err); }
+    .ud-pill.role-admin { background: rgba(143,191,190,0.15); color: var(--teal); }
+    .ud-pill.role-client { background: rgba(255,255,255,0.06); color: var(--dim); }
+    .ud-pill.auth-google { background: rgba(66,133,244,0.15); color: #74a9f7; }
+    .ud-pill.auth-password { background: rgba(255,255,255,0.06); color: var(--dim); }
+    .ud-pill.auth-both { background: rgba(143,191,190,0.1); color: var(--teal); }
+
+    /* Gallery assignment */
     .assign-label {
       font-size: 9px; font-weight: 600; letter-spacing: 0.38em;
       text-transform: uppercase; color: var(--dim); margin-bottom: 12px;
@@ -413,6 +446,7 @@
       .form-grid { grid-template-columns: 1fr; }
       .full { grid-column: span 1; }
       .gallery-row, .user-header { grid-template-columns: 1fr; }
+      .ud-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -1046,14 +1080,17 @@
     toast('User deleted');
   }
 
-  function toggleAssignPanel(id) {
-    const panel = document.getElementById('assign-' + id);
+  function toggleUserDetail(id) {
+    const panel = document.getElementById('udetail-' + id);
+    const chev  = document.getElementById('uchev-' + id);
     if (!panel) return;
+    const opening = !panel.classList.contains('open');
     panel.classList.toggle('open');
+    if (chev) chev.classList.toggle('open', opening);
   }
 
   async function saveGalleryAssignment(userId) {
-    const panel = document.getElementById('assign-' + userId);
+    const panel = document.getElementById('udetail-' + userId);
     const selected = [...panel.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
     const { ok, data } = await apiFetch('/admin/users/' + userId, {
       method: 'PUT', body: { galleries: selected },
@@ -1062,9 +1099,16 @@
     const idx = users.findIndex(u => u.id === userId);
     if (idx >= 0) users[idx] = data;
     panel.classList.remove('open');
-    await loadGalleries(); // refresh assignedUsers counts
+    const chev = document.getElementById('uchev-' + userId);
+    if (chev) chev.classList.remove('open');
+    await loadGalleries();
     renderUserList();
     toast('Gallery access updated');
+  }
+
+  function fmtMemberDate(ts) {
+    if (!ts) return '—';
+    return new Date(ts).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
 
   function renderUserList() {
@@ -1086,11 +1130,19 @@
           <span style="color:var(--dim); margin-left:4px;">· ${esc(g.clientName)}</span>
         </label>`).join('');
 
+      const authLabel = u.hasPassword && u.verified === false ? 'Password (unverified)'
+        : u.hasPassword ? 'Password'
+        : 'Google only';
+      const authClass = u.hasPassword ? 'auth-password' : 'auth-google';
+
       return `
         <div class="user-row">
           <div class="user-header">
-            <div>
-              <div class="ur-email">${esc(u.email)}</div>
+            <div class="ur-info" onclick="toggleUserDetail('${esc(u.id)}')">
+              <div class="ur-email">
+                ${esc(u.email)}
+                <span class="ur-chevron" id="uchev-${esc(u.id)}">▾</span>
+              </div>
               <div class="ur-meta">
                 ${u.role === 'admin' ? '<span style="color:var(--teal)">Admin</span>' : 'Client'}
                 &nbsp;·&nbsp; ${(u.galleries || []).length} gallery${(u.galleries || []).length !== 1 ? 's' : ''}
@@ -1098,19 +1150,42 @@
               </div>
             </div>
             <div class="ur-actions">
-              <button class="btn btn-ghost btn-sm" onclick="toggleAssignPanel('${esc(u.id)}')">Manage Galleries</button>
               <button class="btn btn-ghost btn-sm" onclick="sendResetEmail('${esc(u.email)}')">Reset Password</button>
               <button class="btn btn-danger btn-sm" onclick="deleteUser('${esc(u.id)}')">Delete</button>
             </div>
           </div>
-          <div class="assign-panel" id="assign-${esc(u.id)}">
+          <div class="user-detail-panel" id="udetail-${esc(u.id)}">
+            <div class="ud-grid">
+              <div class="fg">
+                <label>Role</label>
+                <div class="ud-value">
+                  <span class="ud-pill role-${esc(u.role)}">${esc(u.role)}</span>
+                </div>
+              </div>
+              <div class="fg">
+                <label>Auth Method</label>
+                <div class="ud-value">
+                  <span class="ud-pill ${esc(authClass)}">${esc(authLabel)}</span>
+                </div>
+              </div>
+              <div class="fg">
+                <label>Verified</label>
+                <div class="ud-value">
+                  <span class="ud-pill ${u.verified ? 'verified' : 'unverified'}">${u.verified ? 'Verified' : 'Unverified'}</span>
+                </div>
+              </div>
+              <div class="fg">
+                <label>Member Since</label>
+                <div class="ud-value">${fmtMemberDate(u.created)}</div>
+              </div>
+            </div>
             <div class="assign-label">Gallery Access</div>
             <div class="gallery-checks">
               ${galleryChecks || '<span style="color:var(--dim); font-size:12px;">No galleries available.</span>'}
             </div>
             <div class="assign-save-row">
-              <button class="btn btn-primary btn-sm" onclick="saveGalleryAssignment('${esc(u.id)}')">Save</button>
-              <button class="btn btn-ghost btn-sm" onclick="toggleAssignPanel('${esc(u.id)}')">Cancel</button>
+              <button class="btn btn-primary btn-sm" onclick="saveGalleryAssignment('${esc(u.id)}')">Save Gallery Access</button>
+              <button class="btn btn-ghost btn-sm" onclick="toggleUserDetail('${esc(u.id)}')">Close</button>
             </div>
           </div>
         </div>`;

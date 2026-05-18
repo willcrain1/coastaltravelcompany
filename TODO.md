@@ -55,7 +55,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 4. OAuth Login & Per-User Gallery Access
+## 4. ~~OAuth Login & Per-User Gallery Access~~ ✅ Done
 
 **Goal:** Clients log in with email/password or Google, and see only their own galleries — no shared password links.
 

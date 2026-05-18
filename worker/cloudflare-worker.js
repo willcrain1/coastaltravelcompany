@@ -251,7 +251,12 @@ async function syncGalleryAssignments(userEmail, added, removed, kv) {
 }
 
 function stripSensitive(u) {
-  return { id: u.id, email: u.email, role: u.role, created: u.created, galleries: u.galleries || [] };
+  return {
+    id: u.id, email: u.email, role: u.role, created: u.created,
+    galleries: u.galleries || [],
+    verified: u.verified !== false,
+    hasPassword: !!u.passwordHash,
+  };
 }
 
 // ── Auth route handlers ───────────────────────────────────────────────────────
