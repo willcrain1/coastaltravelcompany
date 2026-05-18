@@ -174,7 +174,22 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 8. 3D Property Walkthroughs (Gaussian Splatting)
+## 8. Video Support in Client Gallery
+
+**Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
+
+- [ ] Research Synology Photos API for video items — check whether `SYNO.Foto.Browse.Item` returns videos in a shared album and what fields differ from photos (likely a `type` or `mime_type` field)
+- [ ] Update `fetchAll()` in `client-gallery.html` to include video items in the results
+- [ ] Render video cards in the masonry grid differently from photos — show a play icon overlay, use the video thumbnail returned by the Synology API
+- [ ] On click, open the lightbox with an HTML `<video>` element instead of an `<img>` — proxy the video stream through the Worker the same way thumbnails are proxied
+- [ ] Add video download support — route through `SYNO.Foto.Download` via the Worker (same as photo downloads)
+- [ ] Handle mixed galleries gracefully — photos and videos interleaved in chronological order
+- [ ] Test with Synology video formats (MP4, MOV) — confirm the Worker can stream binary video data without buffering issues at Cloudflare Worker memory limits
+- [ ] Consider file size: large video files may need to be linked for direct download rather than streamed through the Worker (Cloudflare Workers have a 128MB response limit)
+
+---
+
+## 9. 3D Property Walkthroughs (Gaussian Splatting)
 
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
 
@@ -200,7 +215,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 9. Print Ordering
+## 10. Print Ordering
 
 **Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
 
@@ -214,7 +229,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 10. Individual Photo Purchase (Digital Licensing Store)
+## 11. Individual Photo Purchase (Digital Licensing Store)
 
 **Goal:** Let anyone purchase a digital license for specific portfolio photos hand-picked by the admin — generating passive revenue from the back catalog without requiring a full shoot booking.
 
@@ -246,7 +261,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 11. Email Capture / Mailing List
+## 12. Email Capture / Mailing List
 
 **Goal:** Collect visitor emails for newsletters, availability announcements, or seasonal campaigns.
 
@@ -258,7 +273,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 12. Video Reel / Showreel
+## 13. Video Reel / Showreel
 
 **Goal:** Feature short-form video work prominently, since it's a core part of the collections offering.
 
@@ -269,7 +284,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 13. Testimonials Page
+## 14. Testimonials Page
 
 **Goal:** Dedicated page (and homepage section) showing client reviews to build credibility with prospective hotel/property clients.
 
@@ -281,7 +296,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 14. Enhanced SEO & AI Search Visibility
+## 15. Enhanced SEO & AI Search Visibility
 
 **Goal:** Ensure the site ranks in traditional search and surfaces in AI-powered search engines (Google AI Overviews, Perplexity, ChatGPT Search, Bing Copilot) — both for branded queries ("Coastal Travel Company") and category queries ("hospitality photographer", "hotel photography", "luxury property photographer").
 
@@ -313,7 +328,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 15. Admin Content Editor (CMS)
+## 16. Admin Content Editor (CMS)
 
 **Goal:** Allow the admin to update text and photos on every public website page directly from the browser — no HTML editing or git knowledge required. Changes commit to the GitHub repo via the API and GitHub Pages deploys automatically within ~2 minutes.
 
@@ -353,7 +368,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 16. Availability Calendar
+## 17. Availability Calendar
 
 **Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
 
@@ -364,7 +379,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 17. Licensing Information
+## 18. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
 
@@ -377,7 +392,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 18. Before/After Editing Sliders
+## 19. Before/After Editing Sliders
 
 **Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
 
@@ -388,7 +403,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 19. FAQ Page
+## 20. FAQ Page
 
 **Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
 
@@ -399,7 +414,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 20. Photo Favorites / Proofing in Client Gallery
+## 21. Photo Favorites / Proofing in Client Gallery
 
 **Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
 
@@ -418,20 +433,6 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] In `gallery-admin.html`, show admin-starred photos per gallery with a "View Admin Picks" filtered view
 - [ ] Allow admin to submit their star list to the client as a curated recommendation alongside (not replacing) the client's own selects
 
----
-
-## 21. Video Support in Client Gallery
-
-**Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
-
-- [ ] Research Synology Photos API for video items — check whether `SYNO.Foto.Browse.Item` returns videos in a shared album and what fields differ from photos (likely a `type` or `mime_type` field)
-- [ ] Update `fetchAll()` in `client-gallery.html` to include video items in the results
-- [ ] Render video cards in the masonry grid differently from photos — show a play icon overlay, use the video thumbnail returned by the Synology API
-- [ ] On click, open the lightbox with an HTML `<video>` element instead of an `<img>` — proxy the video stream through the Worker the same way thumbnails are proxied
-- [ ] Add video download support — route through `SYNO.Foto.Download` via the Worker (same as photo downloads)
-- [ ] Handle mixed galleries gracefully — photos and videos interleaved in chronological order
-- [ ] Test with Synology video formats (MP4, MOV) — confirm the Worker can stream binary video data without buffering issues at Cloudflare Worker memory limits
-- [ ] Consider file size: large video files may need to be linked for direct download rather than streamed through the Worker (Cloudflare Workers have a 128MB response limit)
 
 ---
 
@@ -618,3 +619,17 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 **Goal:** Update watermark capabilities so once a gallery is created noted with watermark capabilities it queues all items to be watermarked.  A worker works through the items to watermark, watermarks them, then uploads them to a new synology album for a watermarked version of the album.
 
+---
+
+## 29. Enhance Gallery Admin 
+
+**Goal:** Fix any issues associated with the gallery admin page.
+
+- [ ] Auth method is shown as Google Only in the UI, however these users can login with password auth + google.  Also, how is Google Only being determined?  thecoastaltravelcompany@gmail.com has not logged in with google auth but it says auth method google only. 
+
+
+---
+
+## 30. Customer Photo Sharing
+
+**Goal:**  Allow customers to be able to share photo albums to 5 users which send them an email invite.  ensure only the primary associated users with an album set by the administrator is able to share the album with users.  Allow the primary associated user to revoke the share, and see if the user has accepted the share invitation or if it is still pending.  Show all of this activity in the gallery-admin page for admins to see.
