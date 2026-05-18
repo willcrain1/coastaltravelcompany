@@ -666,6 +666,92 @@ async function handleRequest(request, env) {
     if (method === 'DELETE') return handleAdminDeleteUser(request, env, userIdMatch[1]);
   }
 
+  // ── Admin: Project pipeline CRUD ──────────────────────────────────────────
+  if (pathname === '/admin/projects') {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+
+    if (method === 'GET') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM projects ORDER BY updated_at DESC'
+      ).all();
+      return jsonResponse(results);
+    }
+
+    if (method === 'POST') {
+      const body = await request.json();
+      const { client_name, client_email, property, location, collection, shoot_date, message, source } = body;
+      if (!client_name || !client_email) return jsonResponse({ error: 'client_name and client_email required' }, 400);
+      const id  = crypto.randomUUID();
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        'INSERT INTO projects (id,stage,client_name,client_email,property,location,collection,shoot_date,message,source,labels,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
+      ).bind(id, 'Inquiry', client_name, client_email, property||'', location||'', collection||'', shoot_date||'', message||'', source||'manual', '', now, now).run();
+      return jsonResponse({ id, stage:'Inquiry', client_name, client_email, property:property||'', location:location||'', collection:collection||'', shoot_date:shoot_date||'', message:message||'', source:source||'manual', labels:'', created_at:now, updated_at:now }, 201);
+    }
+  }
+
+  const projectIdMatch    = pathname.match(/^\/admin\/projects\/([^/]+)$/);
+  const projectNotesMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/notes$/);
+
+  if (projectIdMatch) {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const id = projectIdMatch[1];
+
+    if (method === 'PUT') {
+      const body = await request.json();
+      const allowed = ['stage','client_name','client_email','property','location','collection','shoot_date','labels'];
+      const sets = [], vals = [];
+      for (const f of allowed) {
+        if (body[f] !== undefined) { sets.push(f + ' = ?'); vals.push(body[f]); }
+      }
+      if (!sets.length) return jsonResponse({ error: 'No fields to update' }, 400);
+      const now = new Date().toISOString();
+      sets.push('updated_at = ?'); vals.push(now); vals.push(id);
+      await env.DB.prepare('UPDATE projects SET ' + sets.join(', ') + ' WHERE id = ?').bind(...vals).run();
+      const { results } = await env.DB.prepare('SELECT * FROM projects WHERE id = ?').bind(id).all();
+      return jsonResponse(results[0] || { error: 'Not found' });
+    }
+
+    if (method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM project_notes WHERE project_id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM projects WHERE id = ?').bind(id).run();
+      return jsonResponse({ ok: true });
+    }
+  }
+
+  if (projectNotesMatch) {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const projectId = projectNotesMatch[1];
+
+    if (method === 'GET') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM project_notes WHERE project_id = ? ORDER BY created_at DESC'
+      ).bind(projectId).all();
+      return jsonResponse(results);
+    }
+
+    if (method === 'POST') {
+      const { type, content, due_date } = await request.json();
+      if (!content) return jsonResponse({ error: 'content required' }, 400);
+      const id  = crypto.randomUUID();
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        'INSERT INTO project_notes (id,project_id,type,content,due_date,created_at) VALUES (?,?,?,?,?,?)'
+      ).bind(id, projectId, type||'note', content, due_date||'', now).run();
+      await env.DB.prepare('UPDATE projects SET updated_at = ? WHERE id = ?').bind(now, projectId).run();
+      return jsonResponse({ id, project_id:projectId, type:type||'note', content, due_date:due_date||'', created_at:now }, 201);
+    }
+  }
+
   // ── Portal ─────────────────────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/portal/galleries') return handlePortalGalleries(request, env);
 
@@ -758,6 +844,18 @@ async function handleRequest(request, env) {
     if (!resendRes.ok) {
       return jsonResponse({ error: 'Failed to send. Please try again or email us directly.' }, 502);
     }
+
+    if (env.DB) {
+      try {
+        const pid = crypto.randomUUID();
+        const now = new Date().toISOString();
+        const clientName = firstName + (lastName ? ' ' + lastName : '');
+        await env.DB.prepare(
+          'INSERT INTO projects (id,stage,client_name,client_email,property,location,collection,shoot_date,message,source,labels,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
+        ).bind(pid, 'Inquiry', clientName, email, property, location, collection, timeline, message, 'inquiry', '', now, now).run();
+      } catch (_) { /* don't fail the contact form if DB write fails */ }
+    }
+
     return jsonResponse({ ok: true });
   }
 

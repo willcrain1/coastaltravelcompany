@@ -9,6 +9,11 @@ compatibility_date = "2024-09-23"
 binding = "KV"
 id = "your-kv-namespace-id"   # filled in by deploy-worker.sh
 
+[[d1_databases]]
+binding = "DB"
+database_name = "CTC_PROJECTS"
+database_id = "your-d1-database-id"  # filled in by deploy-worker.sh
+
 # ── Required secrets ────────────────────────────────────────────────────────
 # Set each secret once via: wrangler secret put <NAME>
 #

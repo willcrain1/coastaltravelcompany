@@ -16,6 +16,8 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG="$SCRIPT_DIR/.worker-config"
 WORKER_FILE="$SCRIPT_DIR/cloudflare-worker.js"
 KV_NAME="CTC_AUTH"
+D1_NAME="CTC_PROJECTS"
+MIGRATION="$SCRIPT_DIR/migrations/001_projects.sql"
 TMP=$(mktemp)
 
 cleanup() { rm -f "$TMP"; }
@@ -77,6 +79,60 @@ else
   echo "Found existing KV namespace: $KV_ID"
 fi
 
+# ── Ensure D1 database exists ─────────────────────────────────────────────────
+echo "Checking D1 database '$D1_NAME'..."
+
+curl -s "$BASE/d1/database?per_page=100" \
+  -H "Authorization: Bearer $CF_API_TOKEN" > "$TMP"
+
+D1_ID=$(python3 - <<PYEOF
+import json, sys
+with open("$TMP") as f:
+    data = json.load(f)
+for db in data.get("result", []):
+    if db.get("name") == "$D1_NAME":
+        print(db["uuid"])
+        break
+PYEOF
+)
+
+if [ -z "$D1_ID" ]; then
+  echo "Creating D1 database '$D1_NAME'..."
+  curl -s -X POST "$BASE/d1/database" \
+    -H "Authorization: Bearer $CF_API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "{\"name\":\"$D1_NAME\"}" > "$TMP"
+
+  D1_ID=$(python3 -c "import json,sys; print(json.load(open('$TMP'))['result']['uuid'])")
+
+  if [ -z "$D1_ID" ]; then
+    echo "Failed to create D1 database. Cloudflare response:"
+    cat "$TMP"
+    exit 1
+  fi
+  echo "Created D1 database: $D1_ID"
+else
+  echo "Found existing D1 database: $D1_ID"
+fi
+
+# ── Run migration ─────────────────────────────────────────────────────────────
+if [ -f "$MIGRATION" ]; then
+  echo "Running migration $MIGRATION..."
+  SQL=$(python3 -c "import json; print(json.dumps({'sql': open('$MIGRATION').read()}))")
+  curl -s -X POST "$BASE/d1/database/$D1_ID/query" \
+    -H "Authorization: Bearer $CF_API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$SQL" > "$TMP"
+  python3 -c "
+import json, sys
+r = json.load(open('$TMP'))
+if not r.get('success'):
+    print('Migration warning:', r)
+else:
+    print('Migration applied.')
+"
+fi
+
 # ── Generate wrangler.toml ────────────────────────────────────────────────────
 echo "Generating wrangler.toml..."
 cat > "$SCRIPT_DIR/wrangler.toml" <<TOML
@@ -87,6 +143,11 @@ compatibility_date = "2024-09-23"
 [[kv_namespaces]]
 binding = "KV"
 id = "$KV_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "$D1_NAME"
+database_id = "$D1_ID"
 TOML
 
 # ── Deploy via wrangler ───────────────────────────────────────────────────────

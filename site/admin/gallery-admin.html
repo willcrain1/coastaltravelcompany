@@ -287,6 +287,125 @@
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast.err { background: #c0392b; }
 
+    /* ── Pipeline ── */
+    .sh-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px;
+      background: var(--teal); color: #000;
+      font-size: 9px; font-weight: 700;
+      border-radius: 9px; padding: 0 5px;
+    }
+    .pipeline-toolbar {
+      display: flex; justify-content: flex-end; margin-bottom: 16px; margin-top: -8px;
+    }
+    .pipeline-new-form {
+      display: none;
+      background: var(--card); border: 1px solid var(--border);
+      padding: 28px 32px; margin-bottom: 20px;
+    }
+    .pipeline-new-form.open { display: block; }
+    .pipeline-board {
+      display: flex; gap: 12px;
+      overflow-x: auto; padding-bottom: 12px; margin-bottom: 16px;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .pipeline-board::-webkit-scrollbar { height: 4px; }
+    .pipeline-board::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .pipeline-col {
+      flex: 0 0 190px; min-width: 190px;
+      background: var(--card); border: 1px solid var(--border);
+      padding: 14px 12px; min-height: 160px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .pipeline-col.drag-over { border-color: var(--teal); background: rgba(143,191,190,0.06); }
+    .pc-col-header {
+      font-size: 8px; font-weight: 600; letter-spacing: 0.34em;
+      text-transform: uppercase; color: var(--dim);
+      margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .pc-col-count {
+      background: rgba(255,255,255,0.07); color: var(--dim);
+      border-radius: 8px; padding: 1px 6px; font-size: 9px;
+    }
+    .pc-card {
+      background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+      padding: 10px 11px; margin-bottom: 7px; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s; user-select: none;
+    }
+    .pc-card:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.07); }
+    .pc-card.selected { border-color: var(--teal); background: rgba(143,191,190,0.07); }
+    .pc-card.dragging { opacity: 0.35; }
+    .pc-name { font-size: 13px; color: var(--white); margin-bottom: 3px; font-weight: 400; }
+    .pc-meta { font-size: 10.5px; color: var(--dim); line-height: 1.5; }
+    .pc-source-badge {
+      display: inline-block; font-size: 8px; font-weight: 600;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 2px 6px; border-radius: 3px; margin-top: 6px;
+    }
+    .pc-source-badge.inquiry { background: rgba(42,92,69,0.35); color: var(--teal); }
+    .pc-source-badge.manual  { background: rgba(255,255,255,0.06); color: var(--dim); }
+
+    /* project detail panel */
+    .project-detail {
+      display: none; background: var(--card);
+      border: 1px solid var(--teal); padding: 28px 32px; margin-bottom: 40px;
+    }
+    .project-detail.open { display: block; }
+    .pd-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 24px; gap: 20px;
+    }
+    .pd-title { font-family: 'Gilda Display', serif; font-size: 20px; color: var(--white); margin-bottom: 4px; }
+    .pd-subtitle { font-size: 12px; color: var(--dim); }
+    .pd-close { font-size: 16px; color: var(--dim); background: none; border: none; cursor: pointer; padding: 4px 8px; flex-shrink: 0; }
+    .pd-close:hover { color: var(--white); }
+    .pd-body { display: grid; grid-template-columns: 1fr 280px; gap: 32px; }
+    .pd-fields { display: flex; flex-direction: column; gap: 16px; }
+    .pd-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .pd-field-full { grid-column: span 2; }
+
+    /* notes */
+    .pd-notes { display: flex; flex-direction: column; }
+    .pd-notes-title {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.34em;
+      text-transform: uppercase; color: var(--dim); margin-bottom: 14px;
+    }
+    .note-list { flex: 1; overflow-y: auto; max-height: 320px; }
+    .note-item { padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .note-item:last-child { border-bottom: none; }
+    .note-type-label {
+      font-size: 8px; font-weight: 600; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--dim); margin-bottom: 2px;
+    }
+    .note-content { font-size: 12px; color: var(--text); line-height: 1.55; }
+    .note-date { font-size: 10px; color: var(--dim); margin-top: 2px; }
+    .note-add-form { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    textarea {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      padding: 10px 13px; color: var(--white);
+      font-family: 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 300;
+      outline: none; width: 100%; resize: vertical; min-height: 66px;
+      transition: border-color 0.25s;
+    }
+    textarea:focus { border-color: var(--teal); }
+    textarea::placeholder { color: rgba(255,255,255,0.18); }
+    input[type=date] {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+      padding: 11px 14px; color: var(--white);
+      font-family: 'Montserrat', sans-serif; font-size: 13.5px; font-weight: 300;
+      outline: none; width: 100%; transition: border-color 0.25s;
+      color-scheme: dark;
+    }
+    input[type=date]:focus { border-color: var(--teal); }
+    .note-type-row { display: flex; gap: 7px; flex-wrap: wrap; }
+    .note-type-btn {
+      font-family: 'Montserrat', sans-serif; font-size: 8px; font-weight: 600;
+      letter-spacing: 0.26em; text-transform: uppercase;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--dim); padding: 5px 10px; cursor: pointer; transition: all 0.2s;
+    }
+    .note-type-btn.active { border-color: var(--teal); color: var(--teal); }
+
     @media (max-width: 640px) {
       header, .main { padding-left: 20px; padding-right: 20px; }
       .form-grid { grid-template-columns: 1fr; }
@@ -311,7 +430,136 @@
 
 <main class="main">
 
-  <!-- Setup instructions -->
+  <!-- Pipeline -->
+  <h2 class="sh" id="pipelineHeading">
+    Pipeline
+    <span class="sh-badge" id="pipelineBadge" style="display:none">0</span>
+  </h2>
+
+  <div class="pipeline-toolbar">
+    <button class="btn btn-ghost" onclick="toggleNewProjectForm()">+ New Project</button>
+  </div>
+
+  <div class="pipeline-new-form" id="newProjectForm">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Client Name</label>
+        <input type="text" id="np-clientName" placeholder="Jane Smith" />
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input type="email" id="np-email" placeholder="client@example.com" />
+      </div>
+      <div class="fg">
+        <label>Property / Venue</label>
+        <input type="text" id="np-property" placeholder="The Grand Palms" />
+      </div>
+      <div class="fg">
+        <label>Location</label>
+        <input type="text" id="np-location" placeholder="Palm Beach, FL" />
+      </div>
+      <div class="fg">
+        <label>Collection</label>
+        <select id="np-collection">
+          <option value="">— Select —</option>
+          <option>The Editorial Stay</option>
+          <option>The Fashioned Weekend</option>
+          <option>The Branded Journey</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Shoot Date</label>
+        <input type="date" id="np-shootDate" />
+      </div>
+      <div class="fg full">
+        <label>Message / Notes</label>
+        <input type="text" id="np-message" placeholder="Initial notes" />
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:20px;">
+      <button class="btn btn-primary btn-sm" onclick="saveNewProject()">Create Project</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleNewProjectForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="pipeline-board" id="pipelineBoard"></div>
+
+  <div class="project-detail" id="projectDetail">
+    <div class="pd-header">
+      <div>
+        <div class="pd-title" id="pd-title"></div>
+        <div class="pd-subtitle" id="pd-subtitle"></div>
+      </div>
+      <button class="pd-close" onclick="closeProjectDetail()">✕</button>
+    </div>
+    <div class="pd-body">
+      <div class="pd-fields">
+        <div class="pd-field-grid">
+          <div class="fg">
+            <label>Stage</label>
+            <select id="pd-stage" onchange="saveProjectField('stage', this.value)">
+              <option>Inquiry</option>
+              <option>Proposal Sent</option>
+              <option>Contract Sent</option>
+              <option>Contract Signed</option>
+              <option>Retainer Paid</option>
+              <option>Active</option>
+              <option>Delivered</option>
+              <option>Complete</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Shoot Date</label>
+            <input type="date" id="pd-shootDate" onchange="saveProjectField('shoot_date', this.value)" />
+          </div>
+          <div class="fg">
+            <label>Client Name</label>
+            <input type="text" id="pd-clientName" placeholder="Jane Smith" />
+          </div>
+          <div class="fg">
+            <label>Email</label>
+            <input type="email" id="pd-email" placeholder="client@example.com" />
+          </div>
+          <div class="fg">
+            <label>Property</label>
+            <input type="text" id="pd-property" placeholder="The Grand Palms" />
+          </div>
+          <div class="fg">
+            <label>Location</label>
+            <input type="text" id="pd-location" placeholder="Palm Beach, FL" />
+          </div>
+          <div class="fg pd-field-full">
+            <label>Collection</label>
+            <select id="pd-collection">
+              <option value="">— Select —</option>
+              <option>The Editorial Stay</option>
+              <option>The Fashioned Weekend</option>
+              <option>The Branded Journey</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <button class="btn btn-primary btn-sm" onclick="saveProjectEdits()">Save Changes</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteProject()">Delete Project</button>
+        </div>
+      </div>
+      <div class="pd-notes">
+        <div class="pd-notes-title">Activity &amp; Notes</div>
+        <div class="note-list" id="pd-notes-list"></div>
+        <div class="note-add-form">
+          <div class="note-type-row">
+            <button class="note-type-btn active" onclick="setNoteType('note',this)">Note</button>
+            <button class="note-type-btn" onclick="setNoteType('call',this)">Call</button>
+            <button class="note-type-btn" onclick="setNoteType('email',this)">Email</button>
+            <button class="note-type-btn" onclick="setNoteType('reminder',this)">Reminder</button>
+          </div>
+          <textarea id="pd-note-input" placeholder="Add a note, call log, or reminder…"></textarea>
+          <button class="btn btn-ghost btn-sm" style="align-self:flex-end" onclick="addNote()">Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Create gallery -->
   <h2 class="sh">Create New Gallery</h2>
   <div class="card">
@@ -882,12 +1130,271 @@
     toastTmr = setTimeout(() => el.classList.remove('show'), 2800);
   }
 
+  // ── Pipeline ─────────────────────────────────────────────────────────────────
+  const STAGES = [
+    'Inquiry', 'Proposal Sent', 'Contract Sent', 'Contract Signed',
+    'Retainer Paid', 'Active', 'Delivered', 'Complete',
+  ];
+  const PIPELINE_SEEN_KEY = 'ctc_pipeline_seen';
+
+  let projects          = [];
+  let selectedProjectId = null;
+  let noteType          = 'note';
+  let dragSrcId         = null;
+
+  async function loadProjects() {
+    const { ok, data } = await apiFetch('/admin/projects', { method: 'GET' });
+    if (!ok) return; // D1 not yet configured — silently skip
+    projects = Array.isArray(data) ? data : [];
+    renderPipeline();
+    updatePipelineBadge();
+  }
+
+  function updatePipelineBadge() {
+    const seen      = parseInt(localStorage.getItem(PIPELINE_SEEN_KEY) || '0', 10);
+    const inquiries = projects.filter(p => p.stage === 'Inquiry').length;
+    const unseen    = Math.max(0, inquiries - seen);
+    const badge     = document.getElementById('pipelineBadge');
+    badge.textContent  = unseen;
+    badge.style.display = unseen > 0 ? '' : 'none';
+  }
+
+  function markPipelineSeen() {
+    const count = projects.filter(p => p.stage === 'Inquiry').length;
+    localStorage.setItem(PIPELINE_SEEN_KEY, String(count));
+    document.getElementById('pipelineBadge').style.display = 'none';
+  }
+
+  function relTime(iso) {
+    if (!iso) return '';
+    const m = Math.floor((Date.now() - new Date(iso)) / 60000);
+    if (m < 2)  return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    const d = Math.floor(h / 24);
+    if (d < 30) return d + 'd ago';
+    return Math.floor(d / 30) + 'mo ago';
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function renderPipeline() {
+    const board = document.getElementById('pipelineBoard');
+    board.innerHTML = STAGES.map(stage => {
+      const cards = projects.filter(p => p.stage === stage);
+      const colId = 'pcol-' + stage.replace(/ /g, '_');
+      return `<div class="pipeline-col" id="${esc(colId)}"
+        ondragover="onColDragOver(event)" ondragleave="onColDragLeave(event)"
+        ondrop="onColDrop(event,'${esc(stage)}')">
+        <div class="pc-col-header">${esc(stage)}<span class="pc-col-count">${cards.length}</span></div>
+        ${cards.map(renderCard).join('') || '<div style="color:var(--dim);font-size:11px;padding:6px 0 0;">—</div>'}
+      </div>`;
+    }).join('');
+  }
+
+  function renderCard(p) {
+    const parts = [p.collection, p.property, p.location].filter(Boolean);
+    const isSelected = p.id === selectedProjectId;
+    return `<div class="pc-card${isSelected ? ' selected' : ''}" id="pcard-${esc(p.id)}"
+      draggable="true"
+      ondragstart="onCardDragStart(event,'${esc(p.id)}')"
+      ondragend="onCardDragEnd(event)"
+      onclick="selectProject('${esc(p.id)}')">
+      <div class="pc-name">${esc(p.client_name)}</div>
+      <div class="pc-meta">${parts.length ? esc(parts.join(' · ')) + '<br>' : ''}${p.shoot_date ? esc(fmtDate(p.shoot_date)) + '<br>' : ''}<span style="opacity:.5">${esc(relTime(p.created_at))}</span></div>
+      <span class="pc-source-badge ${esc(p.source)}">${esc(p.source)}</span>
+    </div>`;
+  }
+
+  // drag-and-drop
+  function onCardDragStart(e, id) {
+    dragSrcId = id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => document.getElementById('pcard-' + id)?.classList.add('dragging'), 0);
+  }
+  function onCardDragEnd(e) {
+    if (dragSrcId) document.getElementById('pcard-' + dragSrcId)?.classList.remove('dragging');
+    dragSrcId = null;
+  }
+  function onColDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.currentTarget.classList.add('drag-over');
+  }
+  function onColDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+  async function onColDrop(e, stage) {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    if (!dragSrcId) return;
+    const p = projects.find(p => p.id === dragSrcId);
+    if (!p || p.stage === stage) return;
+    await updateProjectStage(dragSrcId, stage);
+  }
+
+  async function updateProjectStage(id, stage) {
+    const { ok, data } = await apiFetch('/admin/projects/' + id, { method: 'PUT', body: { stage } });
+    if (!ok) { toast('Failed to update stage', true); return; }
+    const idx = projects.findIndex(p => p.id === id);
+    if (idx >= 0) projects[idx] = data;
+    renderPipeline();
+    if (selectedProjectId === id) document.getElementById('pd-stage').value = stage;
+  }
+
+  // new project form
+  function toggleNewProjectForm() {
+    document.getElementById('newProjectForm').classList.toggle('open');
+  }
+
+  async function saveNewProject() {
+    const client_name  = document.getElementById('np-clientName').value.trim();
+    const client_email = document.getElementById('np-email').value.trim();
+    if (!client_name || !client_email) { toast('Client name and email are required', true); return; }
+    const body = {
+      client_name, client_email,
+      property:   document.getElementById('np-property').value.trim(),
+      location:   document.getElementById('np-location').value.trim(),
+      collection: document.getElementById('np-collection').value,
+      shoot_date: document.getElementById('np-shootDate').value,
+      message:    document.getElementById('np-message').value.trim(),
+      source:     'manual',
+    };
+    const { ok, data } = await apiFetch('/admin/projects', { method: 'POST', body });
+    if (!ok) { toast(data.error || 'Failed to create project', true); return; }
+    projects.unshift(data);
+    renderPipeline();
+    toggleNewProjectForm();
+    ['np-clientName','np-email','np-property','np-location','np-message','np-shootDate'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('np-collection').value = '';
+    toast('Project created');
+  }
+
+  // project detail
+  async function selectProject(id) {
+    markPipelineSeen();
+    selectedProjectId = id;
+    const p = projects.find(p => p.id === id);
+    if (!p) return;
+    renderPipeline(); // refresh selected highlight
+
+    document.getElementById('pd-title').textContent    = p.client_name;
+    document.getElementById('pd-subtitle').textContent =
+      [p.collection, p.property, p.location].filter(Boolean).join(' · ') || p.client_email || '';
+    document.getElementById('pd-stage').value      = p.stage;
+    document.getElementById('pd-shootDate').value  = p.shoot_date || '';
+    document.getElementById('pd-clientName').value = p.client_name;
+    document.getElementById('pd-email').value      = p.client_email;
+    document.getElementById('pd-property').value   = p.property || '';
+    document.getElementById('pd-location').value   = p.location || '';
+    document.getElementById('pd-collection').value = p.collection || '';
+
+    const detail = document.getElementById('projectDetail');
+    detail.classList.add('open');
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    await loadNotes(id);
+  }
+
+  function closeProjectDetail() {
+    selectedProjectId = null;
+    document.getElementById('projectDetail').classList.remove('open');
+    document.querySelectorAll('.pc-card.selected').forEach(el => el.classList.remove('selected'));
+  }
+
+  async function loadNotes(projectId) {
+    const { ok, data } = await apiFetch('/admin/projects/' + projectId + '/notes', { method: 'GET' });
+    if (!ok) return;
+    renderNotes(Array.isArray(data) ? data : []);
+  }
+
+  function renderNotes(notes) {
+    const el = document.getElementById('pd-notes-list');
+    if (!notes.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;padding:8px 0 12px;">No activity yet.</div>';
+      return;
+    }
+    el.innerHTML = notes.map(n => `
+      <div class="note-item">
+        <div class="note-type-label">${esc(n.type)}</div>
+        <div class="note-content">${esc(n.content)}</div>
+        <div class="note-date">${esc(relTime(n.created_at))}</div>
+      </div>`).join('');
+  }
+
+  function setNoteType(type, btn) {
+    noteType = type;
+    document.querySelectorAll('.note-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  async function addNote() {
+    const content = document.getElementById('pd-note-input').value.trim();
+    if (!content || !selectedProjectId) return;
+    const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/notes', {
+      method: 'POST', body: { type: noteType, content },
+    });
+    if (!ok) { toast('Failed to add note', true); return; }
+    document.getElementById('pd-note-input').value = '';
+    await loadNotes(selectedProjectId);
+    const idx = projects.findIndex(p => p.id === selectedProjectId);
+    if (idx >= 0) projects[idx].updated_at = data.created_at;
+    toast('Note added');
+  }
+
+  async function saveProjectEdits() {
+    if (!selectedProjectId) return;
+    const body = {
+      client_name:  document.getElementById('pd-clientName').value.trim(),
+      client_email: document.getElementById('pd-email').value.trim(),
+      property:     document.getElementById('pd-property').value.trim(),
+      location:     document.getElementById('pd-location').value.trim(),
+      collection:   document.getElementById('pd-collection').value,
+      shoot_date:   document.getElementById('pd-shootDate').value,
+      stage:        document.getElementById('pd-stage').value,
+    };
+    const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId, { method: 'PUT', body });
+    if (!ok) { toast('Save failed', true); return; }
+    const idx = projects.findIndex(p => p.id === selectedProjectId);
+    if (idx >= 0) projects[idx] = data;
+    renderPipeline();
+    document.getElementById('pd-title').textContent    = data.client_name;
+    document.getElementById('pd-subtitle').textContent =
+      [data.collection, data.property, data.location].filter(Boolean).join(' · ') || data.client_email || '';
+    toast('Project updated');
+  }
+
+  async function saveProjectField(field, value) {
+    if (!selectedProjectId) return;
+    const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId, {
+      method: 'PUT', body: { [field]: value },
+    });
+    if (!ok) { toast('Save failed', true); return; }
+    const idx = projects.findIndex(p => p.id === selectedProjectId);
+    if (idx >= 0) projects[idx] = data;
+    renderPipeline();
+  }
+
+  async function deleteProject() {
+    if (!selectedProjectId) return;
+    if (!confirm('Delete this project? This cannot be undone.')) return;
+    const { ok } = await apiFetch('/admin/projects/' + selectedProjectId, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    projects = projects.filter(p => p.id !== selectedProjectId);
+    closeProjectDetail();
+    renderPipeline();
+    toast('Project deleted');
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    await loadGalleries();
-    await loadUsers();
+    await Promise.all([loadGalleries(), loadUsers(), loadProjects()]);
   }
 
   init();
