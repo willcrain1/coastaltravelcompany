@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
   <script src="config.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
@@ -26,13 +27,16 @@
       font-weight: 300;
       background: var(--cream);
       color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .login-wrap {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 20px;
-      -webkit-font-smoothing: antialiased;
+      padding: 100px 20px 40px;
     }
 
     .brand {
@@ -185,6 +189,27 @@
 </head>
 <body>
 
+  <!-- ── Navigation ─────────────────────────────────────── -->
+  <nav id="main-nav" class="scrolled">
+    <a href="index.html" class="nav-logo">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="collections.html">Collections</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <a href="login.html" class="nav-account active">Account</a>
+    <button class="nav-toggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+<div class="login-wrap">
+
 <div class="brand">
   <span class="brand-main">Coastal</span>
   <span class="brand-script">Travel Company</span>
@@ -303,7 +328,41 @@
   </form>
 </div>
 
+</div><!-- /.login-wrap -->
+
 <script>
+  // ── Mobile nav toggle ─────────────────────────────────────────────────────
+  (function () {
+    const toggle   = document.querySelector('.nav-toggle');
+    const navLinks = document.querySelector('.nav-links');
+    if (!toggle || !navLinks) return;
+    toggle.addEventListener('click', () => {
+      const open = navLinks.style.display === 'flex';
+      navLinks.style.display        = open ? 'none' : 'flex';
+      navLinks.style.flexDirection  = 'column';
+      navLinks.style.position       = 'fixed';
+      navLinks.style.top            = '0';
+      navLinks.style.left           = '0';
+      navLinks.style.right          = '0';
+      navLinks.style.bottom         = '0';
+      navLinks.style.background     = 'var(--cream)';
+      navLinks.style.alignItems     = 'center';
+      navLinks.style.justifyContent = 'center';
+      navLinks.style.gap            = '36px';
+      navLinks.style.zIndex         = '150';
+      if (!open) {
+        navLinks.querySelectorAll('a').forEach(a => {
+          a.style.color         = 'var(--black)';
+          a.style.fontSize      = '13px';
+          a.style.letterSpacing = '0.3em';
+        });
+      }
+    });
+    navLinks.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => { navLinks.style.display = 'none'; });
+    });
+  })();
+
   // ── Config ────────────────────────────────────────────────────────────────
   // Set your Google OAuth Client ID here (from Google Cloud Console).
   // Get one at: https://console.cloud.google.com/apis/credentials
