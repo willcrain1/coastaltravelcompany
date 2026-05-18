@@ -106,6 +106,92 @@ async function useMockAdminWorker(context, projects = []) {
           });
           return;
         }
+        if (url.pathname === '/admin/packages') {
+          if (method === 'GET') {
+            await route.fulfill({
+              status: 200,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify([
+                {
+                  id: 'pkg1',
+                  name: 'The Editorial Stay',
+                  description: 'A polished hospitality image set.',
+                  inclusions: 'Planning call\nHalf-day shoot\nEdited gallery',
+                  hero_photo: 'https://example.com/hero.jpg',
+                  base_price: 2500,
+                  addons: JSON.stringify(['Rush delivery', 'Video reel']),
+                  created_at: daysAgo(20),
+                  updated_at: daysAgo(10),
+                },
+              ]),
+            });
+          } else if (method === 'POST') {
+            const body = JSON.parse(req.postData() || '{}');
+            await route.fulfill({
+              status: 201,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify({
+                id: 'pkg-new',
+                ...body,
+                addons: JSON.stringify(body.addons || []),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }),
+            });
+          }
+          return;
+        }
+        if (url.pathname.match(/^\/admin\/packages\/[^/]+$/) && method === 'DELETE') {
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body: JSON.stringify({ ok: true }),
+          });
+          return;
+        }
+        if (url.pathname === '/admin/questionnaires') {
+          if (method === 'GET') {
+            await route.fulfill({
+              status: 200,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify([
+                {
+                  id: 'qset1',
+                  name: 'Pre-booking Intake',
+                  phase: 'pre-booking',
+                  questions: JSON.stringify([
+                    { id: 'q1', type: 'text', label: 'Property name', options: [] },
+                    { id: 'q2', type: 'multiple_choice', label: 'Property type', options: ['Hotel', 'Resort'] },
+                  ]),
+                  created_at: daysAgo(3),
+                  updated_at: daysAgo(3),
+                },
+              ]),
+            });
+          } else if (method === 'POST') {
+            const body = JSON.parse(req.postData() || '{}');
+            await route.fulfill({
+              status: 201,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify({
+                id: 'qset-new',
+                ...body,
+                questions: JSON.stringify(body.questions || []),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }),
+            });
+          }
+          return;
+        }
+        if (url.pathname.match(/^\/admin\/questionnaires\/[^/]+$/) && method === 'DELETE') {
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body: JSON.stringify({ ok: true }),
+          });
+          return;
+        }
         if (url.pathname === '/admin/projects') {
           if (method === 'GET') {
             await route.fulfill({
@@ -127,6 +213,110 @@ async function useMockAdminWorker(context, projects = []) {
               }),
             });
           }
+          return;
+        }
+        const notesMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/notes$/);
+        if (notesMatch) {
+          if (method === 'GET') {
+            await route.fulfill({
+              status: 200,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify([
+                {
+                  id: 'n1',
+                  project_id: notesMatch[1],
+                  type: 'reminder',
+                  content: 'Follow up on proposal',
+                  due_date: '2026-05-20',
+                  created_at: daysAgo(1),
+                },
+              ]),
+            });
+          } else if (method === 'POST') {
+            const body = JSON.parse(req.postData() || '{}');
+            await route.fulfill({
+              status: 201,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify({
+                id: 'nnew',
+                project_id: notesMatch[1],
+                ...body,
+                created_at: new Date().toISOString(),
+              }),
+            });
+          }
+          return;
+        }
+        const docsMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/documents$/);
+        if (docsMatch) {
+          if (method === 'GET') {
+            await route.fulfill({
+              status: 200,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify([
+                {
+                  id: 'd1',
+                  project_id: docsMatch[1],
+                  type: 'proposal',
+                  title: 'Editorial Stay Proposal',
+                  url: 'https://example.com/proposal',
+                  created_at: daysAgo(2),
+                },
+              ]),
+            });
+          } else if (method === 'POST') {
+            const body = JSON.parse(req.postData() || '{}');
+            await route.fulfill({
+              status: 201,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify({
+                id: 'dnew',
+                project_id: docsMatch[1],
+                ...body,
+                created_at: new Date().toISOString(),
+              }),
+            });
+          }
+          return;
+        }
+        const proposalsMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/proposals$/);
+        if (proposalsMatch) {
+          if (method === 'GET') {
+            await route.fulfill({
+              status: 200,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify([]),
+            });
+          } else if (method === 'POST') {
+            const body = JSON.parse(req.postData() || '{}');
+            await route.fulfill({
+              status: 201,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body: JSON.stringify({
+                id: 'proposal-new',
+                project_id: proposalsMatch[1],
+                ...body,
+                package_ids: JSON.stringify(body.package_ids || []),
+                status: 'sent',
+                public_url: 'https://coastaltravelcompany.com/proposal.html#proposal-new',
+                opened_at: '',
+                view_count: 0,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              }),
+            });
+          }
+          return;
+        }
+        const projectMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)$/);
+        if (projectMatch && method === 'PUT') {
+          const body = JSON.parse(req.postData() || '{}');
+          const current = projects.find((p) => p.id === projectMatch[1]) || {};
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body: JSON.stringify({ ...current, ...body, updated_at: new Date().toISOString() }),
+          });
           return;
         }
         await route.fulfill({ status: 404, headers: CORS });
@@ -249,5 +439,92 @@ test.describe('Lead Pipeline', () => {
     // Form closes and new card appears in Inquiry column
     await expect(page.locator('#newProjectForm')).not.toHaveClass(/open/);
     await expect(page.locator('#pcol-Inquiry .pc-card')).toHaveCount(1, { timeout: 5_000 });
+  });
+
+  test('project detail shows labels, reminder due dates, and attached documents', async ({ page, context }) => {
+    await useMockAdminWorker(context, [
+      {
+        ...MOCK_PROJECTS[0],
+        labels: 'hot lead, oceanfront',
+      },
+    ]);
+    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+
+    await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#pcol-Inquiry .tag-pill')).toContainText(['hot lead', 'oceanfront']);
+
+    await page.click('#pcol-Inquiry .pc-card');
+
+    await expect(page.locator('#projectDetail')).toHaveClass(/open/);
+    await expect(page.locator('#pd-labels')).toHaveValue('hot lead, oceanfront');
+    await expect(page.locator('.note-due')).toContainText('Due');
+    await expect(page.locator('#pd-doc-list')).toContainText('Editorial Stay Proposal');
+
+    await page.click('button:has-text("Reminder")');
+    await expect(page.locator('#pd-reminder-wrap')).toHaveClass(/show/);
+  });
+
+  test('service package library lists packages and creates a package with add-ons', async ({ page, context }) => {
+    await useMockAdminWorker(context);
+    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+
+    await expect(page.locator('#packageList')).toContainText('The Editorial Stay', { timeout: 10_000 });
+    await expect(page.locator('#packageList')).toContainText('$2,500');
+    await expect(page.locator('#packageList .tag-pill')).toContainText(['Rush delivery', 'Video reel']);
+
+    await page.fill('#pkg-name', 'The Branded Journey');
+    await page.fill('#pkg-price', '4500');
+    await page.fill('#pkg-description', 'Multi-day editorial coverage for a destination brand.');
+    await page.fill('#pkg-inclusions', 'Creative direction\nTwo shoot days');
+    await page.check('input[name="pkgAddon"][value="3D walkthrough"]');
+    await page.check('input[name="pkgAddon"][value="Extended license"]');
+    await page.click('button:has-text("Save Package")');
+
+    await expect(page.locator('#packageList')).toContainText('The Branded Journey');
+    await expect(page.locator('#packageList')).toContainText('$4,500');
+    await expect(page.locator('#packageList')).toContainText('3D walkthrough');
+    await expect(page.locator('#pkg-name')).toHaveValue('');
+  });
+
+  test('admin can create a proposal from selected packages', async ({ page, context }) => {
+    await useMockAdminWorker(context, MOCK_PROJECTS);
+    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+
+    await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
+    await page.click('#pcol-Inquiry .pc-card');
+
+    await expect(page.locator('#pd-proposal-packages')).toContainText('The Editorial Stay');
+    await page.check('input[name="proposalPackage"][value="pkg1"]');
+    await page.fill('#pd-proposal-note', 'I pulled together the strongest fit for your property.');
+    await page.fill('#pd-proposal-expiry', '2026-06-01');
+    await page.click('button:has-text("Create Proposal")');
+
+    await expect(page.locator('#pd-stage')).toHaveValue('Proposal Sent');
+    await expect(page.locator('#pd-proposal-list')).toContainText('Proposal sent');
+    await expect(page.locator('#pd-proposal-note')).toHaveValue('');
+  });
+
+  test('questionnaire builder lists and creates reusable question sets', async ({ page, context }) => {
+    await useMockAdminWorker(context);
+    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+
+    await expect(page.locator('#questionnaireList')).toContainText('Pre-booking Intake', { timeout: 10_000 });
+    await expect(page.locator('#questionnaireList')).toContainText('2 questions');
+
+    await page.fill('#qset-name', 'Pre-shoot Logistics');
+    await page.selectOption('#qset-phase', 'pre-shoot');
+    await page.fill('#q-question-label', 'Parking and access instructions');
+    await page.click('button:has-text("Add Question")');
+    await expect(page.locator('#questionDraftList')).toContainText('Parking and access instructions');
+
+    await page.selectOption('#q-question-type', 'multiple_choice');
+    await page.fill('#q-question-label', 'Property type');
+    await page.fill('#q-question-options', 'Hotel, Resort, Private villa');
+    await page.click('button:has-text("Add Question")');
+    await page.click('button:has-text("Save Set")');
+
+    await expect(page.locator('#questionnaireList')).toContainText('Pre-shoot Logistics');
+    await expect(page.locator('#questionnaireList')).toContainText('2 questions');
+    await expect(page.locator('#qset-name')).toHaveValue('');
   });
 });

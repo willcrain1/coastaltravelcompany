@@ -717,6 +717,73 @@ async function handleRequest(request, env) {
   if (method === 'GET'  && pathname === '/auth/verify')         return handleAuthVerify(request, env);
   if (method === 'POST' && pathname === '/auth/resend-verify')  return handleAuthResendVerify(request, env);
 
+  const publicProposalMatch = pathname.match(/^\/proposals\/([^/]+)$/);
+  const publicProposalAnalyticsMatch = pathname.match(/^\/proposals\/([^/]+)\/analytics$/);
+  const publicProposalSelectMatch = pathname.match(/^\/proposals\/([^/]+)\/select$/);
+
+  if (publicProposalMatch && method === 'GET') {
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const id = publicProposalMatch[1];
+    const now = new Date().toISOString();
+    const { results } = await env.DB.prepare('SELECT * FROM proposals WHERE id = ?').bind(id).all();
+    const proposal = results[0];
+    if (!proposal) return jsonResponse({ error: 'Proposal not found' }, 404);
+    await env.DB.prepare(
+      "UPDATE proposals SET view_count = view_count + 1, opened_at = CASE WHEN opened_at = '' THEN ? ELSE opened_at END, updated_at = ? WHERE id = ?"
+    ).bind(now, now, id).run();
+    proposal.view_count = Number(proposal.view_count || 0) + 1;
+    proposal.opened_at = proposal.opened_at || now;
+
+    const projectRows = await env.DB.prepare(
+      'SELECT id,client_name,client_email,property,location,collection,shoot_date,stage FROM projects WHERE id = ?'
+    ).bind(proposal.project_id).all();
+    const packageIds = JSON.parse(proposal.package_ids || '[]');
+    let packages = [];
+    if (packageIds.length) {
+      const placeholders = packageIds.map(() => '?').join(',');
+      const packageRows = await env.DB.prepare(
+        `SELECT * FROM service_packages WHERE id IN (${placeholders})`
+      ).bind(...packageIds).all();
+      packages = packageIds.map(pid => packageRows.results.find(pkg => pkg.id === pid)).filter(Boolean);
+    }
+    return jsonResponse({ proposal, project: projectRows.results[0] || null, packages });
+  }
+
+  if (publicProposalAnalyticsMatch && method === 'POST') {
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const id = publicProposalAnalyticsMatch[1];
+    let seconds = 0;
+    try {
+      const body = await request.text();
+      seconds = Math.max(0, Math.min(3600, Number(JSON.parse(body || '{}').seconds) || 0));
+    } catch {}
+    if (seconds > 0) {
+      await env.DB.prepare(
+        'UPDATE proposals SET time_spent_seconds = time_spent_seconds + ?, updated_at = ? WHERE id = ?'
+      ).bind(Math.round(seconds), new Date().toISOString(), id).run();
+    }
+    return jsonResponse({ ok: true });
+  }
+
+  if (publicProposalSelectMatch && method === 'POST') {
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const id = publicProposalSelectMatch[1];
+    const body = await request.json();
+    const packageId = body.package_id || '';
+    const addons = Array.isArray(body.addons) ? body.addons : [];
+    const { results } = await env.DB.prepare('SELECT * FROM proposals WHERE id = ?').bind(id).all();
+    const proposal = results[0];
+    if (!proposal) return jsonResponse({ error: 'Proposal not found' }, 404);
+    const allowed = JSON.parse(proposal.package_ids || '[]');
+    if (!allowed.includes(packageId)) return jsonResponse({ error: 'Select a package from this proposal' }, 400);
+    const now = new Date().toISOString();
+    await env.DB.prepare(
+      'UPDATE proposals SET status = ?, selected_package_id = ?, selected_addons = ?, selected_at = ?, updated_at = ? WHERE id = ?'
+    ).bind('approved', packageId, JSON.stringify(addons), now, now, id).run();
+    await env.DB.prepare('UPDATE projects SET stage = ?, updated_at = ? WHERE id = ?').bind('Contract Sent', now, proposal.project_id).run();
+    return jsonResponse({ ok: true, status: 'approved', selected_package_id: packageId, selected_addons: addons, selected_at: now });
+  }
+
   // ── Admin: Gallery CRUD ────────────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/admin/galleries') return handleAdminListGalleries(request, env);
   if (method === 'POST' && pathname === '/admin/galleries') return handleAdminCreateGallery(request, env);
@@ -733,6 +800,104 @@ async function handleRequest(request, env) {
   if (userIdMatch) {
     if (method === 'PUT')    return handleAdminUpdateUser(request, env, userIdMatch[1]);
     if (method === 'DELETE') return handleAdminDeleteUser(request, env, userIdMatch[1]);
+  }
+
+  // ── Admin: Service package library ─────────────────────────────────────────
+  if (pathname === '/admin/packages') {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+
+    if (method === 'GET') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM service_packages ORDER BY created_at DESC'
+      ).all();
+      return jsonResponse(results);
+    }
+
+    if (method === 'POST') {
+      const body = await request.json();
+      const { name, description, inclusions, hero_photo, base_price, addons } = body;
+      if (!name) return jsonResponse({ error: 'name required' }, 400);
+      const id  = crypto.randomUUID();
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        'INSERT INTO service_packages (id,name,description,inclusions,hero_photo,base_price,addons,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)'
+      ).bind(id, name, description||'', inclusions||'', hero_photo||'', Number(base_price)||0, JSON.stringify(addons||[]), now, now).run();
+      return jsonResponse({ id, name, description:description||'', inclusions:inclusions||'', hero_photo:hero_photo||'', base_price:Number(base_price)||0, addons:JSON.stringify(addons||[]), created_at:now, updated_at:now }, 201);
+    }
+  }
+
+  const packageIdMatch = pathname.match(/^\/admin\/packages\/([^/]+)$/);
+  if (packageIdMatch) {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const id = packageIdMatch[1];
+
+    if (method === 'PUT') {
+      const body = await request.json();
+      const allowed = ['name','description','inclusions','hero_photo','base_price','addons'];
+      const sets = [], vals = [];
+      for (const f of allowed) {
+        if (body[f] !== undefined) {
+          sets.push(f + ' = ?');
+          vals.push(f === 'addons' ? JSON.stringify(body[f] || []) : (f === 'base_price' ? Number(body[f]) || 0 : body[f]));
+        }
+      }
+      if (!sets.length) return jsonResponse({ error: 'No fields to update' }, 400);
+      const now = new Date().toISOString();
+      sets.push('updated_at = ?'); vals.push(now); vals.push(id);
+      await env.DB.prepare('UPDATE service_packages SET ' + sets.join(', ') + ' WHERE id = ?').bind(...vals).run();
+      const { results } = await env.DB.prepare('SELECT * FROM service_packages WHERE id = ?').bind(id).all();
+      return jsonResponse(results[0] || { error: 'Not found' });
+    }
+
+    if (method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM service_packages WHERE id = ?').bind(id).run();
+      return jsonResponse({ ok: true });
+    }
+  }
+
+  // ── Admin: Questionnaire builder ──────────────────────────────────────────
+  if (pathname === '/admin/questionnaires') {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+
+    if (method === 'GET') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM questionnaire_sets ORDER BY created_at DESC'
+      ).all();
+      return jsonResponse(results);
+    }
+
+    if (method === 'POST') {
+      const { name, phase, questions } = await request.json();
+      if (!name) return jsonResponse({ error: 'name required' }, 400);
+      const cleanQuestions = Array.isArray(questions) ? questions : [];
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        'INSERT INTO questionnaire_sets (id,name,phase,questions,created_at,updated_at) VALUES (?,?,?,?,?,?)'
+      ).bind(id, name, phase||'pre-booking', JSON.stringify(cleanQuestions), now, now).run();
+      return jsonResponse({ id, name, phase:phase||'pre-booking', questions:JSON.stringify(cleanQuestions), created_at:now, updated_at:now }, 201);
+    }
+  }
+
+  const questionnaireIdMatch = pathname.match(/^\/admin\/questionnaires\/([^/]+)$/);
+  if (questionnaireIdMatch) {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    if (method === 'DELETE') {
+      await env.DB.prepare('DELETE FROM questionnaire_sets WHERE id = ?').bind(questionnaireIdMatch[1]).run();
+      return jsonResponse({ ok: true });
+    }
   }
 
   // ── Admin: Project pipeline CRUD ──────────────────────────────────────────
@@ -764,6 +929,8 @@ async function handleRequest(request, env) {
 
   const projectIdMatch    = pathname.match(/^\/admin\/projects\/([^/]+)$/);
   const projectNotesMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/notes$/);
+  const projectDocsMatch  = pathname.match(/^\/admin\/projects\/([^/]+)\/documents$/);
+  const projectProposalsMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/proposals$/);
 
   if (projectIdMatch) {
     const p = await getAuth(request, env);
@@ -789,6 +956,8 @@ async function handleRequest(request, env) {
 
     if (method === 'DELETE') {
       await env.DB.prepare('DELETE FROM project_notes WHERE project_id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM project_documents WHERE project_id = ?').bind(id).run();
+      await env.DB.prepare('DELETE FROM proposals WHERE project_id = ?').bind(id).run();
       await env.DB.prepare('DELETE FROM projects WHERE id = ?').bind(id).run();
       return jsonResponse({ ok: true });
     }
@@ -818,6 +987,65 @@ async function handleRequest(request, env) {
       ).bind(id, projectId, type||'note', content, due_date||'', now).run();
       await env.DB.prepare('UPDATE projects SET updated_at = ? WHERE id = ?').bind(now, projectId).run();
       return jsonResponse({ id, project_id:projectId, type:type||'note', content, due_date:due_date||'', created_at:now }, 201);
+    }
+  }
+
+  if (projectDocsMatch) {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const projectId = projectDocsMatch[1];
+
+    if (method === 'GET') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM project_documents WHERE project_id = ? ORDER BY created_at DESC'
+      ).bind(projectId).all();
+      return jsonResponse(results);
+    }
+
+    if (method === 'POST') {
+      const { type, title, url } = await request.json();
+      if (!title || !url) return jsonResponse({ error: 'title and url required' }, 400);
+      const id  = crypto.randomUUID();
+      const now = new Date().toISOString();
+      await env.DB.prepare(
+        'INSERT INTO project_documents (id,project_id,type,title,url,created_at) VALUES (?,?,?,?,?,?)'
+      ).bind(id, projectId, type||'proposal', title, url, now).run();
+      await env.DB.prepare('UPDATE projects SET updated_at = ? WHERE id = ?').bind(now, projectId).run();
+      return jsonResponse({ id, project_id:projectId, type:type||'proposal', title, url, created_at:now }, 201);
+    }
+  }
+
+  if (projectProposalsMatch) {
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.role !== 'admin') return forbidden();
+    if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+    const projectId = projectProposalsMatch[1];
+
+    if (method === 'GET') {
+      const { results } = await env.DB.prepare(
+        'SELECT * FROM proposals WHERE project_id = ? ORDER BY created_at DESC'
+      ).bind(projectId).all();
+      return jsonResponse(results);
+    }
+
+    if (method === 'POST') {
+      const { package_ids, cover_note, expires_at } = await request.json();
+      const ids = Array.isArray(package_ids) ? package_ids.slice(0, 3) : [];
+      if (!ids.length) return jsonResponse({ error: 'Select at least one package' }, 400);
+      const id = crypto.randomUUID();
+      const now = new Date().toISOString();
+      const publicUrl = `${ALLOWED_ORIGIN}/proposal.html#${id}`;
+      await env.DB.prepare(
+        'INSERT INTO proposals (id,project_id,cover_note,expires_at,package_ids,status,public_url,opened_at,view_count,time_spent_seconds,selected_package_id,selected_addons,selected_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+      ).bind(id, projectId, cover_note||'', expires_at||'', JSON.stringify(ids), 'sent', publicUrl, '', 0, 0, '', '[]', '', now, now).run();
+      await env.DB.prepare(
+        'INSERT INTO project_documents (id,project_id,type,title,url,created_at) VALUES (?,?,?,?,?,?)'
+      ).bind(crypto.randomUUID(), projectId, 'proposal', 'Proposal ' + new Date(now).toLocaleDateString('en-US'), publicUrl, now).run();
+      await env.DB.prepare('UPDATE projects SET stage = ?, updated_at = ? WHERE id = ?').bind('Proposal Sent', now, projectId).run();
+      return jsonResponse({ id, project_id:projectId, cover_note:cover_note||'', expires_at:expires_at||'', package_ids:JSON.stringify(ids), status:'sent', public_url:publicUrl, opened_at:'', view_count:0, time_spent_seconds:0, selected_package_id:'', selected_addons:'[]', selected_at:'', created_at:now, updated_at:now }, 201);
     }
   }
 

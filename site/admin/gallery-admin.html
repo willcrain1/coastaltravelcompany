@@ -379,6 +379,13 @@
     .pc-source-badge.manual  { background: rgba(255,255,255,0.06); color: var(--dim); }
     .pc-action { font-size: 10px; font-weight: 500; color: #e8a020; margin-top: 6px; letter-spacing: 0.01em; }
     .pc-action.urgent { color: var(--err); }
+    .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+    .tag-pill {
+      display: inline-flex; align-items: center; min-height: 19px;
+      border: 1px solid rgba(143,191,190,0.35); color: var(--teal);
+      background: rgba(143,191,190,0.08); border-radius: 3px;
+      padding: 2px 6px; font-size: 9px; font-weight: 500;
+    }
 
     /* project detail panel */
     .project-detail {
@@ -414,7 +421,56 @@
     }
     .note-content { font-size: 12px; color: var(--text); line-height: 1.55; }
     .note-date { font-size: 10px; color: var(--dim); margin-top: 2px; }
+    .note-due {
+      display: inline-block; margin-top: 5px; padding: 2px 6px;
+      border: 1px solid rgba(232,160,32,0.35); color: #e8a020;
+      font-size: 9px; font-weight: 500;
+    }
+    .note-due.overdue { border-color: rgba(199,91,79,0.45); color: var(--err); }
     .note-add-form { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .note-reminder-date { display: none; }
+    .note-reminder-date.show { display: block; }
+    .pd-documents {
+      border-top: 1px solid var(--border); margin-top: 18px; padding-top: 18px;
+    }
+    .doc-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
+    .doc-item {
+      display: flex; justify-content: space-between; gap: 12px; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+    }
+    .doc-title { color: var(--white); font-size: 12px; margin-bottom: 2px; }
+    .doc-meta {
+      color: var(--dim); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.24em; text-transform: uppercase;
+    }
+    .doc-link { color: var(--teal); font-size: 11px; text-decoration: none; white-space: nowrap; }
+    .doc-link:hover { color: var(--white); }
+    .package-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .package-card {
+      border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+      padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .package-top { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+    .package-name { font-family: 'Gilda Display', serif; color: var(--white); font-size: 18px; }
+    .package-price { color: var(--teal); font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .package-copy { color: var(--text); font-size: 12px; line-height: 1.55; }
+    .package-mini {
+      color: var(--dim); font-size: 10px; line-height: 1.6;
+      border-top: 1px solid var(--border); padding-top: 8px;
+    }
+    .package-addon-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .question-draft, .questionnaire-row {
+      border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+      padding: 12px 14px;
+    }
+    .question-draft { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .question-title { color: var(--white); font-size: 12px; margin-bottom: 3px; }
+    .question-meta {
+      color: var(--dim); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.22em; text-transform: uppercase;
+    }
+    .questionnaire-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    .questionnaire-row { display: flex; flex-direction: column; gap: 10px; }
     textarea {
       background: rgba(255,255,255,0.05); border: 1px solid var(--border);
       padding: 10px 13px; color: var(--white);
@@ -573,6 +629,11 @@
               <option>The Branded Journey</option>
             </select>
           </div>
+          <div class="fg pd-field-full">
+            <label>Labels / Tags</label>
+            <input type="text" id="pd-labels" placeholder="urgent, waterfront, returning client" />
+            <p class="hint">Separate tags with commas. They appear on project cards for quick scanning.</p>
+          </div>
         </div>
         <div style="display:flex; gap:8px; margin-top:4px;">
           <button class="btn btn-primary btn-sm" onclick="saveProjectEdits()">Save Changes</button>
@@ -590,11 +651,120 @@
             <button class="note-type-btn" onclick="setNoteType('reminder',this)">Reminder</button>
           </div>
           <textarea id="pd-note-input" placeholder="Add a note, call log, or reminder…"></textarea>
+          <div class="note-reminder-date" id="pd-reminder-wrap">
+            <label>Follow-Up Due Date</label>
+            <input type="date" id="pd-note-due" />
+          </div>
           <button class="btn btn-ghost btn-sm" style="align-self:flex-end" onclick="addNote()">Add</button>
+        </div>
+        <div class="pd-documents">
+          <div class="pd-notes-title">Documents &amp; Links</div>
+          <div class="doc-list" id="pd-doc-list"></div>
+          <div class="note-add-form">
+            <select id="pd-doc-type">
+              <option value="proposal">Proposal</option>
+              <option value="contract">Contract</option>
+              <option value="invoice">Invoice</option>
+              <option value="gallery">Gallery Link</option>
+              <option value="other">Other</option>
+            </select>
+            <input type="text" id="pd-doc-title" placeholder="Document title" />
+            <input type="url" id="pd-doc-url" placeholder="https://..." />
+            <button class="btn btn-ghost btn-sm" style="align-self:flex-end" onclick="addDocument()">Attach Link</button>
+          </div>
+        </div>
+        <div class="pd-documents">
+          <div class="pd-notes-title">Send Proposal</div>
+          <div class="doc-list" id="pd-proposal-list"></div>
+          <div class="note-add-form">
+            <div class="create-gallery-checks" id="pd-proposal-packages"></div>
+            <textarea id="pd-proposal-note" placeholder="Personalized cover note"></textarea>
+            <label>Expiry Date</label>
+            <input type="date" id="pd-proposal-expiry" />
+            <button class="btn btn-primary btn-sm" style="align-self:flex-end" onclick="createProposal()">Create Proposal</button>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Service packages -->
+  <h2 class="sh">Service Packages</h2>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Package Name</label>
+        <input type="text" id="pkg-name" placeholder="The Editorial Stay" />
+      </div>
+      <div class="fg">
+        <label>Base Price</label>
+        <input type="number" id="pkg-price" min="0" step="50" placeholder="2500" />
+      </div>
+      <div class="fg full">
+        <label>Description</label>
+        <textarea id="pkg-description" placeholder="Short proposal-ready package description"></textarea>
+      </div>
+      <div class="fg full">
+        <label>Inclusions</label>
+        <textarea id="pkg-inclusions" placeholder="One inclusion per line"></textarea>
+      </div>
+      <div class="fg full">
+        <label>Hero Photo URL</label>
+        <input type="url" id="pkg-hero" placeholder="https://..." />
+      </div>
+      <div class="fg full">
+        <label>Add-Ons</label>
+        <div class="create-gallery-checks" id="pkg-addon-checks"></div>
+        <p class="hint">These reusable add-ons can be attached to any package and later offered in proposals.</p>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+      <button class="btn btn-primary btn-sm" onclick="savePackage()">Save Package</button>
+    </div>
+  </div>
+  <div class="package-list" id="packageList"></div>
+
+  <!-- Questionnaire builder -->
+  <h2 class="sh" style="margin-top:56px;">Questionnaire Builder</h2>
+  <div class="card">
+    <div class="form-grid">
+      <div class="fg">
+        <label>Set Name</label>
+        <input type="text" id="qset-name" placeholder="Pre-booking property intake" />
+      </div>
+      <div class="fg">
+        <label>Phase</label>
+        <select id="qset-phase">
+          <option value="pre-booking">Pre-booking</option>
+          <option value="pre-shoot">Post-booking / Pre-shoot</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Question Type</label>
+        <select id="q-question-type">
+          <option value="text">Text</option>
+          <option value="multiple_choice">Multiple Choice</option>
+          <option value="date">Date</option>
+          <option value="file">File Upload</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Question</label>
+        <input type="text" id="q-question-label" placeholder="Property name" />
+      </div>
+      <div class="fg full">
+        <label>Choices</label>
+        <input type="text" id="q-question-options" placeholder="Hotel, Boutique, Resort, Vacation rental, Private villa" />
+        <p class="hint">Only used for multiple choice questions. Separate options with commas.</p>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="addQuestionDraft()">Add Question</button>
+      <button class="btn btn-primary btn-sm" onclick="saveQuestionnaireSet()">Save Set</button>
+    </div>
+    <div class="doc-list" id="questionDraftList" style="margin-top:16px;"></div>
+  </div>
+  <div class="questionnaire-list" id="questionnaireList"></div>
 
   <!-- Create gallery -->
   <h2 class="sh">Create New Gallery</h2>
@@ -1212,9 +1382,20 @@
     'Inquiry', 'Proposal Sent', 'Contract Sent', 'Contract Signed',
     'Retainer Paid', 'Active', 'Delivered', 'Complete',
   ];
+  const PACKAGE_ADDONS = [
+    'Rush delivery',
+    'Extra edited images',
+    'Video reel',
+    '3D walkthrough',
+    'Extended license',
+    'Additional half-day',
+  ];
   const PIPELINE_SEEN_KEY = 'ctc_pipeline_seen';
 
   let projects          = [];
+  let packages          = [];
+  let questionnaireSets = [];
+  let questionDraft     = [];
   let selectedProjectId = null;
   let noteType          = 'note';
   let dragSrcId         = null;
@@ -1310,6 +1491,10 @@
     return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
   }
 
+  function projectLabels(p) {
+    return String(p.labels || '').split(',').map(t => t.trim()).filter(Boolean);
+  }
+
   function renderPipeline() {
     const board = document.getElementById('pipelineBoard');
     board.innerHTML = STAGES.map(stage => {
@@ -1328,6 +1513,7 @@
     const parts  = [p.collection, p.property, p.location].filter(Boolean);
     const action = getOutstandingAction(p);
     const isSelected = p.id === selectedProjectId;
+    const labels = projectLabels(p);
     return `<div class="pc-card${isSelected ? ' selected' : ''}" id="pcard-${esc(p.id)}"
       draggable="true"
       ondragstart="onCardDragStart(event,'${esc(p.id)}')"
@@ -1335,6 +1521,7 @@
       onclick="selectProject('${esc(p.id)}')">
       <div class="pc-name">${esc(p.client_name)}</div>
       <div class="pc-meta">${parts.length ? esc(parts.join(' · ')) + '<br>' : ''}${p.shoot_date ? esc(fmtDate(p.shoot_date)) + '<br>' : ''}<span style="opacity:.5">${esc(relTime(p.created_at))}</span></div>
+      ${labels.length ? `<div class="tag-row">${labels.map(t => `<span class="tag-pill">${esc(t)}</span>`).join('')}</div>` : ''}
       ${action ? `<div class="pc-action${action.urgent ? ' urgent' : ''}">${esc(action.text)}</div>` : ''}
       <span class="pc-source-badge ${esc(p.source)}">${esc(p.source)}</span>
     </div>`;
@@ -1422,12 +1609,14 @@
     document.getElementById('pd-property').value   = p.property || '';
     document.getElementById('pd-location').value   = p.location || '';
     document.getElementById('pd-collection').value = p.collection || '';
+    document.getElementById('pd-labels').value     = p.labels || '';
 
     const detail = document.getElementById('projectDetail');
     detail.classList.add('open');
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    await loadNotes(id);
+    renderProposalPackageChecks();
+    await Promise.all([loadNotes(id), loadDocuments(id), loadProposals(id)]);
   }
 
   function closeProjectDetail() {
@@ -1452,6 +1641,7 @@
       <div class="note-item">
         <div class="note-type-label">${esc(n.type)}</div>
         <div class="note-content">${esc(n.content)}</div>
+        ${n.due_date ? `<div class="note-due${new Date(n.due_date + 'T23:59:59') < new Date() ? ' overdue' : ''}">Due ${esc(fmtDate(n.due_date))}</div>` : ''}
         <div class="note-date">${esc(relTime(n.created_at))}</div>
       </div>`).join('');
   }
@@ -1460,20 +1650,123 @@
     noteType = type;
     document.querySelectorAll('.note-type-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    document.getElementById('pd-reminder-wrap').classList.toggle('show', type === 'reminder');
   }
 
   async function addNote() {
     const content = document.getElementById('pd-note-input').value.trim();
     if (!content || !selectedProjectId) return;
+    const due_date = noteType === 'reminder' ? document.getElementById('pd-note-due').value : '';
     const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/notes', {
-      method: 'POST', body: { type: noteType, content },
+      method: 'POST', body: { type: noteType, content, due_date },
     });
     if (!ok) { toast('Failed to add note', true); return; }
     document.getElementById('pd-note-input').value = '';
+    document.getElementById('pd-note-due').value = '';
     await loadNotes(selectedProjectId);
     const idx = projects.findIndex(p => p.id === selectedProjectId);
     if (idx >= 0) projects[idx].updated_at = data.created_at;
     toast('Note added');
+  }
+
+  async function loadDocuments(projectId) {
+    const { ok, data } = await apiFetch('/admin/projects/' + projectId + '/documents', { method: 'GET' });
+    if (!ok) { renderDocuments([]); return; }
+    renderDocuments(Array.isArray(data) ? data : []);
+  }
+
+  function renderDocuments(docs) {
+    const el = document.getElementById('pd-doc-list');
+    if (!docs.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;padding:4px 0 8px;">No documents attached.</div>';
+      return;
+    }
+    el.innerHTML = docs.map(d => `
+      <div class="doc-item">
+        <div>
+          <div class="doc-title">${esc(d.title)}</div>
+          <div class="doc-meta">${esc(d.type)} Â· ${esc(relTime(d.created_at))}</div>
+        </div>
+        <a class="doc-link" href="${esc(d.url)}" target="_blank" rel="noopener">Open</a>
+      </div>`).join('');
+  }
+
+  async function addDocument() {
+    if (!selectedProjectId) return;
+    const body = {
+      type:  document.getElementById('pd-doc-type').value,
+      title: document.getElementById('pd-doc-title').value.trim(),
+      url:   document.getElementById('pd-doc-url').value.trim(),
+    };
+    if (!body.title || !body.url) { toast('Document title and URL are required', true); return; }
+    const { ok } = await apiFetch('/admin/projects/' + selectedProjectId + '/documents', { method: 'POST', body });
+    if (!ok) { toast('Failed to attach document', true); return; }
+    document.getElementById('pd-doc-title').value = '';
+    document.getElementById('pd-doc-url').value = '';
+    await loadDocuments(selectedProjectId);
+    toast('Document attached');
+  }
+
+  async function loadProposals(projectId) {
+    const { ok, data } = await apiFetch('/admin/projects/' + projectId + '/proposals', { method: 'GET' });
+    if (!ok) { renderProposals([]); return; }
+    renderProposals(Array.isArray(data) ? data : []);
+  }
+
+  function renderProposalPackageChecks() {
+    const el = document.getElementById('pd-proposal-packages');
+    if (!packages.length) {
+      el.innerHTML = '<span style="color:var(--dim); font-size:12px;">Create service packages first.</span>';
+      return;
+    }
+    el.innerHTML = packages.map(pkg => `
+      <label class="gallery-check-item">
+        <input type="checkbox" name="proposalPackage" value="${esc(pkg.id)}" />
+        ${esc(pkg.name)} <span style="color:var(--dim); margin-left:4px;">${pkg.base_price ? '$' + Number(pkg.base_price).toLocaleString('en-US') : 'Custom'}</span>
+      </label>`).join('');
+  }
+
+  function renderProposals(items) {
+    const el = document.getElementById('pd-proposal-list');
+    if (!items.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;padding:4px 0 8px;">No proposals sent yet.</div>';
+      return;
+    }
+    el.innerHTML = items.map(p => `
+      <div class="doc-item">
+        <div>
+          <div class="doc-title">Proposal ${esc(p.status || 'sent')}</div>
+          <div class="doc-meta">${Math.round(Number(p.time_spent_seconds || 0) / 60)} min · ${p.opened_at ? 'opened ' + esc(relTime(p.opened_at)) : 'not opened'}</div>
+          <div class="doc-meta">${esc(p.expires_at ? 'expires ' + fmtDate(p.expires_at) : 'no expiry')} Â· ${Number(p.view_count || 0)} views</div>
+        </div>
+        <a class="doc-link" href="${esc(p.public_url)}" target="_blank" rel="noopener">Open</a>
+      </div>`).join('');
+  }
+
+  async function createProposal() {
+    if (!selectedProjectId) return;
+    const selected = [...document.querySelectorAll('input[name="proposalPackage"]:checked')].map(el => el.value);
+    if (!selected.length || selected.length > 3) { toast('Select 1 to 3 packages', true); return; }
+    const body = {
+      package_ids: selected,
+      cover_note: document.getElementById('pd-proposal-note').value.trim(),
+      expires_at: document.getElementById('pd-proposal-expiry').value,
+    };
+    const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/proposals', { method: 'POST', body });
+    if (!ok) { toast(data.error || 'Failed to create proposal', true); return; }
+    document.getElementById('pd-proposal-note').value = '';
+    document.getElementById('pd-proposal-expiry').value = '';
+    document.querySelectorAll('input[name="proposalPackage"]').forEach(el => { el.checked = false; });
+    const idx = projects.findIndex(p => p.id === selectedProjectId);
+    if (idx >= 0) {
+      projects[idx].stage = 'Proposal Sent';
+      projects[idx].updated_at = data.created_at;
+    }
+    document.getElementById('pd-stage').value = 'Proposal Sent';
+    renderProposals([data]);
+    await loadDocuments(selectedProjectId);
+    renderPipeline();
+    toast('Proposal created');
   }
 
   async function saveProjectEdits() {
@@ -1486,6 +1779,7 @@
       collection:   document.getElementById('pd-collection').value,
       shoot_date:   document.getElementById('pd-shootDate').value,
       stage:        document.getElementById('pd-stage').value,
+      labels:       document.getElementById('pd-labels').value.trim(),
     };
     const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId, { method: 'PUT', body });
     if (!ok) { toast('Save failed', true); return; }
@@ -1521,10 +1815,187 @@
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────────
+  // service package library
+  async function loadPackages() {
+    renderAddonChecks();
+    const { ok, data } = await apiFetch('/admin/packages', { method: 'GET' });
+    if (!ok) return;
+    packages = Array.isArray(data) ? data : [];
+    renderPackages();
+    if (selectedProjectId) renderProposalPackageChecks();
+  }
+
+  function packageAddons(pkg) {
+    if (Array.isArray(pkg.addons)) return pkg.addons;
+    try { return JSON.parse(pkg.addons || '[]'); } catch { return []; }
+  }
+
+  function renderAddonChecks() {
+    const el = document.getElementById('pkg-addon-checks');
+    el.innerHTML = PACKAGE_ADDONS.map(a => `
+      <label class="gallery-check-item">
+        <input type="checkbox" name="pkgAddon" value="${esc(a)}" />
+        ${esc(a)}
+      </label>`).join('');
+  }
+
+  function renderPackages() {
+    const el = document.getElementById('packageList');
+    if (!packages.length) {
+      el.innerHTML = '<div class="empty">No service packages yet.</div>';
+      return;
+    }
+    el.innerHTML = packages.map(pkg => {
+      const inclusions = String(pkg.inclusions || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const addons = packageAddons(pkg);
+      return `
+        <div class="package-card" id="pkg-${esc(pkg.id)}">
+          <div class="package-top">
+            <div class="package-name">${esc(pkg.name)}</div>
+            <div class="package-price">${pkg.base_price ? '$' + Number(pkg.base_price).toLocaleString('en-US') : 'Custom'}</div>
+          </div>
+          ${pkg.description ? `<div class="package-copy">${esc(pkg.description)}</div>` : ''}
+          ${pkg.hero_photo ? `<div class="package-mini">Hero: ${esc(pkg.hero_photo)}</div>` : ''}
+          ${inclusions.length ? `<div class="package-mini"><strong>Includes</strong><br>${inclusions.map(esc).join('<br>')}</div>` : ''}
+          ${addons.length ? `<div class="package-addon-row">${addons.map(a => `<span class="tag-pill">${esc(a)}</span>`).join('')}</div>` : ''}
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button class="btn btn-danger btn-sm" onclick="deletePackage('${esc(pkg.id)}')">Delete</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function savePackage() {
+    const body = {
+      name:        document.getElementById('pkg-name').value.trim(),
+      base_price:  document.getElementById('pkg-price').value,
+      description: document.getElementById('pkg-description').value.trim(),
+      inclusions:  document.getElementById('pkg-inclusions').value.trim(),
+      hero_photo:  document.getElementById('pkg-hero').value.trim(),
+      addons:      [...document.querySelectorAll('input[name="pkgAddon"]:checked')].map(el => el.value),
+    };
+    if (!body.name) { toast('Package name is required', true); return; }
+    const { ok, data } = await apiFetch('/admin/packages', { method: 'POST', body });
+    if (!ok) { toast(data.error || 'Failed to save package', true); return; }
+    packages.unshift(data);
+    renderPackages();
+    ['pkg-name','pkg-price','pkg-description','pkg-inclusions','pkg-hero'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.querySelectorAll('input[name="pkgAddon"]').forEach(el => { el.checked = false; });
+    toast('Package saved');
+  }
+
+  async function deletePackage(id) {
+    if (!confirm('Delete this package?')) return;
+    const { ok } = await apiFetch('/admin/packages/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    packages = packages.filter(pkg => pkg.id !== id);
+    renderPackages();
+    toast('Package deleted');
+  }
+
+  // questionnaire builder
+  async function loadQuestionnaires() {
+    const { ok, data } = await apiFetch('/admin/questionnaires', { method: 'GET' });
+    if (!ok) return;
+    questionnaireSets = Array.isArray(data) ? data : [];
+    renderQuestionnaires();
+    renderQuestionDraft();
+  }
+
+  function parseQuestions(set) {
+    if (Array.isArray(set.questions)) return set.questions;
+    try { return JSON.parse(set.questions || '[]'); } catch { return []; }
+  }
+
+  function addQuestionDraft() {
+    const label = document.getElementById('q-question-label').value.trim();
+    const type = document.getElementById('q-question-type').value;
+    const options = document.getElementById('q-question-options').value
+      .split(',').map(s => s.trim()).filter(Boolean);
+    if (!label) { toast('Question text is required', true); return; }
+    if (type === 'multiple_choice' && !options.length) { toast('Multiple choice questions need choices', true); return; }
+    questionDraft.push({ id: Date.now().toString(36), label, type, options });
+    document.getElementById('q-question-label').value = '';
+    document.getElementById('q-question-options').value = '';
+    renderQuestionDraft();
+  }
+
+  function removeQuestionDraft(id) {
+    questionDraft = questionDraft.filter(q => q.id !== id);
+    renderQuestionDraft();
+  }
+
+  function renderQuestionDraft() {
+    const el = document.getElementById('questionDraftList');
+    if (!questionDraft.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;">No questions added yet.</div>';
+      return;
+    }
+    el.innerHTML = questionDraft.map(q => `
+      <div class="question-draft">
+        <div>
+          <div class="question-title">${esc(q.label)}</div>
+          <div class="question-meta">${esc(q.type.replace('_', ' '))}${q.options.length ? ' · ' + esc(q.options.join(', ')) : ''}</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="removeQuestionDraft('${esc(q.id)}')">Remove</button>
+      </div>`).join('');
+  }
+
+  function renderQuestionnaires() {
+    const el = document.getElementById('questionnaireList');
+    if (!questionnaireSets.length) {
+      el.innerHTML = '<div class="empty">No questionnaire sets yet.</div>';
+      return;
+    }
+    el.innerHTML = questionnaireSets.map(set => {
+      const questions = parseQuestions(set);
+      return `
+        <div class="questionnaire-row" id="qset-${esc(set.id)}">
+          <div>
+            <div class="package-name">${esc(set.name)}</div>
+            <div class="question-meta">${esc(set.phase)} · ${questions.length} questions</div>
+          </div>
+          <div class="package-mini">${questions.map(q => esc(q.label)).join('<br>')}</div>
+          <div style="display:flex; justify-content:flex-end;">
+            <button class="btn btn-danger btn-sm" onclick="deleteQuestionnaireSet('${esc(set.id)}')">Delete</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function saveQuestionnaireSet() {
+    const body = {
+      name: document.getElementById('qset-name').value.trim(),
+      phase: document.getElementById('qset-phase').value,
+      questions: questionDraft,
+    };
+    if (!body.name) { toast('Questionnaire name is required', true); return; }
+    if (!body.questions.length) { toast('Add at least one question', true); return; }
+    const { ok, data } = await apiFetch('/admin/questionnaires', { method: 'POST', body });
+    if (!ok) { toast(data.error || 'Failed to save questionnaire', true); return; }
+    questionnaireSets.unshift(data);
+    questionDraft = [];
+    document.getElementById('qset-name').value = '';
+    renderQuestionDraft();
+    renderQuestionnaires();
+    toast('Questionnaire saved');
+  }
+
+  async function deleteQuestionnaireSet(id) {
+    if (!confirm('Delete this questionnaire set?')) return;
+    const { ok } = await apiFetch('/admin/questionnaires/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    questionnaireSets = questionnaireSets.filter(set => set.id !== id);
+    renderQuestionnaires();
+    toast('Questionnaire deleted');
+  }
+
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    await Promise.all([loadGalleries(), loadUsers(), loadProjects()]);
+    await Promise.all([loadGalleries(), loadUsers(), loadProjects(), loadPackages(), loadQuestionnaires()]);
   }
 
   init();
