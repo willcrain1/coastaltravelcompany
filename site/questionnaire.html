@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Questionnaire — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .qn-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+    .qn-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .qn-header .brand-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 2rem;
+      color: var(--green);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .qn-title {
+      font-family: 'Gilda Display', serif;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      color: var(--black);
+      margin: 0 0 8px;
+    }
+    .qn-subtitle {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      color: #666;
+      font-weight: 400;
+    }
+    .qn-form {
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+    .qn-question {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .qn-label {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--black);
+    }
+    .qn-label .qn-num {
+      color: var(--green);
+      margin-right: 8px;
+    }
+    .qn-input, .qn-textarea, .qn-select {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      padding: 12px 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      color: var(--black);
+      width: 100%;
+      box-sizing: border-box;
+      transition: border-color .2s;
+    }
+    .qn-input:focus, .qn-textarea:focus, .qn-select:focus {
+      outline: none;
+      border-color: var(--green);
+    }
+    .qn-textarea { min-height: 120px; resize: vertical; }
+    .qn-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .qn-choice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .qn-choice input[type="radio"],
+    .qn-choice input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+    .qn-submit {
+      text-align: center;
+      padding-top: 8px;
+    }
+    .qn-submit button {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 16px 48px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .qn-submit button:hover { opacity: .85; }
+    .qn-submit button:disabled { opacity: .5; cursor: not-allowed; }
+    .qn-done {
+      text-align: center;
+      padding: 60px 24px;
+    }
+    .qn-done h2 {
+      font-family: 'Gilda Display', serif;
+      font-size: 1.8rem;
+      color: var(--green);
+      margin: 0 0 16px;
+    }
+    .qn-done p {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .qn-error {
+      text-align: center;
+      padding: 80px 24px;
+      font-family: 'Montserrat', sans-serif;
+      color: #c00;
+    }
+    .qn-loading {
+      text-align: center;
+      padding: 80px 24px;
+      font-family: 'Montserrat', sans-serif;
+      color: #888;
+    }
+    .qn-file-note {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.82rem;
+      color: #888;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <a href="/" style="text-decoration:none">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+  </div>
+  <nav class="nav">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="services.html" class="nav-link">Services</a>
+    <a href="contact.html" class="nav-link">Contact</a>
+    <a href="login.html" class="nav-link nav-account">Account</a>
+  </nav>
+  <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+    <span></span><span></span><span></span>
+  </div>
+</header>
+
+<div class="mobile-nav" id="mobileNav">
+  <a href="index.html">Home</a>
+  <a href="services.html">Services</a>
+  <a href="contact.html">Contact</a>
+  <a href="login.html">Account</a>
+</div>
+
+<main>
+  <div id="loadingState" class="qn-loading">Loading questionnaire…</div>
+  <div id="errorState"   class="qn-error"   style="display:none"></div>
+  <div id="doneState"    class="qn-done"    style="display:none">
+    <h2>Thank you!</h2>
+    <p>Your responses have been submitted. We'll review them ahead of your shoot.</p>
+  </div>
+  <div id="alreadyDone" class="qn-done" style="display:none">
+    <h2>Already submitted</h2>
+    <p>This questionnaire has already been completed. Thank you!</p>
+  </div>
+  <div id="qnWrap" class="qn-wrap" style="display:none">
+    <div class="qn-header">
+      <span class="brand-script">Coastal Travel Company</span>
+      <h1 class="qn-title" id="qnTitle"></h1>
+      <p class="qn-subtitle" id="qnSubtitle"></p>
+    </div>
+    <form class="qn-form" id="qnForm" onsubmit="submitForm(event)">
+      <div id="qnQuestions"></div>
+      <div class="qn-submit">
+        <button type="submit" id="submitBtn">Submit Questionnaire</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script>
+  const token = location.hash.slice(1);
+  let questionnaireId = null;
+
+  async function load() {
+    if (!token) { showError('No questionnaire link found. Please use the link from your email.'); return; }
+    try {
+      const res = await fetch(WORKER_URL + '/questionnaire/' + token, {
+        headers: { Origin: location.origin },
+      });
+      if (!res.ok) { showError('Questionnaire not found or this link has expired.'); return; }
+      const data = await res.json();
+      questionnaireId = data.id;
+
+      if (data.status === 'completed') {
+        hide('loadingState'); show('alreadyDone'); return;
+      }
+
+      document.getElementById('qnTitle').textContent    = data.set_name;
+      document.getElementById('qnSubtitle').textContent =
+        [data.property, data.collection].filter(Boolean).join(' · ') || ('For ' + (data.client_name || 'you'));
+
+      renderQuestions(data.questions || []);
+      hide('loadingState'); show('qnWrap');
+    } catch (e) {
+      showError('Unable to load the questionnaire. Please try again.');
+    }
+  }
+
+  function renderQuestions(questions) {
+    const el = document.getElementById('qnQuestions');
+    el.innerHTML = questions.map((q, i) => {
+      const num  = `<span class="qn-num">${i + 1}.</span>`;
+      const name = `q_${i}`;
+
+      if (q.type === 'text') {
+        return `<div class="qn-question">
+          <label class="qn-label" for="${name}">${num}${esc(q.label)}</label>
+          <textarea class="qn-textarea" id="${name}" name="${name}" placeholder="Your answer…"></textarea>
+        </div>`;
+      }
+      if (q.type === 'date') {
+        return `<div class="qn-question">
+          <label class="qn-label" for="${name}">${num}${esc(q.label)}</label>
+          <input class="qn-input" type="date" id="${name}" name="${name}" />
+        </div>`;
+      }
+      if (q.type === 'multiple-choice') {
+        const opts = Array.isArray(q.options) ? q.options : [];
+        const choices = opts.map((opt, j) => `
+          <label class="qn-choice">
+            <input type="radio" name="${name}" value="${esc(opt)}" />
+            ${esc(opt)}
+          </label>`).join('');
+        return `<div class="qn-question">
+          <div class="qn-label">${num}${esc(q.label)}</div>
+          <div class="qn-choices">${choices}</div>
+        </div>`;
+      }
+      if (q.type === 'file-upload') {
+        return `<div class="qn-question">
+          <div class="qn-label">${num}${esc(q.label)}</div>
+          <p class="qn-file-note">File uploads will be available soon. Please email any files directly to us and reference this project in the subject line.</p>
+        </div>`;
+      }
+      return '';
+    }).join('');
+  }
+
+  async function submitForm(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    const form      = document.getElementById('qnForm');
+    const inputs    = form.querySelectorAll('[name]');
+    const responses = {};
+    inputs.forEach(el => {
+      if (el.type === 'radio') {
+        if (el.checked) responses[el.name] = el.value;
+      } else if (el.type === 'checkbox') {
+        if (!responses[el.name]) responses[el.name] = [];
+        if (el.checked) responses[el.name].push(el.value);
+      } else {
+        responses[el.name] = el.value;
+      }
+    });
+
+    try {
+      const res = await fetch(WORKER_URL + '/questionnaire/' + token, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: location.origin },
+        body: JSON.stringify(responses),
+      });
+      if (res.ok) {
+        hide('qnWrap'); show('doneState');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Submission failed. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Questionnaire';
+      }
+    } catch {
+      alert('Network error. Please check your connection and try again.');
+      btn.disabled = false;
+      btn.textContent = 'Submit Questionnaire';
+    }
+  }
+
+  function showError(msg) {
+    hide('loadingState');
+    const el = document.getElementById('errorState');
+    el.textContent = msg;
+    el.style.display = '';
+  }
+  function show(id) { document.getElementById(id).style.display = ''; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function toggleMobileNav() {
+    document.getElementById('mobileNav').classList.toggle('open');
+  }
+
+  load();
+</script>
+</body>
+</html>

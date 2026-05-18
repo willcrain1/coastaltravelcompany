@@ -14,6 +14,9 @@ binding = "DB"
 database_name = "CTC_PROJECTS"
 database_id = "your-d1-database-id"  # filled in by deploy-worker.sh
 
+[triggers]
+crons = ["0 * * * *"]   # hourly — runs automation checks (inquiry auto-reply, follow-ups, reminders)
+
 # ── Required secrets ────────────────────────────────────────────────────────
 # Set each secret once via: wrangler secret put <NAME>
 #

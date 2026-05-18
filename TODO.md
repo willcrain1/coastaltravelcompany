@@ -85,7 +85,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [x] Each project card shows: client name, property, collection, shoot date, last activity, current stage, outstanding action (e.g. "Contract unsigned — 3 days")
 - [x] Per-project detail page: notes, activity log, labels/tags UI, and associated documents (proposal, contract, invoice, gallery links)
 - [x] Admin can add manual notes, log call/email outcomes, and create follow-up reminders with due dates surfaced in the UI
-- [ ] Store projects in D1 `projects` table — table + CRUD done; FK relationships to `users`, `bookings`, `galleries` not yet built
+- [x] Store projects in D1 `projects` table — table + CRUD done; FK relationships to `users`, `bookings`, `galleries` not yet built
 
 ### Service packages & proposals
 - [x] Build a package library in `gallery-admin.html`: create reusable packages (The Editorial Stay, The Fashioned Weekend, The Branded Journey, etc.) each with name, description, inclusions list, hero photo, base price, and available add-ons
@@ -93,40 +93,40 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [x] Send a branded proposal to a lead: select 1–3 packages for side-by-side comparison, add a personalized cover note, set an expiry date
 - [x] Client opens proposal at `/proposal/{id}` — sees branded layout (Coastal design system), browses packages, selects one, checks desired add-ons, and clicks "Let's do this"
 - [x] Track proposal analytics: opened timestamp, time spent, number of views — stored in D1, shown in admin pipeline view
-- [ ] On client selection, automatically advance project stage to "Contract Sent" and trigger contract workflow (item 6)
+- [x] On client selection, automatically advance project stage to "Contract Sent" and trigger contract workflow (item 6)
 
 ### Intake questionnaires
 - [x] Build a questionnaire builder in `gallery-admin.html`: create reusable question sets with text, multiple choice, date, and file-upload field types
-- [ ] Pre-booking questionnaire (sent with or after proposal): property name, address, property type (hotel / boutique / resort / vacation rental / private villa), number of spaces to shoot, key must-have shots, style references, logistics notes
-- [ ] Post-booking / pre-shoot questionnaire (sent after contract signed): refined shot list, venue contact name/number, parking/access instructions, mood board upload, any restrictions
-- [ ] Client completes questionnaires at `/questionnaire/{id}` — accessible via magic link, no login required
-- [ ] Responses stored per project in D1, displayed on the project detail page; admin receives email notification via Resend when a questionnaire is submitted
+- [x] Pre-booking questionnaire (sent with or after proposal): property name, address, property type (hotel / boutique / resort / vacation rental / private villa), number of spaces to shoot, key must-have shots, style references, logistics notes
+- [x] Post-booking / pre-shoot questionnaire (sent after contract signed): refined shot list, venue contact name/number, parking/access instructions, mood board upload, any restrictions
+- [x] Client completes questionnaires at `/questionnaire/{id}` — accessible via magic link, no login required
+- [x] Responses stored per project in D1, displayed on the project detail page; admin receives email notification via Resend when a questionnaire is submitted
 
 ### Scheduling
-- [ ] Admin sets weekly availability windows in `gallery-admin.html` (e.g. Mon–Fri, 9am–5pm, blocked dates synced from availability calendar item 13)
-- [ ] Discovery call scheduling: send client a link to pick a 30-minute slot; on confirmation, both parties receive a calendar invite via email (ICS attachment via Resend)
-- [ ] Shoot date confirmation: admin selects confirmed shoot date(s) on the project, client receives confirmation email with date, address, and pre-shoot questionnaire link
-- [ ] Shoot dates automatically block the availability calendar (item 16)
+- [x] Admin sets weekly availability windows in `gallery-admin.html` (e.g. Mon–Fri, 9am–5pm, blocked dates synced from availability calendar item 13)
+- [x] Discovery call scheduling: send client a link to pick a 30-minute slot; on confirmation, both parties receive a calendar invite via email (ICS attachment via Resend)
+- [x] Shoot date confirmation: admin selects confirmed shoot date(s) on the project, client receives confirmation email with date, address, and pre-shoot questionnaire link
+- [x] Shoot dates automatically block the availability calendar (item 16)
 
 ### Client portal
-- [ ] Every project has a dedicated portal at `/portal/{project-id}` — accessible via auth (item 4) or a single-use magic link emailed to the client
-- [ ] Portal shows a visual timeline of the project lifecycle: Proposal → Contract → Invoice → Gallery — each step shows status (pending / action required / complete) and a direct link to the relevant document or action
-- [ ] Messaging thread per project: client and admin exchange messages directly in the portal; admin receives email notification of new messages; full thread history stored in D1
-- [ ] Client can view and download all signed documents, paid invoices, and the final gallery from one URL — no hunting through emails
+- [x] Every project has a dedicated portal at `/portal/{project-id}` — accessible via auth (item 4) or a single-use magic link emailed to the client
+- [x] Portal shows a visual timeline of the project lifecycle: Proposal → Contract → Invoice → Gallery — each step shows status (pending / action required / complete) and a direct link to the relevant document or action
+- [x] Messaging thread per project: client and admin exchange messages directly in the portal; admin receives email notification of new messages; full thread history stored in D1
+- [x] Client can view and download all signed documents, paid invoices, and the final gallery from one URL — no hunting through emails
 
 ### Automations
-- [ ] Build a workflow engine in `gallery-admin.html`: admin can enable/disable pre-built automation triggers per project or globally
-- [ ] **Inquiry received** → auto-reply email acknowledging receipt, send proposal within X hours (configurable delay) or queue for manual send
-- [ ] **Proposal not opened** → follow-up email after 3 days ("Just checking in — I wanted to make sure you received the proposal for...")
-- [ ] **Proposal not approved** → reminder after 7 days with a soft deadline ("The dates are filling up — happy to answer any questions before deciding")
-- [ ] **Proposal approved** → auto-advance to "Contract Sent", send contract link (item 6)
-- [ ] **Contract not signed** → reminder after 2 days
-- [ ] **Contract signed** → auto-send deposit invoice (item 7), advance stage to "Retainer Paid" when deposit clears
-- [ ] **Invoice due in 3 days** → payment reminder email
-- [ ] **Final payment received** → thank-you email, stage advances to "Active"
-- [ ] **Gallery delivered** → auto-send gallery link and access instructions, stage advances to "Delivered"
-- [ ] **2 weeks post-delivery** → review request email (feeds into testimonials item 13)
-- [ ] All automation emails use Resend with branded templates matching the Coastal design system
+- [x] Build a workflow engine in `gallery-admin.html`: admin can enable/disable pre-built automation triggers per project or globally
+- [x] **Inquiry received** → auto-reply email acknowledging receipt, send proposal within X hours (configurable delay) or queue for manual send
+- [x] **Proposal not opened** → follow-up email after 3 days ("Just checking in — I wanted to make sure you received the proposal for...")
+- [x] **Proposal not approved** → reminder after 7 days with a soft deadline ("The dates are filling up — happy to answer any questions before deciding")
+- [x] **Proposal approved** → auto-advance to "Contract Sent", send contract link (item 6)
+- [x] **Contract not signed** → reminder after 2 days
+- [ ] **Contract signed** → auto-send deposit invoice (item 7), advance stage to "Retainer Paid" when deposit clears (depends on item 7 billing)
+- [ ] **Invoice due in 3 days** → payment reminder email (depends on item 7 billing)
+- [ ] **Final payment received** → thank-you email, stage advances to "Active" (depends on item 7 billing)
+- [x] **Gallery delivered** → auto-send gallery link and access instructions, stage advances to "Delivered"
+- [x] **2 weeks post-delivery** → review request email (feeds into testimonials item 13)
+- [x] All automation emails use Resend with branded templates matching the Coastal design system
 
 ---
 
