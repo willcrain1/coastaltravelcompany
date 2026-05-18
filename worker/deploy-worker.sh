@@ -53,7 +53,7 @@ KV_ID=$(python3 - <<PYEOF
 import json, sys
 with open("$TMP") as f:
     data = json.load(f)
-for ns in data.get("result", []):
+for ns in (data.get("result") or []):
     if ns.get("title") == "$KV_NAME":
         print(ns["id"])
         break
@@ -89,7 +89,7 @@ D1_ID=$(python3 - <<PYEOF
 import json, sys
 with open("$TMP") as f:
     data = json.load(f)
-for db in data.get("result", []):
+for db in (data.get("result") or []):
     if db.get("name") == "$D1_NAME":
         print(db["uuid"])
         break
