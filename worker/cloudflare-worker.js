@@ -536,25 +536,46 @@ async function getSharingSid(passphrase, sharePassword = null) {
   const cached = sidCache[passphrase];
   if (cached && cached.exp > Date.now()) return cached;
 
-  let res;
+  let cookieString, sid;
+
   if (sharePassword) {
-    // Password-protected share — authenticate via SYNO.Core.Sharing.Login.
-    // Synology names its password param "passphrase" here, distinct from the share URL token.
+    // Password-protected share: call SYNO.Core.Sharing.Login first.
+    // Use redirect:'manual' so we capture Set-Cookie from any 3xx response
+    // (cookies on the redirect response are lost when redirect:'follow' is used).
     const params = new URLSearchParams({
       api: 'SYNO.Core.Sharing.Login', version: '1', method: 'login',
       sharing_id: passphrase,
-      passphrase: sharePassword,
+      password: sharePassword,
     });
-    res = await fetch(NAS_SHARE_API + '?' + params, { redirect: 'follow' });
-  } else {
-    res = await fetch(NAS_SHARE_PAGE + passphrase, { redirect: 'follow' });
-  }
+    const loginRes = await fetch(NAS_SHARE_API + '?' + params, { redirect: 'manual' });
 
-  const setCookieHeader = res.headers.get('set-cookie') || '';
-  const sidMatch = setCookieHeader.match(/sharing_sid=([^;]+)/);
-  const sid = sidMatch ? sidMatch[1] : null;
-  const cookieString = parseCookies(res.headers);
-  if (!cookieString) throw new Error('NAS sharing page returned no session cookie');
+    cookieString = parseCookies(loginRes.headers);
+    const setCookieHeader = loginRes.headers.get('set-cookie') || '';
+    const sidMatch = setCookieHeader.match(/sharing_sid=([^;]+)/);
+    sid = sidMatch ? sidMatch[1] : null;
+
+    if (!cookieString) {
+      // SID might be in the JSON response body instead of a cookie
+      let loginJson = null;
+      try { loginJson = await loginRes.json(); } catch {}
+      if (loginJson?.success && loginJson?.data?.sid) {
+        sid = loginJson.data.sid;
+        cookieString = `sharing_sid=${sid}`;
+      } else {
+        const detail = loginJson
+          ? JSON.stringify(loginJson.error ?? loginJson)
+          : `HTTP ${loginRes.status}`;
+        throw new Error(`Share login returned no session (${detail})`);
+      }
+    }
+  } else {
+    const res = await fetch(NAS_SHARE_PAGE + passphrase, { redirect: 'follow' });
+    const setCookieHeader = res.headers.get('set-cookie') || '';
+    const sidMatch = setCookieHeader.match(/sharing_sid=([^;]+)/);
+    sid = sidMatch ? sidMatch[1] : null;
+    cookieString = parseCookies(res.headers);
+    if (!cookieString) throw new Error('NAS sharing page returned no session cookie');
+  }
 
   const data = { cookie: cookieString, sid, exp: Date.now() + 2 * 60 * 60 * 1000 };
   sidCache[passphrase] = data;
@@ -670,8 +691,8 @@ async function handleRequest(request, env) {
 
     try {
       await getSharingSid(passphrase, gallery.sharePassword || null);
-    } catch {
-      return jsonResponse({ error: 'Gallery session failed' }, 401);
+    } catch (err) {
+      return jsonResponse({ error: 'Gallery session failed: ' + err.message }, 401);
     }
     const sid = crypto.randomUUID();
     await env.KV.put('tok:' + sid, JSON.stringify({ passphrase, sharePassword: gallery.sharePassword || null }), { expirationTtl: 14400 });
