@@ -1052,6 +1052,44 @@ async function handleRequest(request, env) {
   // ── Portal ─────────────────────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/portal/galleries') return handlePortalGalleries(request, env);
 
+  // ── Questionnaire instances ───────────────────────────────────────────────
+  const projectQuestionnairesMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/questionnaires$/);
+  if (projectQuestionnairesMatch)
+    return handleAdminProjectQuestionnaires(request, method, env, projectQuestionnairesMatch[1]);
+  const publicQnMatch = pathname.match(/^\/questionnaire\/([^/]+)$/);
+  if (publicQnMatch && (method === 'GET' || method === 'POST'))
+    return handlePublicQuestionnaire(request, method, env, publicQnMatch[1]);
+
+  // ── Project portal & messaging ────────────────────────────────────────────
+  const projectPortalLinkMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/portal-link$/);
+  if (projectPortalLinkMatch && method === 'POST')
+    return handleAdminProjectPortalLink(request, env, projectPortalLinkMatch[1]);
+  const projectMsgMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/messages$/);
+  if (projectMsgMatch)
+    return handleAdminProjectMessages(request, method, env, projectMsgMatch[1]);
+  const publicPortalProjMatch = pathname.match(/^\/portal\/project\/([^/]+)$/);
+  if (publicPortalProjMatch && (method === 'GET' || method === 'POST'))
+    return handlePublicProjectPortal(request, method, env, publicPortalProjMatch[1]);
+
+  // ── Scheduling ────────────────────────────────────────────────────────────
+  if (pathname === '/admin/availability' && (method === 'GET' || method === 'PUT'))
+    return handleAdminAvailability(request, method, env);
+  const blockedDateDelMatch = pathname.match(/^\/admin\/blocked-dates\/([^/]+)$/);
+  if (pathname === '/admin/blocked-dates' || blockedDateDelMatch)
+    return handleAdminBlockedDates(request, method, env, blockedDateDelMatch?.[1]);
+  const projectSchedMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/schedule-links$/);
+  if (projectSchedMatch)
+    return handleAdminProjectScheduleLinks(request, method, env, projectSchedMatch[1]);
+  const publicSchedMatch = pathname.match(/^\/schedule\/([^/]+)$/);
+  if (publicSchedMatch && (method === 'GET' || method === 'POST'))
+    return handlePublicSchedule(request, method, env, publicSchedMatch[1]);
+
+  // ── Automations ───────────────────────────────────────────────────────────
+  if (pathname === '/admin/automations' && (method === 'GET' || method === 'PUT'))
+    return handleAdminAutomations(request, method, env);
+  if (method === 'GET' && pathname === '/admin/automation-logs')
+    return handleAdminAutomationLogs(request, env);
+
   // ── Token exchange: POST /token {galleryId} + JWT → {sid} ────────────────
   if (method === 'POST' && pathname === '/token') {
     const payload = await getAuth(request, env);
@@ -1267,8 +1305,514 @@ async function handleRequest(request, env) {
   return new Response(body, { status: nasResponse.status, headers: resHeaders });
 }
 
+// ── ICS calendar invite generator ────────────────────────────────────────────
+
+function generateICS({ uid, summary, description, dtstart, dtend, organizerEmail, attendeeEmail, attendeeName }) {
+  const fmt = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return [
+    'BEGIN:VCALENDAR', 'VERSION:2.0',
+    'PRODID:-//Coastal Travel Company//EN', 'METHOD:REQUEST',
+    'BEGIN:VEVENT',
+    'UID:' + uid,
+    'DTSTART:' + fmt(dtstart),
+    'DTEND:' + fmt(dtend),
+    'SUMMARY:' + summary,
+    'DESCRIPTION:' + description,
+    'ORGANIZER;CN=Coastal Travel Company:mailto:' + organizerEmail,
+    attendeeEmail ? 'ATTENDEE;CN=' + attendeeName + ';RSVP=TRUE:mailto:' + attendeeEmail : '',
+    'STATUS:CONFIRMED', 'SEQUENCE:0',
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean).join('\r\n');
+}
+
+// ── Available scheduling slot generator ──────────────────────────────────────
+
+function generateAvailableSlots(windows, blockedDates, bookedSlots, durationMins = 30, numDays = 28) {
+  const now     = new Date();
+  const blocked = new Set(blockedDates.map(b => b.date));
+  const booked  = new Set(bookedSlots.map(s => s.booked_slot).filter(Boolean));
+  const slots   = [];
+  for (let d = 1; d <= numDays; d++) {
+    const day     = new Date(now);
+    day.setDate(day.getDate() + d);
+    const dow     = day.getDay();
+    const dateStr = day.toISOString().slice(0, 10);
+    if (blocked.has(dateStr)) continue;
+    for (const w of windows.filter(w => Number(w.day_of_week) === dow && w.active)) {
+      const [sh, sm] = w.start_time.split(':').map(Number);
+      const [eh, em] = w.end_time.split(':').map(Number);
+      let cur = sh * 60 + sm;
+      const end = eh * 60 + em;
+      while (cur + durationMins <= end) {
+        const hh  = String(Math.floor(cur / 60)).padStart(2, '0');
+        const mm  = String(cur % 60).padStart(2, '0');
+        const iso = dateStr + 'T' + hh + ':' + mm + ':00';
+        if (!booked.has(iso)) slots.push(iso);
+        cur += durationMins;
+      }
+    }
+  }
+  return slots;
+}
+
+// ── Questionnaire delivery ────────────────────────────────────────────────────
+
+async function handleAdminProjectQuestionnaires(request, method, env, projectId) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+
+  if (method === 'GET') {
+    const { results } = await env.DB.prepare(`
+      SELECT qi.*, qs.name AS set_name
+      FROM questionnaire_instances qi
+      JOIN questionnaire_sets qs ON qi.set_id = qs.id
+      WHERE qi.project_id = ? ORDER BY qi.sent_at DESC
+    `).bind(projectId).all();
+    return jsonResponse(results);
+  }
+
+  if (method === 'POST') {
+    const { set_id } = await request.json();
+    if (!set_id) return jsonResponse({ error: 'set_id required' }, 400);
+    const [setRes, projRes] = await Promise.all([
+      env.DB.prepare('SELECT * FROM questionnaire_sets WHERE id = ?').bind(set_id).all(),
+      env.DB.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).all(),
+    ]);
+    if (!setRes.results.length)  return jsonResponse({ error: 'Questionnaire set not found' }, 404);
+    if (!projRes.results.length) return jsonResponse({ error: 'Project not found' }, 404);
+    const qs   = setRes.results[0];
+    const proj = projRes.results[0];
+    const id    = crypto.randomUUID();
+    const token = crypto.randomUUID();
+    const now   = new Date().toISOString();
+    await env.DB.prepare(
+      'INSERT INTO questionnaire_instances (id,project_id,set_id,magic_token,phase,status,sent_at,completed_at,responses) VALUES (?,?,?,?,?,?,?,?,?)'
+    ).bind(id, projectId, set_id, token, qs.phase, 'sent', now, '', '{}').run();
+    const url = `${ALLOWED_ORIGIN}/questionnaire.html#${token}`;
+    if (env.RESEND_API_KEY && proj.client_email) {
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+          to:      [proj.client_email],
+          subject: qs.name + ' — Coastal Travel Company',
+          html:    `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p>
+<p style="font-family:sans-serif;font-size:15px">Please take a moment to complete this questionnaire for your upcoming project.</p>
+<p><a href="${url}" style="background:#2A5C45;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;font-family:sans-serif">Complete Questionnaire</a></p>
+<p style="font-family:sans-serif;font-size:13px;color:#999">Or copy this link: ${url}</p>`,
+        }),
+      }).catch(() => {});
+    }
+    return jsonResponse({ id, project_id: projectId, set_id, magic_token: token, phase: qs.phase, status: 'sent', sent_at: now, public_url: url }, 201);
+  }
+}
+
+async function handlePublicQuestionnaire(request, method, env, token) {
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const { results } = await env.DB.prepare(`
+    SELECT qi.*, qs.name AS set_name, qs.questions,
+           p.client_name, p.property, p.collection
+    FROM questionnaire_instances qi
+    JOIN questionnaire_sets qs ON qi.set_id = qs.id
+    JOIN projects p ON qi.project_id = p.id
+    WHERE qi.magic_token = ?
+  `).bind(token).all();
+  if (!results.length) return jsonResponse({ error: 'Questionnaire not found or link expired' }, 404);
+  const qi = results[0];
+
+  if (method === 'GET') {
+    return jsonResponse({
+      id: qi.id, set_name: qi.set_name, phase: qi.phase, status: qi.status,
+      questions: JSON.parse(qi.questions || '[]'),
+      client_name: qi.client_name, property: qi.property, collection: qi.collection,
+    });
+  }
+
+  if (method === 'POST') {
+    if (qi.status === 'completed') return jsonResponse({ error: 'Already submitted' }, 409);
+    let responses;
+    try { responses = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
+    const now = new Date().toISOString();
+    await env.DB.prepare('UPDATE questionnaire_instances SET status=?,completed_at=?,responses=? WHERE id=?')
+      .bind('completed', now, JSON.stringify(responses), qi.id).run();
+    if (env.RESEND_API_KEY) {
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+          to:      [CONTACT_TO],
+          subject: `Questionnaire submitted — ${qi.client_name}`,
+          html:    `<p style="font-family:sans-serif"><strong>${escHtml(qi.client_name)}</strong> completed the questionnaire "<em>${escHtml(qi.set_name)}</em>".</p><p style="font-family:sans-serif"><a href="${ALLOWED_ORIGIN}/admin/pipeline.html">View in Pipeline →</a></p>`,
+        }),
+      }).catch(() => {});
+    }
+    return jsonResponse({ ok: true, completed_at: now });
+  }
+}
+
+// ── Project portal ────────────────────────────────────────────────────────────
+
+async function handleAdminProjectPortalLink(request, env, projectId) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const id  = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await env.DB.prepare('INSERT INTO project_portal_tokens (id,project_id,expires_at,created_at) VALUES (?,?,?,?)')
+    .bind(id, projectId, '', now).run();
+  return jsonResponse({ id, project_id: projectId, url: `${ALLOWED_ORIGIN}/portal-project.html#${id}`, created_at: now }, 201);
+}
+
+async function handlePublicProjectPortal(request, method, env, token) {
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const { results: tokenRows } = await env.DB.prepare('SELECT * FROM project_portal_tokens WHERE id = ?').bind(token).all();
+  if (!tokenRows.length) return jsonResponse({ error: 'Portal link not found' }, 404);
+  const projectId = tokenRows[0].project_id;
+  const { results: projRows } = await env.DB.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).all();
+  if (!projRows.length) return jsonResponse({ error: 'Project not found' }, 404);
+  const proj = projRows[0];
+
+  if (method === 'GET') {
+    const [docsRes, propsRes, msgsRes, questRes] = await Promise.all([
+      env.DB.prepare('SELECT * FROM project_documents WHERE project_id=? ORDER BY created_at DESC').bind(projectId).all(),
+      env.DB.prepare('SELECT id,status,public_url,selected_package_id,expires_at,opened_at,selected_at,created_at FROM proposals WHERE project_id=? ORDER BY created_at DESC').bind(projectId).all(),
+      env.DB.prepare('SELECT * FROM project_messages WHERE project_id=? ORDER BY created_at ASC').bind(projectId).all(),
+      env.DB.prepare('SELECT id,phase,status,sent_at,completed_at FROM questionnaire_instances WHERE project_id=? ORDER BY sent_at DESC').bind(projectId).all(),
+    ]);
+    return jsonResponse({
+      project: { id: proj.id, client_name: proj.client_name, property: proj.property, location: proj.location, collection: proj.collection, shoot_date: proj.shoot_date, stage: proj.stage, created_at: proj.created_at },
+      documents: docsRes.results, proposals: propsRes.results,
+      messages: msgsRes.results, questionnaires: questRes.results,
+    });
+  }
+
+  if (method === 'POST') {
+    let body; try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
+    const { content, sender_name } = body;
+    if (!content?.trim()) return jsonResponse({ error: 'content required' }, 400);
+    const id  = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const name = (sender_name || proj.client_name || 'Client').trim();
+    await env.DB.prepare('INSERT INTO project_messages (id,project_id,sender,sender_name,content,created_at) VALUES (?,?,?,?,?,?)')
+      .bind(id, projectId, 'client', name, content.trim(), now).run();
+    if (env.RESEND_API_KEY) {
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+          to:      [CONTACT_TO],
+          subject: `New portal message — ${proj.client_name}`,
+          html:    `<p style="font-family:sans-serif"><strong>${escHtml(name)}</strong> sent a message:</p><blockquote style="font-family:sans-serif;border-left:3px solid #2A5C45;padding-left:12px;margin-left:0">${escHtml(content)}</blockquote><p style="font-family:sans-serif"><a href="${ALLOWED_ORIGIN}/admin/pipeline.html">View in Pipeline →</a></p>`,
+        }),
+      }).catch(() => {});
+    }
+    return jsonResponse({ id, project_id: projectId, sender: 'client', sender_name: name, content: content.trim(), created_at: now }, 201);
+  }
+}
+
+async function handleAdminProjectMessages(request, method, env, projectId) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  if (method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT * FROM project_messages WHERE project_id=? ORDER BY created_at ASC').bind(projectId).all();
+    return jsonResponse(results);
+  }
+  if (method === 'POST') {
+    const { content } = await request.json();
+    if (!content?.trim()) return jsonResponse({ error: 'content required' }, 400);
+    const id  = crypto.randomUUID();
+    const now = new Date().toISOString();
+    await env.DB.prepare('INSERT INTO project_messages (id,project_id,sender,sender_name,content,created_at) VALUES (?,?,?,?,?,?)')
+      .bind(id, projectId, 'admin', 'Coastal Travel Company', content.trim(), now).run();
+    return jsonResponse({ id, project_id: projectId, sender: 'admin', sender_name: 'Coastal Travel Company', content: content.trim(), created_at: now }, 201);
+  }
+}
+
+// ── Scheduling ────────────────────────────────────────────────────────────────
+
+async function handleAdminAvailability(request, method, env) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  if (method === 'GET') {
+    const [winRes, blkRes] = await Promise.all([
+      env.DB.prepare('SELECT * FROM availability_windows ORDER BY day_of_week, start_time').all(),
+      env.DB.prepare('SELECT * FROM blocked_dates ORDER BY date').all(),
+    ]);
+    return jsonResponse({ windows: winRes.results, blocked_dates: blkRes.results });
+  }
+  if (method === 'PUT') {
+    const { windows } = await request.json();
+    if (!Array.isArray(windows)) return jsonResponse({ error: 'windows array required' }, 400);
+    await env.DB.prepare('DELETE FROM availability_windows').run();
+    for (const w of windows) {
+      if (w.day_of_week == null || !w.start_time || !w.end_time) continue;
+      await env.DB.prepare('INSERT INTO availability_windows (id,day_of_week,start_time,end_time,active) VALUES (?,?,?,?,?)')
+        .bind(crypto.randomUUID(), Number(w.day_of_week), w.start_time, w.end_time, w.active !== false ? 1 : 0).run();
+    }
+    const { results } = await env.DB.prepare('SELECT * FROM availability_windows ORDER BY day_of_week, start_time').all();
+    return jsonResponse({ windows: results });
+  }
+}
+
+async function handleAdminBlockedDates(request, method, env, id) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  if (method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT * FROM blocked_dates ORDER BY date').all();
+    return jsonResponse(results);
+  }
+  if (method === 'POST') {
+    const { date, reason } = await request.json();
+    if (!date) return jsonResponse({ error: 'date required' }, 400);
+    const bid = crypto.randomUUID();
+    await env.DB.prepare('INSERT INTO blocked_dates (id,date,reason) VALUES (?,?,?)').bind(bid, date, reason || '').run();
+    return jsonResponse({ id: bid, date, reason: reason || '' }, 201);
+  }
+  if (method === 'DELETE' && id) {
+    await env.DB.prepare('DELETE FROM blocked_dates WHERE id=?').bind(id).run();
+    return jsonResponse({ ok: true });
+  }
+}
+
+async function handleAdminProjectScheduleLinks(request, method, env, projectId) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  if (method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT * FROM scheduling_links WHERE project_id=? ORDER BY created_at DESC').bind(projectId).all();
+    return jsonResponse(results);
+  }
+  if (method === 'POST') {
+    const { link_type, duration_mins } = await request.json();
+    const { results: projRows } = await env.DB.prepare('SELECT * FROM projects WHERE id=?').bind(projectId).all();
+    if (!projRows.length) return jsonResponse({ error: 'Project not found' }, 404);
+    const proj  = projRows[0];
+    const id    = crypto.randomUUID();
+    const token = crypto.randomUUID();
+    const now   = new Date().toISOString();
+    const type  = link_type || 'discovery-call';
+    const dur   = Number(duration_mins) || 30;
+    await env.DB.prepare(
+      'INSERT INTO scheduling_links (id,project_id,link_type,duration_mins,magic_token,expires_at,booked_at,booked_slot,client_name,client_email,notes,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
+    ).bind(id, projectId, type, dur, token, '', '', '', proj.client_name, proj.client_email, '', now).run();
+    const url   = `${ALLOWED_ORIGIN}/schedule.html#${token}`;
+    const label = type === 'shoot' ? 'shoot date' : 'discovery call';
+    if (env.RESEND_API_KEY && proj.client_email) {
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+          to:      [proj.client_email],
+          subject: `Schedule your ${label} — Coastal Travel Company`,
+          html:    `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p><p style="font-family:sans-serif;font-size:15px">Please choose a time that works for your ${escHtml(label)}.</p><p><a href="${url}" style="background:#2A5C45;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;font-family:sans-serif">Choose a Time</a></p><p style="font-family:sans-serif;font-size:13px;color:#999">Or copy this link: ${url}</p>`,
+        }),
+      }).catch(() => {});
+    }
+    return jsonResponse({ id, project_id: projectId, link_type: type, duration_mins: dur, magic_token: token, public_url: url, booked_at: '', created_at: now }, 201);
+  }
+}
+
+async function handlePublicSchedule(request, method, env, token) {
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const { results: linkRows } = await env.DB.prepare('SELECT * FROM scheduling_links WHERE magic_token=?').bind(token).all();
+  if (!linkRows.length) return jsonResponse({ error: 'Scheduling link not found' }, 404);
+  const link = linkRows[0];
+
+  if (method === 'GET') {
+    const [winRes, blkRes, bookedRes] = await Promise.all([
+      env.DB.prepare("SELECT * FROM availability_windows WHERE active=1 ORDER BY day_of_week, start_time").all(),
+      env.DB.prepare("SELECT * FROM blocked_dates ORDER BY date").all(),
+      env.DB.prepare("SELECT booked_slot FROM scheduling_links WHERE booked_slot != ''").all(),
+    ]);
+    return jsonResponse({
+      link_type: link.link_type, duration_mins: link.duration_mins,
+      client_name: link.client_name, booked: !!link.booked_at, booked_slot: link.booked_slot,
+      available_slots: link.booked_at ? [] : generateAvailableSlots(winRes.results, blkRes.results, bookedRes.results, link.duration_mins || 30),
+    });
+  }
+
+  if (method === 'POST') {
+    if (link.booked_at) return jsonResponse({ error: 'This time has already been booked' }, 409);
+    let body; try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
+    const { slot, notes } = body;
+    if (!slot) return jsonResponse({ error: 'slot required' }, 400);
+    const now      = new Date().toISOString();
+    await env.DB.prepare('UPDATE scheduling_links SET booked_at=?,booked_slot=?,notes=? WHERE magic_token=?')
+      .bind(now, slot, notes || '', token).run();
+
+    const slotDate = new Date(slot);
+    const slotEnd  = new Date(slotDate.getTime() + (link.duration_mins || 30) * 60000);
+    const label    = link.link_type === 'shoot' ? 'Shoot Date — Coastal Travel Company' : 'Discovery Call — Coastal Travel Company';
+    const ics      = generateICS({
+      uid: link.id + '@coastaltravelcompany.com', summary: label,
+      description: `${label}\\nClient: ${link.client_name}`,
+      dtstart: slotDate, dtend: slotEnd,
+      organizerEmail: 'noreply@coastaltravelcompany.com',
+      attendeeEmail: link.client_email, attendeeName: link.client_name,
+    });
+    const formattedSlot = slotDate.toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York' });
+    const emailHtml = `<p style="font-family:sans-serif;font-size:15px">Your ${link.link_type === 'shoot' ? 'shoot date' : 'discovery call'} is confirmed!</p><p style="font-family:sans-serif;font-size:16px;font-weight:600">${formattedSlot} ET</p>${notes ? `<p style="font-family:sans-serif;font-size:14px;color:#555">Notes: ${escHtml(notes)}</p>` : ''}<p style="font-family:sans-serif;font-size:13px;color:#999">A calendar invite is attached.</p>`;
+    const icsB64   = btoa(unescape(encodeURIComponent(ics)));
+    if (env.RESEND_API_KEY) {
+      const att = [{ filename: 'invite.ics', content: icsB64 }];
+      await Promise.all([
+        fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'Coastal Travel Company <noreply@coastaltravelcompany.com>', to: [link.client_email], subject: 'Confirmed: ' + label, html: emailHtml, attachments: att }) }).catch(() => {}),
+        fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ from: 'Coastal Travel Company <noreply@coastaltravelcompany.com>', to: [CONTACT_TO], subject: `Confirmed: ${label} — ${link.client_name}`, html: emailHtml, attachments: att }) }).catch(() => {}),
+      ]);
+    }
+    if (link.link_type === 'shoot') {
+      await env.DB.prepare('UPDATE projects SET shoot_date=?,updated_at=? WHERE id=?')
+        .bind(slot.slice(0, 10), now, link.project_id).run();
+    }
+    return jsonResponse({ ok: true, booked_slot: slot, booked_at: now });
+  }
+}
+
+// ── Automations ───────────────────────────────────────────────────────────────
+
+async function handleAdminAutomations(request, method, env) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  if (method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT * FROM automation_settings ORDER BY id').all();
+    return jsonResponse(results);
+  }
+  if (method === 'PUT') {
+    const updates = await request.json();
+    if (!Array.isArray(updates)) return jsonResponse({ error: 'Array required' }, 400);
+    const now = new Date().toISOString();
+    for (const u of updates) {
+      await env.DB.prepare('UPDATE automation_settings SET enabled=?,delay_hours=?,updated_at=? WHERE id=?')
+        .bind(u.enabled ? 1 : 0, Number(u.delay_hours) || 0, now, u.id).run();
+    }
+    const { results } = await env.DB.prepare('SELECT * FROM automation_settings ORDER BY id').all();
+    return jsonResponse(results);
+  }
+}
+
+async function handleAdminAutomationLogs(request, env) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (p.role !== 'admin') return forbidden();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const { results } = await env.DB.prepare(`
+    SELECT al.*, p.client_name FROM automation_logs al
+    LEFT JOIN projects p ON al.project_id = p.id
+    ORDER BY al.created_at DESC LIMIT 100
+  `).all();
+  return jsonResponse(results);
+}
+
+async function sendAutomationEmail(env, to, subject, html) {
+  if (!env.RESEND_API_KEY || !to) return;
+  return fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: 'Coastal Travel Company <noreply@coastaltravelcompany.com>', to: [to], subject, html }),
+  }).catch(() => {});
+}
+
+async function logAutomation(db, projectId, triggerKey, action, now) {
+  await db.prepare('INSERT INTO automation_logs (id,project_id,trigger_key,action,status,created_at) VALUES (?,?,?,?,?,?)')
+    .bind(crypto.randomUUID(), projectId, triggerKey, action, 'sent', now).run();
+}
+
+// ── Cron: run automation checks hourly ───────────────────────────────────────
+
+async function handleScheduled(event, env) {
+  if (!env.DB || !env.RESEND_API_KEY) return;
+  const { results: settings } = await env.DB.prepare("SELECT * FROM automation_settings WHERE enabled=1").all();
+  if (!settings.length) return;
+  const cfg    = Object.fromEntries(settings.map(s => [s.trigger_key, s]));
+  const now    = new Date();
+  const nowIso = now.toISOString();
+  const hrsSince = iso => (now - new Date(iso)) / 3600000;
+
+  const { results: projects } = await env.DB.prepare(
+    "SELECT * FROM projects WHERE stage NOT IN ('Complete') ORDER BY created_at ASC"
+  ).all();
+
+  for (const proj of projects) {
+    if (!proj.client_email) continue;
+
+    if (cfg['inquiry_auto_reply'] && proj.stage === 'Inquiry' && proj.source === 'inquiry') {
+      const { results: logged } = await env.DB.prepare("SELECT id FROM automation_logs WHERE project_id=? AND trigger_key='inquiry_auto_reply'").bind(proj.id).all();
+      if (!logged.length) {
+        await sendAutomationEmail(env, proj.client_email, 'Thank you for reaching out — Coastal Travel Company',
+          `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p><p style="font-family:sans-serif;font-size:15px">Thank you for your inquiry! We've received your message and will be in touch within 24 hours. In the meantime, feel free to explore our <a href="${ALLOWED_ORIGIN}/collections.html" style="color:#2A5C45">portfolio</a>.</p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`);
+        await logAutomation(env.DB, proj.id, 'inquiry_auto_reply', 'auto-reply sent', nowIso);
+      }
+    }
+
+    if (cfg['proposal_not_opened_followup'] && proj.stage === 'Proposal Sent') {
+      const { results: props } = await env.DB.prepare("SELECT * FROM proposals WHERE project_id=? AND (opened_at IS NULL OR opened_at='') ORDER BY created_at DESC LIMIT 1").bind(proj.id).all();
+      if (props.length && hrsSince(props[0].created_at) >= cfg['proposal_not_opened_followup'].delay_hours) {
+        const { results: logged } = await env.DB.prepare("SELECT id FROM automation_logs WHERE project_id=? AND trigger_key='proposal_not_opened_followup'").bind(proj.id).all();
+        if (!logged.length) {
+          await sendAutomationEmail(env, proj.client_email, 'Just checking in — Coastal Travel Company',
+            `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p><p style="font-family:sans-serif;font-size:15px">I wanted to make sure you received the proposal I sent. Happy to answer any questions. <a href="${escHtml(props[0].public_url)}" style="color:#2A5C45">View your proposal →</a></p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`);
+          await logAutomation(env.DB, proj.id, 'proposal_not_opened_followup', 'follow-up sent', nowIso);
+        }
+      }
+    }
+
+    if (cfg['proposal_not_approved_reminder'] && proj.stage === 'Proposal Sent') {
+      const { results: props } = await env.DB.prepare("SELECT * FROM proposals WHERE project_id=? AND status='sent' ORDER BY created_at DESC LIMIT 1").bind(proj.id).all();
+      if (props.length && hrsSince(props[0].created_at) >= cfg['proposal_not_approved_reminder'].delay_hours) {
+        const { results: logged } = await env.DB.prepare("SELECT id FROM automation_logs WHERE project_id=? AND trigger_key='proposal_not_approved_reminder'").bind(proj.id).all();
+        if (!logged.length) {
+          await sendAutomationEmail(env, proj.client_email, 'Dates are filling up — Coastal Travel Company',
+            `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p><p style="font-family:sans-serif;font-size:15px">I wanted to follow up before your preferred window fills. Happy to adjust the proposal to fit your needs. <a href="${escHtml(props[0].public_url)}" style="color:#2A5C45">Review your proposal →</a></p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`);
+          await logAutomation(env.DB, proj.id, 'proposal_not_approved_reminder', 'reminder sent', nowIso);
+        }
+      }
+    }
+
+    if (cfg['contract_not_signed_reminder'] && proj.stage === 'Contract Sent') {
+      if (hrsSince(proj.updated_at) >= cfg['contract_not_signed_reminder'].delay_hours) {
+        const { results: logged } = await env.DB.prepare("SELECT id FROM automation_logs WHERE project_id=? AND trigger_key='contract_not_signed_reminder'").bind(proj.id).all();
+        if (!logged.length) {
+          await sendAutomationEmail(env, proj.client_email, 'Your contract is ready to sign — Coastal Travel Company',
+            `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p><p style="font-family:sans-serif;font-size:15px">Just a reminder that your contract is awaiting your signature. Please sign at your earliest convenience to secure your shoot date.</p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`);
+          await logAutomation(env.DB, proj.id, 'contract_not_signed_reminder', 'reminder sent', nowIso);
+        }
+      }
+    }
+
+    if (cfg['post_delivery_review_request'] && proj.stage === 'Delivered') {
+      if (hrsSince(proj.updated_at) >= cfg['post_delivery_review_request'].delay_hours) {
+        const { results: logged } = await env.DB.prepare("SELECT id FROM automation_logs WHERE project_id=? AND trigger_key='post_delivery_review_request'").bind(proj.id).all();
+        if (!logged.length) {
+          await sendAutomationEmail(env, proj.client_email, 'How did we do? — Coastal Travel Company',
+            `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p><p style="font-family:sans-serif;font-size:15px">It was a pleasure working with you on ${escHtml(proj.property || 'your project')}. If you have a moment, we'd love to hear your feedback — reviews mean the world to us.</p><p style="font-family:sans-serif;font-size:15px">Thank you for choosing Coastal Travel Company.<br>Warmly,<br>Coastal Travel Company</p>`);
+          await logAutomation(env.DB, proj.id, 'post_delivery_review_request', 'review request sent', nowIso);
+        }
+      }
+    }
+  }
+}
+
 export default {
   async fetch(request, env) {
     return handleRequest(request, env);
+  },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(handleScheduled(event, env));
   },
 };

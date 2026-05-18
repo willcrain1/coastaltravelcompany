@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schedule — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .sc-wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+    .sc-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .sc-header .brand-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 1.8rem;
+      color: var(--green);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .sc-header h1 {
+      font-family: 'Gilda Display', serif;
+      font-size: clamp(1.4rem, 4vw, 1.8rem);
+      color: var(--black);
+      margin: 0 0 8px;
+    }
+    .sc-header p {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      color: #666;
+      margin: 0;
+    }
+    .sc-section-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin: 0 0 16px;
+    }
+    .sc-day-group {
+      margin-bottom: 28px;
+    }
+    .sc-day-label {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--black);
+      margin-bottom: 10px;
+    }
+    .sc-slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .sc-slot {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 9px 18px;
+      border: 1.5px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      cursor: pointer;
+      transition: all .15s;
+      color: var(--black);
+    }
+    .sc-slot:hover { border-color: var(--green); color: var(--green); }
+    .sc-slot.selected {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+    .sc-confirm-panel {
+      margin-top: 32px;
+      padding: 24px;
+      border: 1.5px solid var(--green);
+      border-radius: 4px;
+      background: #f8faf9;
+    }
+    .sc-confirm-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--green);
+      margin: 0 0 12px;
+    }
+    .sc-confirm-time {
+      font-family: 'Gilda Display', serif;
+      font-size: 1.2rem;
+      color: var(--black);
+      margin: 0 0 16px;
+    }
+    .sc-notes-label {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      margin: 0 0 6px;
+      display: block;
+    }
+    .sc-notes {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.85rem;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+      resize: vertical;
+      min-height: 70px;
+    }
+    .sc-notes:focus { outline: none; border-color: var(--green); }
+    .sc-book-btn {
+      margin-top: 14px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 14px 36px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: opacity .2s;
+      width: 100%;
+    }
+    .sc-book-btn:hover { opacity: .85; }
+    .sc-book-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .sc-done {
+      text-align: center;
+      padding: 40px 0;
+    }
+    .sc-done h2 {
+      font-family: 'Gilda Display', serif;
+      font-size: 1.6rem;
+      color: var(--green);
+      margin: 0 0 12px;
+    }
+    .sc-done .confirmed-time {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--black);
+      margin: 0 0 16px;
+    }
+    .sc-done p {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .sc-loading, .sc-error, .sc-empty {
+      text-align: center;
+      padding: 60px 24px;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .sc-error { color: #c00; }
+    .sc-loading { color: #888; }
+    .sc-empty { color: #888; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <a href="/" style="text-decoration:none">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+  </div>
+  <nav class="nav">
+    <a href="index.html" class="nav-link">Home</a>
+    <a href="services.html" class="nav-link">Services</a>
+    <a href="contact.html" class="nav-link">Contact</a>
+    <a href="login.html" class="nav-link nav-account">Account</a>
+  </nav>
+  <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+    <span></span><span></span><span></span>
+  </div>
+</header>
+
+<div class="mobile-nav" id="mobileNav">
+  <a href="index.html">Home</a>
+  <a href="services.html">Services</a>
+  <a href="contact.html">Contact</a>
+  <a href="login.html">Account</a>
+</div>
+
+<main>
+  <div id="scLoading" class="sc-loading">Loading available times…</div>
+  <div id="scError"   class="sc-error"   style="display:none"></div>
+  <div id="scWrap"   class="sc-wrap"    style="display:none">
+
+    <div class="sc-header">
+      <span class="brand-script">Coastal Travel Company</span>
+      <h1 id="scTitle">Choose a Time</h1>
+      <p id="scSubtitle"></p>
+    </div>
+
+    <div id="alreadyBooked" style="display:none">
+      <div class="sc-done">
+        <h2>Already Scheduled</h2>
+        <div class="confirmed-time" id="scBookedTime"></div>
+        <p>This time has already been confirmed. You'll receive a calendar invite by email.</p>
+      </div>
+    </div>
+
+    <div id="slotsPicker">
+      <div class="sc-section-title">Available Times (Next 4 Weeks)</div>
+      <div id="scSlots"></div>
+
+      <div id="scConfirmPanel" class="sc-confirm-panel" style="display:none">
+        <div class="sc-confirm-title">Confirm your selection</div>
+        <div class="sc-confirm-time" id="scConfirmTime"></div>
+        <label class="sc-notes-label" for="scNotes">Any notes or questions? (optional)</label>
+        <textarea class="sc-notes" id="scNotes" placeholder="e.g. parking instructions, a specific topic to cover…"></textarea>
+        <button class="sc-book-btn" id="scBookBtn" onclick="bookSlot()">Confirm This Time</button>
+      </div>
+    </div>
+
+    <div id="scSuccess" style="display:none">
+      <div class="sc-done">
+        <h2>You're confirmed!</h2>
+        <div class="confirmed-time" id="scSuccessTime"></div>
+        <p>A calendar invite has been sent to your email. We look forward to connecting!</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script src="config.js"></script>
+<script>
+  const token = location.hash.slice(1);
+  let linkData     = null;
+  let selectedSlot = null;
+
+  async function load() {
+    if (!token) { showError('No scheduling link found. Please use the link from your email.'); return; }
+    try {
+      const res = await fetch(WORKER_URL + '/schedule/' + token, { headers: { Origin: location.origin } });
+      if (!res.ok) { showError('Scheduling link not found or has expired.'); return; }
+      linkData = await res.json();
+      render();
+      hide('scLoading'); show('scWrap');
+    } catch {
+      showError('Unable to load available times. Please try again.');
+    }
+  }
+
+  function render() {
+    const label = linkData.link_type === 'shoot' ? 'Confirm Your Shoot Date' : 'Schedule Your Discovery Call';
+    document.getElementById('scTitle').textContent    = label;
+    document.getElementById('scSubtitle').textContent =
+      `Select a ${linkData.duration_mins || 30}-minute slot that works for you.`;
+
+    if (linkData.booked) {
+      document.getElementById('scBookedTime').textContent = fmtSlot(linkData.booked_slot);
+      hide('slotsPicker'); show('alreadyBooked');
+      return;
+    }
+
+    renderSlots(linkData.available_slots || []);
+  }
+
+  function renderSlots(slots) {
+    const el = document.getElementById('scSlots');
+    if (!slots.length) {
+      el.innerHTML = '<div class="sc-empty">No available times in the next 4 weeks. Please contact us directly to schedule.</div>';
+      return;
+    }
+
+    const byDay = {};
+    for (const slot of slots) {
+      const day = slot.slice(0, 10);
+      if (!byDay[day]) byDay[day] = [];
+      byDay[day].push(slot);
+    }
+
+    el.innerHTML = Object.entries(byDay).map(([day, daySlots]) => {
+      const label = new Date(day + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+      return `<div class="sc-day-group">
+        <div class="sc-day-label">${esc(label)}</div>
+        <div class="sc-slots">
+          ${daySlots.map(s => `<button class="sc-slot" data-slot="${esc(s)}" onclick="selectSlot('${esc(s)}')">${esc(fmtTime(s))}</button>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function selectSlot(slot) {
+    selectedSlot = slot;
+    document.querySelectorAll('.sc-slot').forEach(b => b.classList.toggle('selected', b.dataset.slot === slot));
+    document.getElementById('scConfirmTime').textContent = fmtSlot(slot);
+    show('scConfirmPanel');
+    document.getElementById('scConfirmPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function bookSlot() {
+    if (!selectedSlot) return;
+    const btn   = document.getElementById('scBookBtn');
+    const notes = document.getElementById('scNotes').value.trim();
+    btn.disabled = true;
+    btn.textContent = 'Confirming…';
+    try {
+      const res = await fetch(WORKER_URL + '/schedule/' + token, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Origin: location.origin },
+        body: JSON.stringify({ slot: selectedSlot, notes }),
+      });
+      if (res.ok) {
+        document.getElementById('scSuccessTime').textContent = fmtSlot(selectedSlot);
+        hide('slotsPicker'); show('scSuccess');
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Booking failed. Please try another time.');
+        btn.disabled = false;
+        btn.textContent = 'Confirm This Time';
+      }
+    } catch {
+      alert('Network error. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Confirm This Time';
+    }
+  }
+
+  function fmtTime(iso) {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
+  function fmtSlot(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    return d.toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+
+  function showError(msg) {
+    hide('scLoading');
+    const el = document.getElementById('scError');
+    el.textContent = msg;
+    el.style.display = '';
+  }
+  function show(id) { document.getElementById(id).style.display = ''; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
+  function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function toggleMobileNav() {
+    document.getElementById('mobileNav').classList.toggle('open');
+  }
+
+  load();
+</script>
+</body>
+</html>

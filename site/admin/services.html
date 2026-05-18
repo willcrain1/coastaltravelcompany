@@ -106,6 +106,62 @@
   </div>
   <div class="questionnaire-list" id="questionnaireList"></div>
 
+  <h2 class="sh">Availability &amp; Scheduling</h2>
+  <div class="card">
+    <p style="font-family:'Montserrat',sans-serif;font-size:0.85rem;color:#555;margin:0 0 20px;">
+      Set the days and hours clients can book discovery calls and shoot dates. Blocked dates override weekly windows.
+    </p>
+    <div class="pd-notes-title" style="margin-bottom:12px;">Weekly Availability</div>
+    <div id="availabilityWindows" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;">
+      <div class="fg">
+        <label>Day</label>
+        <select id="av-day">
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+          <option value="0">Sunday</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>From</label>
+        <input type="time" id="av-start" value="09:00" />
+      </div>
+      <div class="fg">
+        <label>To</label>
+        <input type="time" id="av-end" value="17:00" />
+      </div>
+      <button class="btn btn-ghost btn-sm" style="align-self:flex-end" onclick="addAvailabilityWindow()">Add Window</button>
+    </div>
+    <div class="pd-notes-title" style="margin-bottom:12px;">Blocked Dates</div>
+    <div id="blockedDatesList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="fg">
+        <label>Date</label>
+        <input type="date" id="av-block-date" />
+      </div>
+      <div class="fg">
+        <label>Reason (optional)</label>
+        <input type="text" id="av-block-reason" placeholder="e.g. Holiday" />
+      </div>
+      <button class="btn btn-ghost btn-sm" style="align-self:flex-end" onclick="addBlockedDate()">Block Date</button>
+    </div>
+  </div>
+
+  <h2 class="sh">Automation Settings</h2>
+  <div class="card">
+    <p style="font-family:'Montserrat',sans-serif;font-size:0.85rem;color:#555;margin:0 0 20px;">
+      Enable automated emails for common workflow triggers. The worker checks conditions hourly and sends each email at most once per project.
+    </p>
+    <div id="automationList" style="display:flex;flex-direction:column;gap:16px;margin-bottom:24px;"></div>
+    <button class="btn btn-primary btn-sm" onclick="saveAutomations()">Save Automation Settings</button>
+    <div class="pd-notes-title" style="margin-top:32px;margin-bottom:12px;">Recent Automation Log</div>
+    <div id="automationLog" style="font-family:'Montserrat',sans-serif;font-size:0.82rem;color:#555;"></div>
+  </div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -302,11 +358,155 @@
     toast('Questionnaire deleted');
   }
 
+  // ── Availability windows ──────────────────────────────────────────────────────
+  const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  let availabilityData = { windows: [], blocked_dates: [] };
+
+  async function loadAvailability() {
+    const { ok, data } = await apiFetch('/admin/availability', { method: 'GET' });
+    if (!ok) return;
+    availabilityData = data;
+    renderAvailability();
+    renderBlockedDates();
+  }
+
+  function renderAvailability() {
+    const el = document.getElementById('availabilityWindows');
+    if (!availabilityData.windows.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;">No availability set yet. Add windows below.</div>';
+      return;
+    }
+    el.innerHTML = availabilityData.windows.map((w, i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#f8f8f8;border-radius:4px;">
+        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;font-weight:600;min-width:90px;">${esc(DAY_NAMES[w.day_of_week])}</span>
+        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;">${esc(w.start_time)} – ${esc(w.end_time)}</span>
+        <button class="btn btn-danger btn-sm" style="margin-left:auto;padding:4px 10px;" onclick="removeAvailabilityWindow(${i})">Remove</button>
+      </div>`).join('');
+  }
+
+  function removeAvailabilityWindow(i) {
+    availabilityData.windows.splice(i, 1);
+    renderAvailability();
+    saveAvailabilityWindows();
+  }
+
+  async function addAvailabilityWindow() {
+    const dow   = Number(document.getElementById('av-day').value);
+    const start = document.getElementById('av-start').value;
+    const end   = document.getElementById('av-end').value;
+    if (!start || !end || start >= end) { toast('Set a valid start and end time', true); return; }
+    availabilityData.windows.push({ day_of_week: dow, start_time: start, end_time: end, active: true });
+    availabilityData.windows.sort((a, b) => a.day_of_week - b.day_of_week || a.start_time.localeCompare(b.start_time));
+    renderAvailability();
+    await saveAvailabilityWindows();
+  }
+
+  async function saveAvailabilityWindows() {
+    const { ok } = await apiFetch('/admin/availability', { method: 'PUT', body: { windows: availabilityData.windows } });
+    if (ok) toast('Availability saved'); else toast('Save failed', true);
+  }
+
+  function renderBlockedDates() {
+    const el = document.getElementById('blockedDatesList');
+    if (!availabilityData.blocked_dates.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;">No blocked dates.</div>';
+      return;
+    }
+    el.innerHTML = availabilityData.blocked_dates.map(b => `
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff3cd;border-radius:4px;">
+        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;font-weight:600;">${esc(b.date)}</span>
+        ${b.reason ? `<span style="font-family:'Montserrat',sans-serif;font-size:0.82rem;color:#666;">${esc(b.reason)}</span>` : ''}
+        <button class="btn btn-danger btn-sm" style="margin-left:auto;padding:4px 10px;" onclick="removeBlockedDate('${esc(b.id)}')">Remove</button>
+      </div>`).join('');
+  }
+
+  async function addBlockedDate() {
+    const date   = document.getElementById('av-block-date').value;
+    const reason = document.getElementById('av-block-reason').value.trim();
+    if (!date) { toast('Select a date to block', true); return; }
+    const { ok, data } = await apiFetch('/admin/blocked-dates', { method: 'POST', body: { date, reason } });
+    if (!ok) { toast('Failed to block date', true); return; }
+    availabilityData.blocked_dates.push(data);
+    availabilityData.blocked_dates.sort((a, b) => a.date.localeCompare(b.date));
+    renderBlockedDates();
+    document.getElementById('av-block-date').value   = '';
+    document.getElementById('av-block-reason').value = '';
+    toast('Date blocked');
+  }
+
+  async function removeBlockedDate(id) {
+    const { ok } = await apiFetch('/admin/blocked-dates/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Failed to remove blocked date', true); return; }
+    availabilityData.blocked_dates = availabilityData.blocked_dates.filter(b => b.id !== id);
+    renderBlockedDates();
+    toast('Date unblocked');
+  }
+
+  // ── Automation settings ───────────────────────────────────────────────────────
+  let automations = [];
+
+  async function loadAutomations() {
+    const { ok, data } = await apiFetch('/admin/automations', { method: 'GET' });
+    if (!ok) return;
+    automations = Array.isArray(data) ? data : [];
+    renderAutomations();
+    loadAutomationLogs();
+  }
+
+  function renderAutomations() {
+    const el = document.getElementById('automationList');
+    el.innerHTML = automations.map(a => `
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid #e0e0e0;border-radius:4px;">
+        <label class="gallery-check-item" style="margin:0;align-items:flex-start;">
+          <input type="checkbox" data-automation-id="${esc(a.id)}" ${a.enabled ? 'checked' : ''} style="margin-top:2px;" />
+        </label>
+        <div style="flex:1;">
+          <div style="font-family:'Montserrat',sans-serif;font-size:0.875rem;font-weight:600;margin-bottom:4px;">${esc(a.label)}</div>
+          ${a.delay_hours > 0 ? `<div style="font-family:'Montserrat',sans-serif;font-size:0.78rem;color:#888;">Triggers after ${esc(a.delay_hours + '')}h</div>` : ''}
+        </div>
+      </div>`).join('');
+  }
+
+  async function saveAutomations() {
+    const updates = automations.map(a => {
+      const cb = document.querySelector(`input[data-automation-id="${a.id}"]`);
+      return { id: a.id, enabled: cb?.checked ? 1 : 0, delay_hours: a.delay_hours };
+    });
+    const { ok, data } = await apiFetch('/admin/automations', { method: 'PUT', body: updates });
+    if (!ok) { toast('Save failed', true); return; }
+    automations = Array.isArray(data) ? data : automations;
+    toast('Automation settings saved');
+  }
+
+  async function loadAutomationLogs() {
+    const { ok, data } = await apiFetch('/admin/automation-logs', { method: 'GET' });
+    if (!ok) return;
+    const el  = document.getElementById('automationLog');
+    const logs = Array.isArray(data) ? data.slice(0, 20) : [];
+    if (!logs.length) { el.innerHTML = '<div style="color:var(--dim);">No automation emails sent yet.</div>'; return; }
+    el.innerHTML = logs.map(l => `
+      <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="color:var(--green);font-weight:600;white-space:nowrap;">${esc(l.client_name || l.project_id.slice(0,8))}</span>
+        <span style="flex:1;">${esc(l.trigger_key.replace(/_/g,' '))}</span>
+        <span style="color:#aaa;white-space:nowrap;">${esc(relTime(l.created_at))}</span>
+      </div>`).join('');
+  }
+
+  function relTime(iso) {
+    if (!iso) return '';
+    const m = Math.floor((Date.now() - new Date(iso)) / 60000);
+    if (m < 2)  return 'just now';
+    if (m < 60) return m + 'm ago';
+    const h = Math.floor(m / 60);
+    if (h < 24) return h + 'h ago';
+    return Math.floor(h / 24) + 'd ago';
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    await Promise.all([loadPackages(), loadQuestionnaires()]);
+    await Promise.all([loadPackages(), loadQuestionnaires(), loadAvailability(), loadAutomations()]);
   }
 
   init();
