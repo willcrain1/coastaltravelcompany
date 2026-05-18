@@ -291,20 +291,73 @@ async function handleAuthRegister(request, env) {
   if (!email || !password || password.length < 8) {
     return jsonResponse({ error: 'Email and password (min 8 chars) required' }, 400);
   }
-  if (await getUser(email, env.KV)) return jsonResponse({ error: 'An account with that email already exists' }, 409);
-  const id   = crypto.randomUUID();
+  if (await getUser(email.toLowerCase(), env.KV)) {
+    return jsonResponse({ error: 'An account with that email already exists' }, 409);
+  }
+  const id          = crypto.randomUUID();
+  const verifyToken = crypto.randomUUID();
   const user = {
     id, email: email.toLowerCase(),
     passwordHash: await hashPassword(password),
     role: 'client', created: Date.now(), galleries: [],
+    verified: false,
   };
   await putUser(user, env.KV);
-  const now   = Math.floor(Date.now() / 1000);
-  const token = await createJWT(
-    { sub: user.email, id, role: 'client', iat: now, exp: now + JWT_EXPIRY_SECS },
-    env.JWT_SECRET
-  );
-  return jsonResponse({ token, user: { id, email: user.email, role: 'client' } });
+  await env.KV.put('verify:' + verifyToken, JSON.stringify({ email: user.email }), { expirationTtl: 86400 });
+  if (env.RESEND_API_KEY) {
+    const verifyUrl = `${ALLOWED_ORIGIN}/login.html?verify=${verifyToken}`;
+    await fetch('https://api.resend.com/emails', {
+      method:  'POST',
+      headers: { 'Authorization': 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+        to:      [user.email],
+        subject: 'Verify your email — Coastal Travel Company',
+        html:    `<p style="font-family:sans-serif;font-size:15px">Thanks for creating an account with Coastal Travel Company.</p>
+<p style="font-family:sans-serif;font-size:15px">Please verify your email address to access your galleries. The link expires in 24 hours.</p>
+<p style="font-family:sans-serif;font-size:15px"><a href="${verifyUrl}" style="color:#2A5C45">${verifyUrl}</a></p>
+<p style="font-family:sans-serif;font-size:13px;color:#999">If you didn't create this account, you can ignore this email.</p>`,
+      }),
+    }).catch(() => {});
+  }
+  return jsonResponse({ ok: true });
+}
+
+async function handleAuthVerify(request, env) {
+  const token = new URL(request.url).searchParams.get('token');
+  if (!token) return jsonResponse({ error: 'Verification token required' }, 400);
+  const raw = await env.KV.get('verify:' + token);
+  if (!raw) return jsonResponse({ error: 'Invalid or expired verification link' }, 400);
+  const { email } = JSON.parse(raw);
+  const user = await getUser(email, env.KV);
+  if (!user) return jsonResponse({ error: 'Account not found' }, 404);
+  user.verified = true;
+  await putUser(user, env.KV);
+  await env.KV.delete('verify:' + token);
+  return jsonResponse({ ok: true });
+}
+
+async function handleAuthResendVerify(request, env) {
+  const { email } = await request.json();
+  if (!email) return jsonResponse({ error: 'Email required' }, 400);
+  const user = await getUser(email.toLowerCase(), env.KV);
+  if (user && user.verified === false && env.RESEND_API_KEY) {
+    const token     = crypto.randomUUID();
+    const verifyUrl = `${ALLOWED_ORIGIN}/login.html?verify=${token}`;
+    await env.KV.put('verify:' + token, JSON.stringify({ email: user.email }), { expirationTtl: 86400 });
+    await fetch('https://api.resend.com/emails', {
+      method:  'POST',
+      headers: { 'Authorization': 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+        to:      [user.email],
+        subject: 'Verify your email — Coastal Travel Company',
+        html:    `<p style="font-family:sans-serif;font-size:15px">Here's a new verification link for your Coastal Travel Company account. It expires in 24 hours.</p>
+<p style="font-family:sans-serif;font-size:15px"><a href="${verifyUrl}" style="color:#2A5C45">${verifyUrl}</a></p>`,
+      }),
+    }).catch(() => {});
+  }
+  return jsonResponse({ ok: true }); // always ok — don't reveal account status
 }
 
 async function handleAuthLogin(request, env) {
@@ -314,6 +367,9 @@ async function handleAuthLogin(request, env) {
   const user = await getUser(email, env.KV);
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
     return jsonResponse({ error: 'Invalid email or password' }, 401);
+  }
+  if (user.verified === false) {
+    return jsonResponse({ error: 'Please verify your email address before signing in.', unverified: true }, 403);
   }
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
@@ -336,6 +392,11 @@ async function handleAuthGoogle(request, env) {
   const email = info.email.toLowerCase();
   const user  = await getUser(email, env.KV);
   if (!user) return jsonResponse({ error: 'No account found. Contact your administrator.' }, 403);
+  // Google has already verified the email address — auto-verify any unverified account
+  if (user.verified === false) {
+    user.verified = true;
+    await putUser(user, env.KV);
+  }
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
@@ -474,6 +535,7 @@ async function handleAdminCreateUser(request, env) {
     id, email: email.toLowerCase(),
     passwordHash: password ? await hashPassword(password) : null,
     role, created: Date.now(), galleries,
+    verified: true, // admin-created accounts are pre-verified
   };
   await putUser(user, env.KV);
   if (galleries.length) await syncGalleryAssignments(user.email, galleries, [], env.KV);
@@ -647,6 +709,8 @@ async function handleRequest(request, env) {
   if (method === 'POST' && pathname === '/auth/reset-request')  return handleAuthResetRequest(request, env);
   if (method === 'POST' && pathname === '/auth/reset-confirm')  return handleAuthResetConfirm(request, env);
   if (method === 'GET'  && pathname === '/auth/me')             return handleAuthMe(request, env);
+  if (method === 'GET'  && pathname === '/auth/verify')         return handleAuthVerify(request, env);
+  if (method === 'POST' && pathname === '/auth/resend-verify')  return handleAuthResendVerify(request, env);
 
   // ── Admin: Gallery CRUD ────────────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/admin/galleries') return handleAdminListGalleries(request, env);

@@ -4,7 +4,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## P0. Fix & Expand Acceptance Tests 🔴
+## ~~P0. Fix & Expand Acceptance Tests 🔴~~ ✅ Done
 
 **Goal:** All Playwright acceptance tests pass, and every piece of existing functionality is covered — contact form, gallery auth flow, admin panel auth, portal, and pipeline.
 
@@ -59,9 +59,9 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 **Goal:** Clients log in with email/password or Google, and see only their own galleries — no shared password links.
 
-- [ ] Verify if user creates initially with password flow then they can do google login later and it merges the local account with the google login and they can login with either the password or the google token.
-- [ ] Send email on account creation for user to verify account creation. (should we even do this? whats the benefit?)
-- [ ] Verify email functionality works for forgot password flow.
+- [x] Verify if user creates initially with password flow then they can do google login later and it merges the local account with the google login and they can login with either the password or the google token. (Works by design — `/auth/google` does email lookup so both methods work for the same account.)
+- [x] Send verification email when a client creates their own account (self-service signup only — admin-created accounts skip verification since the admin already controls the email address). Client cannot access galleries until verified. Verification link expires after 24 hours; resend option on the login page if the link expires.
+- [x] Verify email functionality works for forgot password flow.
 - [x] Create Resend account, verify `coastaltravelcompany.com` domain for transactional email
 - [x] Get Google Client ID from Google Cloud Console (authorized JS origin: `https://coastaltravelcompany.com`)
 - [x] Set Worker secrets in Cloudflare dashboard: `JWT_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`

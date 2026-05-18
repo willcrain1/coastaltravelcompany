@@ -194,6 +194,7 @@
 <div class="card" id="loginCard">
   <h1 class="card-title">Sign In</h1>
   <p class="card-sub">Access your client gallery</p>
+  <div class="success-msg" id="loginSuccess"></div>
   <div class="error-msg" id="loginError"></div>
   <form id="loginForm" autocomplete="on">
     <div class="fg">
@@ -206,12 +207,22 @@
     </div>
     <button class="btn btn-primary" type="submit" id="loginBtn">Sign In</button>
   </form>
+  <div id="resendSection" class="hidden" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);">
+    <p style="font-size:11px;color:var(--mid);margin-bottom:8px;">Need a new verification link?</p>
+    <div style="display:flex;gap:8px;">
+      <input type="email" id="resendEmail" placeholder="your@email.com" style="flex:1;" />
+      <button type="button" class="btn btn-ghost" style="margin-top:0;white-space:nowrap;" id="resendBtn" onclick="resendVerification()">Resend</button>
+    </div>
+    <div class="success-msg" id="resendSuccess"></div>
+  </div>
   <div id="googleSection">
     <div class="divider">or</div>
     <div id="googleBtnWrap"></div>
   </div>
   <div class="link-row">
     <a id="forgotLink">Forgot password?</a>
+    &nbsp;·&nbsp;
+    <a id="createAccountLink">Create account</a>
   </div>
 </div>
 
@@ -249,6 +260,30 @@
   </form>
 </div>
 
+<!-- ── Create account ── -->
+<div class="card hidden" id="registerCard">
+  <span class="back-link" id="registerBack">← Back to sign in</span>
+  <h1 class="card-title">Create Account</h1>
+  <p class="card-sub">Access your client gallery</p>
+  <div class="error-msg" id="registerError"></div>
+  <div class="success-msg" id="registerSuccess"></div>
+  <form id="registerForm" autocomplete="off">
+    <div class="fg">
+      <label>Email</label>
+      <input type="email" id="registerEmail" placeholder="you@example.com" required />
+    </div>
+    <div class="fg">
+      <label>Password (min 8 characters)</label>
+      <input type="password" id="registerPassword" placeholder="••••••••" required minlength="8" />
+    </div>
+    <div class="fg">
+      <label>Confirm Password</label>
+      <input type="password" id="registerConfirm" placeholder="••••••••" required minlength="8" />
+    </div>
+    <button class="btn btn-primary" type="submit" id="registerBtn">Create Account</button>
+  </form>
+</div>
+
 <!-- ── Reset password ── -->
 <div class="card hidden" id="resetCard">
   <h1 class="card-title">New Password</h1>
@@ -283,7 +318,7 @@
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function showCard(id) {
-    ['loginCard','setupCard','forgotCard','resetCard'].forEach(c => {
+    ['loginCard','setupCard','forgotCard','resetCard','registerCard'].forEach(c => {
       document.getElementById(c).classList.toggle('hidden', c !== id);
     });
   }
@@ -338,13 +373,25 @@
       localStorage.removeItem(USER_KEY);
     }
 
-    // Password reset flow
     const params = new URLSearchParams(window.location.search);
+
+    // Password reset flow
     const resetToken = params.get('reset');
     if (resetToken) {
       showCard('resetCard');
       document.getElementById('resetForm').dataset.token = resetToken;
       return;
+    }
+
+    // Email verification flow
+    const verifyToken = params.get('verify');
+    let verifyOutcome = null;
+    if (verifyToken) {
+      const res = await fetch(
+        WORKER_URL + '/auth/verify?token=' + encodeURIComponent(verifyToken)
+      ).catch(() => null);
+      verifyOutcome = (res && res.ok) ? 'success' : 'expired';
+      window.history.replaceState({}, '', '/login.html');
     }
 
     // Check if setup is needed
@@ -360,6 +407,12 @@
     }
 
     showCard('loginCard');
+    if (verifyOutcome === 'success') {
+      showSuccess('loginSuccess', 'Email verified — you can now sign in.');
+    } else if (verifyOutcome === 'expired') {
+      showError('loginError', 'Verification link is invalid or has expired. Enter your email below to request a new one.');
+      document.getElementById('resendSection').classList.remove('hidden');
+    }
     initGoogle();
   }
 
@@ -393,6 +446,7 @@
   document.getElementById('loginForm').addEventListener('submit', async e => {
     e.preventDefault();
     hideError('loginError');
+    document.getElementById('resendSection').classList.add('hidden');
     const btn  = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.textContent = 'Signing in…';
@@ -401,6 +455,10 @@
     const { ok, data } = await api('/auth/login', { email, password });
     if (!ok) {
       showError('loginError', data.error || 'Sign-in failed.');
+      if (data.unverified) {
+        document.getElementById('resendSection').classList.remove('hidden');
+        document.getElementById('resendEmail').value = email;
+      }
       btn.disabled = false;
       btn.textContent = 'Sign In';
       return;
@@ -451,6 +509,37 @@
     btn.disabled = false;
     btn.textContent = 'Send Reset Link';
   });
+
+  // ── Create account ────────────────────────────────────────────────────────
+  document.getElementById('createAccountLink').addEventListener('click', () => showCard('registerCard'));
+  document.getElementById('registerBack').addEventListener('click', () => { showCard('loginCard'); initGoogle(); });
+
+  document.getElementById('registerForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    hideError('registerError');
+    const btn      = document.getElementById('registerBtn');
+    const email    = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value;
+    const confirm  = document.getElementById('registerConfirm').value;
+    if (password !== confirm) { showError('registerError', 'Passwords do not match.'); return; }
+    btn.disabled = true;
+    btn.textContent = 'Creating account…';
+    const { ok, data } = await api('/auth/register', { email, password });
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+    if (!ok) { showError('registerError', data.error || 'Registration failed.'); return; }
+    document.getElementById('registerForm').classList.add('hidden');
+    showSuccess('registerSuccess', 'Account created — check your email for a verification link before signing in.');
+  });
+
+  // ── Resend verification ───────────────────────────────────────────────────
+  async function resendVerification() {
+    const email = document.getElementById('resendEmail').value.trim();
+    if (!email) return;
+    document.getElementById('resendBtn').disabled = true;
+    await api('/auth/resend-verify', { email });
+    showSuccess('resendSuccess', 'If that email has an unverified account, a new link has been sent.');
+  }
 
   // ── Reset password ────────────────────────────────────────────────────────
   document.getElementById('resetForm').addEventListener('submit', async e => {
