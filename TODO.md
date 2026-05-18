@@ -633,3 +633,157 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 ## 30. Customer Photo Sharing
 
 **Goal:**  Allow customers to be able to share photo albums to 5 users which send them an email invite.  ensure only the primary associated users with an album set by the administrator is able to share the album with users.  Allow the primary associated user to revoke the share, and see if the user has accepted the share invitation or if it is still pending.  Show all of this activity in the gallery-admin page for admins to see.
+
+
+---
+
+## 31. Physical/Digital Business Cards
+
+**Goal:**  Create a physical and digital business card for employees of Coastal Travel Company.
+
+- [ ] Physical cards are created
+- [ ] Digital cards are created
+- [ ] QR codes on cards route through the site where we are able to track through website analytics
+
+
+---
+
+## 32. Website analytics
+
+**Goal:**  How are people finding the site?  What actions do users take on the site?  Why do users not move forward with inquiry/booking?
+
+1. Goals & Success Metrics
+The analytics implementation should answer these core business questions:
+
+How are people finding the site?
+What pages are they visiting and in what order?
+Are they taking action (contacting, booking, submitting a form)?
+Where are they dropping off?
+What devices and locations are visitors coming from?
+
+2. Analytics Platform
+Primary: Google Analytics 4 (GA4)
+
+Free, industry standard, integrates with Google Search Console
+Tracks pageviews, sessions, events, and conversions
+Required: Create a GA4 property and embed the tracking snippet in all HTML pages
+
+Secondary (Optional): Cloudflare Web Analytics
+
+Already available in your Cloudflare dashboard at no cost
+Privacy-friendly, no cookies, GDPR-compliant out of the box
+Good for a high-level traffic overview without setup complexity
+Enable under Cloudflare Dashboard → Web Analytics
+
+Recommendation
+Use both: Cloudflare for a quick daily pulse, GA4 for deeper analysis.
+
+3. Core Tracking Requirements
+3.1 Pageview Tracking
+
+Track every page visit with URL, page title, and referrer
+Capture entry pages (where visitors land first)
+Capture exit pages (where visitors leave)
+
+3.2 Traffic Source Tracking
+
+Organic search (Google, Bing)
+Direct (typed URL, bookmarks)
+Social media (Facebook, Instagram)
+Referral (other sites linking to you)
+UTM parameter support for campaigns (e.g. business card QR code link)
+
+3.3 Conversion / Goal Tracking
+Track these as key conversion events:
+EventTriggercontact_clickUser clicks phone number or email linkform_submitUser submits a contact/inquiry formbooking_clickUser clicks any booking or inquiry CTA buttonsocial_clickUser clicks a social media linkqr_scan_landingVisitor arrives via /card or UTM source businesscard
+3.4 Engagement Tracking
+
+Time on page
+Scroll depth (25%, 50%, 75%, 100%)
+Bounce rate per page
+
+4. UTM Campaign Tracking
+To measure how well your business card QR code is performing:
+
+QR code should link to:
+https://coastaltravelcompany.com/?utm_source=businesscard&utm_medium=qr&utm_campaign=networking
+This lets GA4 show you exactly how many visitors came from your physical card
+
+5. Search Console Integration
+
+Set up Google Search Console and link it to GA4
+Verifies site ownership with Google
+Shows which search keywords are bringing visitors to your site
+Identifies any crawl errors or indexing issues
+
+6. Implementation Requirements (Static Site / GitHub Pages)
+Since the site is static HTML on GitHub Pages, all tracking is client-side:
+GA4 Snippet
+Add to the <head> of every HTML page:
+html<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+Event Tracking Example (Contact Click)
+html<a href="tel:+15551234567"
+   onclick="gtag('event', 'contact_click', { method: 'phone' });">
+   Call Us
+</a>
+Google Tag Manager (Optional but Recommended)
+
+Deploy GTM instead of raw GA4 snippets
+Lets you add/modify tracking without editing code and redeploying to GitHub
+One GTM snippet in <head>, manage all tags from the GTM dashboard
+
+7. Privacy & Compliance
+
+Add a Privacy Policy page disclosing use of Google Analytics
+Consider a cookie consent banner (required for EU visitors under GDPR)
+
+Simple option: Cookieyes.com free tier
+
+
+GA4 has IP anonymization enabled by default
+Cloudflare Web Analytics is cookieless and GDPR-compliant with no extra configuration
+
+
+8. Reporting & Alerting
+Weekly Check (5 min)
+
+Sessions, top pages, top traffic sources
+Any conversion events fired?
+
+Monthly Review
+
+Traffic trends vs. prior month
+Top landing pages
+QR code / business card traffic (UTM report)
+Search Console: top queries, click-through rates
+
+Alerts to Configure in GA4
+
+Spike in traffic (potential viral moment or bot traffic)
+Drop in sessions > 30% week-over-week
+
+
+9. Future Enhancements (Phase 2)
+
+Heatmaps via Microsoft Clarity (free) — see where users click and scroll
+A/B testing via Google Optimize or Cloudflare Pages experiments
+CRM integration — connect form submissions to a CRM (HubSpot free tier)
+Booking funnel tracking — if a booking flow is added later
+
+
+10. Acceptance Criteria
+
+ GA4 property created and snippet deployed on all pages
+ Cloudflare Web Analytics enabled
+ Google Search Console verified and linked to GA4
+ Conversion events firing correctly (verified in GA4 DebugView)
+ UTM link generated for business card QR code
+ Privacy Policy page published
+ Baseline report captured (first 30 days of data)
