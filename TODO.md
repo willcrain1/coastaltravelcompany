@@ -67,7 +67,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 ### Lead & project pipeline
 - [x] Contact form submissions (item 1) feed into a lead inbox in `gallery-admin.html` with unread count badge
 - [x] Build a Kanban-style pipeline view with stages: **Inquiry → Proposal Sent → Contract Sent → Contract Signed → Retainer Paid → Active → Delivered → Complete**
-- [ ] Each project card shows: client name, property, collection, shoot date, last activity, current stage, outstanding action (e.g. "Contract unsigned — 3 days") — cards show all fields except outstanding action calculation
+- [x] Each project card shows: client name, property, collection, shoot date, last activity, current stage, outstanding action (e.g. "Contract unsigned — 3 days")
 - [ ] Per-project detail page: notes, activity log done; labels/tags UI and associated documents (proposal, contract, invoice, gallery links) not yet built
 - [ ] Admin can add manual notes and log call/email outcomes done; follow-up reminders with due dates — `due_date` stored in DB but not surfaced in the UI yet
 - [ ] Store projects in D1 `projects` table — table + CRUD done; FK relationships to `users`, `bookings`, `galleries` not yet built

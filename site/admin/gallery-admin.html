@@ -344,6 +344,8 @@
     }
     .pc-source-badge.inquiry { background: rgba(42,92,69,0.35); color: var(--teal); }
     .pc-source-badge.manual  { background: rgba(255,255,255,0.06); color: var(--dim); }
+    .pc-action { font-size: 10px; font-weight: 500; color: #e8a020; margin-top: 6px; letter-spacing: 0.01em; }
+    .pc-action.urgent { color: var(--err); }
 
     /* project detail panel */
     .project-detail {
@@ -1165,6 +1167,57 @@
     document.getElementById('pipelineBadge').style.display = 'none';
   }
 
+  function getOutstandingAction(p) {
+    const now = Date.now();
+    const daysSince = iso => Math.floor((now - new Date(iso)) / 86400000);
+    const daysUntil = iso => Math.floor((new Date(iso + 'T00:00:00') - now) / 86400000);
+
+    switch (p.stage) {
+      case 'Inquiry': {
+        const d = daysSince(p.created_at);
+        return { text: d === 0 ? 'New today — respond' : `Respond — ${d}d waiting`, urgent: d >= 3 };
+      }
+      case 'Proposal Sent': {
+        const d = daysSince(p.updated_at);
+        if (d >= 7)  return { text: `No response — ${d}d`, urgent: true };
+        if (d >= 3)  return { text: `Follow up — ${d}d`, urgent: false };
+        return null;
+      }
+      case 'Contract Sent': {
+        const d = daysSince(p.updated_at);
+        if (d >= 2)  return { text: `Contract unsigned — ${d}d`, urgent: d >= 5 };
+        return null;
+      }
+      case 'Contract Signed':
+        return { text: 'Collect retainer', urgent: false };
+      case 'Retainer Paid': {
+        if (p.shoot_date) {
+          const d = daysUntil(p.shoot_date);
+          if (d < 0)  return { text: 'Shoot passed — deliver gallery', urgent: true };
+          if (d === 0) return { text: 'Shoot today', urgent: true };
+          if (d <= 7)  return { text: `Shoot in ${d}d`, urgent: false };
+        }
+        return { text: 'Schedule shoot date', urgent: false };
+      }
+      case 'Active': {
+        if (p.shoot_date) {
+          const d = daysUntil(p.shoot_date);
+          if (d < 0)  return { text: `Deliver gallery — ${Math.abs(d)}d since shoot`, urgent: Math.abs(d) >= 7 };
+          if (d === 0) return { text: 'Shoot today', urgent: true };
+          return { text: `Shoot in ${d}d`, urgent: false };
+        }
+        return null;
+      }
+      case 'Delivered': {
+        const d = daysSince(p.updated_at);
+        if (d >= 14) return { text: `Follow up — ${d}d since delivery`, urgent: false };
+        return null;
+      }
+      default:
+        return null;
+    }
+  }
+
   function relTime(iso) {
     if (!iso) return '';
     const m = Math.floor((Date.now() - new Date(iso)) / 60000);
@@ -1197,7 +1250,8 @@
   }
 
   function renderCard(p) {
-    const parts = [p.collection, p.property, p.location].filter(Boolean);
+    const parts  = [p.collection, p.property, p.location].filter(Boolean);
+    const action = getOutstandingAction(p);
     const isSelected = p.id === selectedProjectId;
     return `<div class="pc-card${isSelected ? ' selected' : ''}" id="pcard-${esc(p.id)}"
       draggable="true"
@@ -1206,6 +1260,7 @@
       onclick="selectProject('${esc(p.id)}')">
       <div class="pc-name">${esc(p.client_name)}</div>
       <div class="pc-meta">${parts.length ? esc(parts.join(' · ')) + '<br>' : ''}${p.shoot_date ? esc(fmtDate(p.shoot_date)) + '<br>' : ''}<span style="opacity:.5">${esc(relTime(p.created_at))}</span></div>
+      ${action ? `<div class="pc-action${action.urgent ? ' urgent' : ''}">${esc(action.text)}</div>` : ''}
       <span class="pc-source-badge ${esc(p.source)}">${esc(p.source)}</span>
     </div>`;
   }
