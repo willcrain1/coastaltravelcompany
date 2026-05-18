@@ -83,20 +83,20 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [x] Contact form submissions (item 1) feed into a lead inbox in `gallery-admin.html` with unread count badge
 - [x] Build a Kanban-style pipeline view with stages: **Inquiry → Proposal Sent → Contract Sent → Contract Signed → Retainer Paid → Active → Delivered → Complete**
 - [x] Each project card shows: client name, property, collection, shoot date, last activity, current stage, outstanding action (e.g. "Contract unsigned — 3 days")
-- [ ] Per-project detail page: notes, activity log done; labels/tags UI and associated documents (proposal, contract, invoice, gallery links) not yet built
-- [ ] Admin can add manual notes and log call/email outcomes done; follow-up reminders with due dates — `due_date` stored in DB but not surfaced in the UI yet
+- [x] Per-project detail page: notes, activity log, labels/tags UI, and associated documents (proposal, contract, invoice, gallery links)
+- [x] Admin can add manual notes, log call/email outcomes, and create follow-up reminders with due dates surfaced in the UI
 - [ ] Store projects in D1 `projects` table — table + CRUD done; FK relationships to `users`, `bookings`, `galleries` not yet built
 
 ### Service packages & proposals
-- [ ] Build a package library in `gallery-admin.html`: create reusable packages (The Editorial Stay, The Fashioned Weekend, The Branded Journey, etc.) each with name, description, inclusions list, hero photo, base price, and available add-ons
-- [ ] Add-on options admin can attach to any package: rush delivery, extra edited images, video reel, 3D walkthrough (item 8), extended license, additional half-day
-- [ ] Send a branded proposal to a lead: select 1–3 packages for side-by-side comparison, add a personalized cover note, set an expiry date
-- [ ] Client opens proposal at `/proposal/{id}` — sees branded layout (Coastal design system), browses packages, selects one, checks desired add-ons, and clicks "Let's do this"
-- [ ] Track proposal analytics: opened timestamp, time spent, number of views — stored in D1, shown in admin pipeline view
+- [x] Build a package library in `gallery-admin.html`: create reusable packages (The Editorial Stay, The Fashioned Weekend, The Branded Journey, etc.) each with name, description, inclusions list, hero photo, base price, and available add-ons
+- [x] Add-on options admin can attach to any package: rush delivery, extra edited images, video reel, 3D walkthrough (item 8), extended license, additional half-day
+- [x] Send a branded proposal to a lead: select 1–3 packages for side-by-side comparison, add a personalized cover note, set an expiry date
+- [x] Client opens proposal at `/proposal/{id}` — sees branded layout (Coastal design system), browses packages, selects one, checks desired add-ons, and clicks "Let's do this"
+- [x] Track proposal analytics: opened timestamp, time spent, number of views — stored in D1, shown in admin pipeline view
 - [ ] On client selection, automatically advance project stage to "Contract Sent" and trigger contract workflow (item 6)
 
 ### Intake questionnaires
-- [ ] Build a questionnaire builder in `gallery-admin.html`: create reusable question sets with text, multiple choice, date, and file-upload field types
+- [x] Build a questionnaire builder in `gallery-admin.html`: create reusable question sets with text, multiple choice, date, and file-upload field types
 - [ ] Pre-booking questionnaire (sent with or after proposal): property name, address, property type (hotel / boutique / resort / vacation rental / private villa), number of spaces to shoot, key must-have shots, style references, logistics notes
 - [ ] Post-booking / pre-shoot questionnaire (sent after contract signed): refined shot list, venue contact name/number, parking/access instructions, mood board upload, any restrictions
 - [ ] Client completes questionnaires at `/questionnaire/{id}` — accessible via magic link, no login required

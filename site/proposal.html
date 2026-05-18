@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proposal - Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="config.js"></script>
+  <style>
+    :root {
+      --black:#1C1C1C; --green:#2A5C45; --teal:#8FBFBE; --cream:#F4F1EC; --linen:#E8DDD0;
+      --text:#2C2C2C; --mid:#5A5A5A; --light:#8A8A8A; --white:#FFFFFF;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Montserrat', sans-serif; font-weight: 300;
+      background: var(--cream); color: var(--text); min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      padding: 28px clamp(20px, 5vw, 64px); display: flex; justify-content: space-between;
+      align-items: center; border-bottom: 1px solid rgba(28,28,28,0.08);
+    }
+    .brand-main {
+      display: block; font-family: 'Gilda Display', serif; font-size: 12px;
+      letter-spacing: 0.32em; text-transform: uppercase; color: var(--black);
+    }
+    .brand-script { font-family: 'Pinyon Script', cursive; font-size: 34px; color: var(--green); line-height: 1; }
+    .status { font-size: 10px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--green); }
+    main { max-width: 1120px; margin: 0 auto; padding: 48px clamp(20px, 5vw, 64px) 72px; }
+    .intro { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.6fr); gap: 36px; margin-bottom: 42px; }
+    h1 { font-family: 'Gilda Display', serif; font-size: clamp(34px, 6vw, 68px); font-weight: 400; color: var(--black); line-height: 1.02; }
+    .script { font-family: 'Pinyon Script', cursive; color: var(--green); font-size: 42px; display: block; margin-bottom: 8px; }
+    .copy { color: var(--mid); font-size: 14px; line-height: 1.8; margin-top: 22px; max-width: 680px; }
+    .summary {
+      background: var(--white); border: 1px solid rgba(28,28,28,0.08); padding: 22px;
+      align-self: start;
+    }
+    .summary-row { padding: 10px 0; border-bottom: 1px solid rgba(28,28,28,0.08); }
+    .summary-row:last-child { border-bottom: none; }
+    .label { font-size: 9px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--light); margin-bottom: 4px; }
+    .value { font-size: 13px; color: var(--text); line-height: 1.5; }
+    .packages { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; align-items: stretch; }
+    .package {
+      background: var(--white); border: 1px solid rgba(28,28,28,0.1); display: flex; flex-direction: column;
+      min-height: 100%; transition: border-color 0.2s, transform 0.2s;
+    }
+    .package.selected { border-color: var(--green); transform: translateY(-2px); }
+    .hero {
+      width: 100%; aspect-ratio: 16 / 9; background: var(--linen); object-fit: cover; display: block;
+    }
+    .package-body { padding: 22px; display: flex; flex-direction: column; gap: 16px; flex: 1; }
+    .package-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
+    .package-name { font-family: 'Gilda Display', serif; font-size: 24px; color: var(--black); }
+    .price { color: var(--green); font-weight: 600; font-size: 14px; white-space: nowrap; }
+    .desc, .includes { color: var(--mid); font-size: 13px; line-height: 1.7; }
+    .includes div { padding: 5px 0; border-bottom: 1px solid rgba(28,28,28,0.07); }
+    .addons { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+    .addon { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--text); }
+    .select-btn, .approve {
+      border: 1px solid var(--green); background: var(--green); color: var(--white);
+      font-family: 'Montserrat', sans-serif; font-size: 10px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase; padding: 13px 16px; cursor: pointer;
+    }
+    .select-btn.secondary { background: transparent; color: var(--green); }
+    .approval { margin-top: 28px; display: flex; justify-content: flex-end; align-items: center; gap: 14px; }
+    .message { font-size: 13px; color: var(--green); }
+    .error { color: #9a3d35; }
+    @media (max-width: 760px) {
+      header { align-items: flex-start; gap: 18px; flex-direction: column; }
+      .intro { grid-template-columns: 1fr; }
+      .approval { align-items: stretch; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <span class="brand-main">Coastal</span>
+      <span class="brand-script">Travel Company</span>
+    </div>
+    <div class="status" id="proposalStatus">Proposal</div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div>
+        <span class="script">Your hospitality story</span>
+        <h1 id="proposalTitle">Proposal</h1>
+        <p class="copy" id="coverNote"></p>
+      </div>
+      <aside class="summary" id="summary"></aside>
+    </section>
+
+    <section class="packages" id="packages"></section>
+    <div class="approval">
+      <div class="message" id="message"></div>
+      <button class="approve" id="approveBtn" onclick="approveProposal()">Let's do this</button>
+    </div>
+  </main>
+
+  <script>
+    let proposalId = '';
+    let proposal = null;
+    let selectedPackageId = '';
+    let startedAt = Date.now();
+    let lastSentAt = Date.now();
+
+    function getProposalId() {
+      const pathMatch = window.location.pathname.match(/\/proposal\/([^/]+)/);
+      return (pathMatch && pathMatch[1]) || window.location.hash.replace(/^#/, '').trim();
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function money(n) {
+      return n ? '$' + Number(n).toLocaleString('en-US') : 'Custom';
+    }
+
+    function parseAddons(pkg) {
+      if (Array.isArray(pkg.addons)) return pkg.addons;
+      try { return JSON.parse(pkg.addons || '[]'); } catch { return []; }
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+    }
+
+    async function api(path, opts = {}) {
+      const headers = { ...opts.headers };
+      if (opts.body && typeof opts.body !== 'string') {
+        headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(opts.body);
+      }
+      const res = await fetch(CTC_CONFIG.workerUrl + path, { ...opts, headers });
+      const data = await res.json();
+      return { ok: res.ok, data };
+    }
+
+    async function loadProposal() {
+      proposalId = getProposalId();
+      if (!proposalId) {
+        showError('Proposal link is missing an ID.');
+        return;
+      }
+      const { ok, data } = await api('/proposals/' + encodeURIComponent(proposalId));
+      if (!ok) {
+        showError(data.error || 'Proposal not found.');
+        return;
+      }
+      proposal = data;
+      renderProposal();
+    }
+
+    function renderProposal() {
+      const p = proposal.proposal;
+      const project = proposal.project || {};
+      document.getElementById('proposalStatus').textContent = p.status === 'approved' ? 'Approved' : 'Proposal';
+      document.getElementById('proposalTitle').textContent = project.property || project.client_name || 'Proposal';
+      document.getElementById('coverNote').textContent = p.cover_note || 'I pulled together the strongest-fit options for your property. Choose the package that feels right and add any enhancements you would like included.';
+      document.getElementById('summary').innerHTML = `
+        <div class="summary-row"><div class="label">Client</div><div class="value">${esc(project.client_name || '')}</div></div>
+        <div class="summary-row"><div class="label">Property</div><div class="value">${esc(project.property || '')}</div></div>
+        <div class="summary-row"><div class="label">Location</div><div class="value">${esc(project.location || '')}</div></div>
+        <div class="summary-row"><div class="label">Expires</div><div class="value">${esc(fmtDate(p.expires_at) || 'No expiry')}</div></div>`;
+
+      selectedPackageId = p.selected_package_id || (proposal.packages[0] && proposal.packages[0].id) || '';
+      document.getElementById('packages').innerHTML = proposal.packages.map(renderPackage).join('');
+      syncSelected();
+      if (p.status === 'approved') {
+        document.getElementById('approveBtn').disabled = true;
+        document.getElementById('message').textContent = 'This proposal has been approved.';
+      }
+    }
+
+    function renderPackage(pkg) {
+      const inclusions = String(pkg.inclusions || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      const addons = parseAddons(pkg);
+      return `
+        <article class="package" data-package-id="${esc(pkg.id)}">
+          ${pkg.hero_photo ? `<img class="hero" src="${esc(pkg.hero_photo)}" alt="">` : '<div class="hero"></div>'}
+          <div class="package-body">
+            <div class="package-top">
+              <div class="package-name">${esc(pkg.name)}</div>
+              <div class="price">${money(pkg.base_price)}</div>
+            </div>
+            <div class="desc">${esc(pkg.description || '')}</div>
+            ${inclusions.length ? `<div class="includes">${inclusions.map(i => `<div>${esc(i)}</div>`).join('')}</div>` : ''}
+            ${addons.length ? `<div class="addons">${addons.map(a => `<label class="addon"><input type="checkbox" name="addon-${esc(pkg.id)}" value="${esc(a)}"> ${esc(a)}</label>`).join('')}</div>` : ''}
+            <button class="select-btn" onclick="selectPackage('${esc(pkg.id)}')">Select Package</button>
+          </div>
+        </article>`;
+    }
+
+    function selectPackage(id) {
+      selectedPackageId = id;
+      syncSelected();
+    }
+
+    function syncSelected() {
+      document.querySelectorAll('.package').forEach(card => {
+        const selected = card.dataset.packageId === selectedPackageId;
+        card.classList.toggle('selected', selected);
+        const btn = card.querySelector('.select-btn');
+        btn.textContent = selected ? 'Selected' : 'Select Package';
+        btn.classList.toggle('secondary', !selected);
+      });
+    }
+
+    async function approveProposal() {
+      if (!selectedPackageId) {
+        showError('Choose a package first.');
+        return;
+      }
+      const addons = [...document.querySelectorAll(`input[name="addon-${CSS.escape(selectedPackageId)}"]:checked`)].map(el => el.value);
+      const { ok, data } = await api('/proposals/' + encodeURIComponent(proposalId) + '/select', {
+        method: 'POST',
+        body: { package_id: selectedPackageId, addons },
+      });
+      if (!ok) {
+        showError(data.error || 'Could not approve proposal.');
+        return;
+      }
+      document.getElementById('message').classList.remove('error');
+      document.getElementById('message').textContent = 'Wonderful. Your selection has been sent.';
+      document.getElementById('approveBtn').disabled = true;
+      sendAnalytics(true);
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('message');
+      el.classList.add('error');
+      el.textContent = msg;
+    }
+
+    function sendAnalytics(force = false) {
+      if (!proposalId) return;
+      const now = Date.now();
+      const seconds = Math.round((now - lastSentAt) / 1000);
+      if (!force && seconds < 10) return;
+      lastSentAt = now;
+      const payload = JSON.stringify({ seconds });
+      const url = CTC_CONFIG.workerUrl + '/proposals/' + encodeURIComponent(proposalId) + '/analytics';
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch(url, { method: 'POST', headers: { 'Content-Type':'application/json' }, body: payload, keepalive: true }).catch(() => {});
+      }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') sendAnalytics(true);
+    });
+    window.addEventListener('pagehide', () => sendAnalytics(true));
+    setInterval(() => sendAnalytics(false), 30000);
+    loadProposal();
+  </script>
+</body>
+</html>
