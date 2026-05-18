@@ -65,12 +65,12 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 **Goal:** Mirror HoneyBook's end-to-end client workflow — lead capture, pipeline management, branded proposals, intake questionnaires, scheduling, client portal, and automations — built custom on the existing Worker + D1 infrastructure so everything stays in one system.
 
 ### Lead & project pipeline
-- [ ] Contact form submissions (item 1) feed into a lead inbox in `gallery-admin.html` with unread count badge
-- [ ] Build a Kanban-style pipeline view with stages: **Inquiry → Proposal Sent → Contract Sent → Contract Signed → Retainer Paid → Active → Delivered → Complete**
-- [ ] Each project card shows: client name, property, collection, shoot date, last activity, current stage, outstanding action (e.g. "Contract unsigned — 3 days")
-- [ ] Per-project detail page: notes, labels/tags, activity log, all associated documents (proposal, contract, invoice, gallery) in one place
-- [ ] Admin can add manual notes, set follow-up reminders with due dates, and log phone call outcomes
-- [ ] Store projects in D1 `projects` table linked to `inquiries`, `users`, `bookings`, `galleries`
+- [x] Contact form submissions (item 1) feed into a lead inbox in `gallery-admin.html` with unread count badge
+- [x] Build a Kanban-style pipeline view with stages: **Inquiry → Proposal Sent → Contract Sent → Contract Signed → Retainer Paid → Active → Delivered → Complete**
+- [ ] Each project card shows: client name, property, collection, shoot date, last activity, current stage, outstanding action (e.g. "Contract unsigned — 3 days") — cards show all fields except outstanding action calculation
+- [ ] Per-project detail page: notes, activity log done; labels/tags UI and associated documents (proposal, contract, invoice, gallery links) not yet built
+- [ ] Admin can add manual notes and log call/email outcomes done; follow-up reminders with due dates — `due_date` stored in DB but not surfaced in the UI yet
+- [ ] Store projects in D1 `projects` table — table + CRUD done; FK relationships to `users`, `bookings`, `galleries` not yet built
 
 ### Service packages & proposals
 - [ ] Build a package library in `gallery-admin.html`: create reusable packages (The Editorial Stay, The Fashioned Weekend, The Branded Journey, etc.) each with name, description, inclusions list, hero photo, base price, and available add-ons
