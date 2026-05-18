@@ -103,7 +103,7 @@ if [ -z "$D1_ID" ]; then
     -H "Content-Type: application/json" \
     -d "{\"name\":\"$D1_NAME\"}" > "$TMP"
 
-  D1_ID=$(python3 -c "import json,sys; print(json.load(open('$TMP'))['result']['uuid'])")
+  D1_ID=$(python3 -c "import json,sys; d=json.load(open('$TMP')); r=d.get('result'); print(r['uuid'] if r else '')")
 
   if [ -z "$D1_ID" ]; then
     echo "Failed to create D1 database. Cloudflare response:"
