@@ -5,7 +5,7 @@
  *  1. Renders sign-in form with email, password, and forgot-password link
  *  2. Shows first-time setup card when no admin account exists
  *  3. Already-logged-in client is redirected to /portal.html
- *  4. Already-logged-in admin is redirected to /admin/gallery-admin.html
+ *  4. Already-logged-in admin is redirected to /admin/pipeline.html
  *
  * Client Portal:
  *  5. Unauthenticated visit redirects to /login.html
@@ -122,8 +122,8 @@ test.describe('Login Page', () => {
     });
 
     await page.goto(`${STATIC_BASE}/login.html`);
-    await page.waitForURL('**/gallery-admin.html', { timeout: 10_000 });
-    expect(page.url()).toContain('gallery-admin.html');
+    await page.waitForURL('**/pipeline.html', { timeout: 10_000 });
+    expect(page.url()).toContain('pipeline.html');
   });
 });
 
@@ -188,7 +188,7 @@ test.describe('Admin Panel Auth', () => {
   });
 
   test('redirects to /login.html when no JWT is present', async ({ page }) => {
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
     await page.waitForURL('**/login.html', { timeout: 10_000 });
     expect(page.url()).toContain('login.html');
   });
@@ -199,7 +199,7 @@ test.describe('Admin Panel Auth', () => {
       'GET /auth/me': (route) => clientResponse(route),
     });
 
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
     await page.waitForURL('**/portal.html', { timeout: 10_000 });
     expect(page.url()).toContain('portal.html');
   });

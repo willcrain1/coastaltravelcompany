@@ -143,7 +143,7 @@ async function useMockWorker(context) {
 }
 
 /**
- * Mock for gallery-admin.html — handles auth, galleries, projects, and users.
+ * Mock for galleries.html — handles auth, galleries, projects, and users.
  */
 async function useMockAdminWorker(context) {
   await context.route(
@@ -240,7 +240,7 @@ test.describe('Gallery Admin', () => {
 
   test('creates a regular gallery link encoding the correct config', async ({ page, context }) => {
     await useMockAdminWorker(context);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/galleries.html`);
 
     await page.fill('#shareUrl',      SHARE_URL);
     await page.fill('#sharePassword', 'test-share-pass');
@@ -266,7 +266,7 @@ test.describe('Gallery Admin', () => {
 
   test('creates a watermarked gallery link with watermark: true in config', async ({ page, context }) => {
     await useMockAdminWorker(context);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/galleries.html`);
 
     await page.fill('#shareUrl',      SHARE_URL);
     await page.fill('#sharePassword', 'test-share-pass');

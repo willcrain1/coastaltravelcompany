@@ -1,5 +1,5 @@
 /**
- * Acceptance tests for the Lead Pipeline Kanban board in gallery-admin.html.
+ * Acceptance tests for the Lead Pipeline Kanban board in pipeline.html.
  *
  * Covers:
  *  1. All 8 stage columns render on the board
@@ -340,7 +340,7 @@ test.describe('Lead Pipeline', () => {
 
   test('renders all 8 stage columns on the Kanban board', async ({ page, context }) => {
     await useMockAdminWorker(context);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
 
@@ -353,7 +353,7 @@ test.describe('Lead Pipeline', () => {
 
   test('empty columns show zero count and dash placeholder', async ({ page, context }) => {
     await useMockAdminWorker(context);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
 
@@ -363,7 +363,7 @@ test.describe('Lead Pipeline', () => {
 
   test('project cards appear in the correct stage columns', async ({ page, context }) => {
     await useMockAdminWorker(context, MOCK_PROJECTS);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
 
@@ -385,7 +385,7 @@ test.describe('Lead Pipeline', () => {
 
   test('Inquiry card shows urgent outstanding action after 3+ days with no response', async ({ page, context }) => {
     await useMockAdminWorker(context, MOCK_PROJECTS);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
 
@@ -397,7 +397,7 @@ test.describe('Lead Pipeline', () => {
 
   test('Contract Sent card shows urgent unsigned-contract action after 5+ days', async ({ page, context }) => {
     await useMockAdminWorker(context, MOCK_PROJECTS);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
 
@@ -409,7 +409,7 @@ test.describe('Lead Pipeline', () => {
 
   test('Complete stage cards show no outstanding action', async ({ page, context }) => {
     await useMockAdminWorker(context, MOCK_PROJECTS);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
 
@@ -421,7 +421,7 @@ test.describe('Lead Pipeline', () => {
 
   test('new project form opens and a project can be created', async ({ page, context }) => {
     await useMockAdminWorker(context);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
 
@@ -448,7 +448,7 @@ test.describe('Lead Pipeline', () => {
         labels: 'hot lead, oceanfront',
       },
     ]);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('#pcol-Inquiry .tag-pill')).toContainText(['hot lead', 'oceanfront']);
@@ -466,7 +466,7 @@ test.describe('Lead Pipeline', () => {
 
   test('service package library lists packages and creates a package with add-ons', async ({ page, context }) => {
     await useMockAdminWorker(context);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/services.html`);
 
     await expect(page.locator('#packageList')).toContainText('The Editorial Stay', { timeout: 10_000 });
     await expect(page.locator('#packageList')).toContainText('$2,500');
@@ -488,7 +488,7 @@ test.describe('Lead Pipeline', () => {
 
   test('admin can create a proposal from selected packages', async ({ page, context }) => {
     await useMockAdminWorker(context, MOCK_PROJECTS);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
 
     await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
     await page.click('#pcol-Inquiry .pc-card');
@@ -506,7 +506,7 @@ test.describe('Lead Pipeline', () => {
 
   test('questionnaire builder lists and creates reusable question sets', async ({ page, context }) => {
     await useMockAdminWorker(context);
-    await page.goto(`${STATIC_BASE}/admin/gallery-admin.html`);
+    await page.goto(`${STATIC_BASE}/admin/services.html`);
 
     await expect(page.locator('#questionnaireList')).toContainText('Pre-booking Intake', { timeout: 10_000 });
     await expect(page.locator('#questionnaireList')).toContainText('2 questions');
