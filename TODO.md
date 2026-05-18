@@ -30,13 +30,13 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 3. Synology-Level Album Password Protection
+## 3. ~~Synology-Level Album Password Protection~~ ✅ Done
 
 **Goal:** Gallery password set in the admin tool is enforced at the Synology Photos share level, not just client-side in the browser.
 
-- [ ] Research Synology Photos sharing API — check if password protection can be set on a share via API (`SYNO.Foto.Sharing.Passphrase` or share creation endpoint)
-- [ ] If API supports it: update Worker or `gallery-admin.html` to set the share password which was created in synology photos when generating a gallery link.  Given album allocations are covered with JWT, make the synology album password protection in the background to the end user, so it's set in the gallery admin page and never referenced anywhere else.
-- [ ] Verify that the Worker's session establishment (`/mo/sharing/{passphrase}`) works correctly when a share has a password set (may need to pass the password during session init)
+- [x] Research Synology Photos sharing API — check if password protection can be set on a share via API (`SYNO.Foto.Sharing.Passphrase` or share creation endpoint)
+- [x] If API supports it: update Worker or `gallery-admin.html` to set the share password which was created in synology photos when generating a gallery link.  Given album allocations are covered with JWT, make the synology album password protection in the background to the end user, so it's set in the gallery admin page and never referenced anywhere else.
+- [x] Verify that the Worker's session establishment (`/mo/sharing/{passphrase}`) works correctly when a share has a password set (may need to pass the password during session init)
 
 ---
 
