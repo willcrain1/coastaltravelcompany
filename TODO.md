@@ -4,6 +4,21 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
+## P0. Fix & Expand Acceptance Tests 🔴
+
+**Goal:** All Playwright acceptance tests pass, and every piece of existing functionality is covered — contact form, gallery auth flow, admin panel auth, portal, and pipeline.
+
+- [ ] Audit existing tests in `tests/e2e/` — identify which are broken and what errors they produce
+- [ ] Fix all broken tests so the full suite passes cleanly
+- [ ] Add missing coverage for contact form submission (success path, validation errors, rate limit response)
+- [ ] Add missing coverage for gallery auth flow: lock screen, wrong password, correct password → photo grid loads
+- [ ] Add missing coverage for admin panel: unauthenticated redirect to login, authenticated access, gallery creation, gallery expansion/edit
+- [ ] Add missing coverage for client portal: login, gallery list, gallery access via JWT token
+- [ ] Add missing coverage for lead pipeline: Kanban board renders, cards show outstanding action labels, stage progression
+- [ ] Ensure all tests run reliably in CI (no flaky waits or environment-specific assumptions)
+
+---
+
 ## ~~0. Capture Live NAS Configuration~~ ✅ Done
 
 - `cloudflared` container: standalone token-based container, no Docker Compose
@@ -596,3 +611,10 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 - [ ] Remove 'Client Name' in 'Create New Gallery'.  This is not required as the site administrator will link photo albums to client accounts.
 - [ ] Add Name to the 'Client Accounts' creation section.  Also add name to required fields in the register account page.
+
+---
+
+## 28. Enhance watermark capabilities
+
+**Goal:** Update watermark capabilities so once a gallery is created noted with watermark capabilities it queues all items to be watermarked.  A worker works through the items to watermark, watermarks them, then uploads them to a new synology album for a watermarked version of the album.
+

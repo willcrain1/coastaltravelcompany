@@ -22,14 +22,14 @@ playwright.config.js, package.json   ← test tooling (not deployed)
 
 ## Deployment
 
-**Website changes** — push to the `master` branch; GitHub Pages deploys automatically within ~2 minutes:
+**Website changes** — PR merges to the `master` branch; GitHub Pages deploys automatically within ~2 minutes:
 ```bash
 git add <files>
 git commit -m "description"
 git push
 ```
 
-**Cloudflare Worker changes** — edit `worker/cloudflare-worker.js`, then:
+**Cloudflare Worker changes** — edit `worker/cloudflare-worker.js`, then the `deploy-worker` github action will push changes.  To make changes manually instead:
 ```bash
 ./worker/deploy-worker.sh
 ```
