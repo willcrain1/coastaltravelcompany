@@ -186,25 +186,39 @@
       border: 1px solid var(--border);
       padding: 18px 22px;
       margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+    .gallery-row:hover { border-color: var(--border-hover); }
+    .gr-header {
       display: grid;
       grid-template-columns: 1fr auto;
       gap: 16px;
       align-items: center;
-      transition: border-color 0.2s;
     }
-    .gallery-row:hover { border-color: var(--border-hover); }
+    .gr-info { cursor: pointer; min-width: 0; }
     .gr-name {
       font-family: 'Gilda Display', serif;
       font-size: 17px; color: var(--white); margin-bottom: 3px;
+      display: flex; align-items: center; gap: 10px;
     }
+    .gr-chevron {
+      font-size: 10px; color: var(--dim);
+      transition: transform 0.2s; display: inline-block;
+    }
+    .gallery-edit-panel.open ~ .gr-header .gr-chevron,
+    .gr-chevron.open { transform: rotate(180deg); }
     .gr-meta { font-size: 11px; color: var(--dim); letter-spacing: 0.04em; }
-    .gr-pw {
-      display: inline-block; margin-top: 5px;
-      font-size: 10px; font-weight: 500; letter-spacing: 0.15em;
-      color: var(--teal);
-    }
     .gr-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
     .empty { text-align: center; padding: 52px; color: var(--dim); font-size: 13px; }
+
+    /* ── Gallery edit panel ── */
+    .gallery-edit-panel {
+      display: none;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .gallery-edit-panel.open { display: block; }
 
     select option { background: #2a2a2a; }
 
@@ -611,23 +625,68 @@
       return;
     }
     el.innerHTML = galleries.map(g => `
-      <div class="gallery-row">
-        <div>
-          <div class="gr-name">${esc(g.eventName)}</div>
-          <div class="gr-meta">
-            ${esc(g.clientName)}
-            &nbsp;·&nbsp; Created ${esc(g.created)}
-            ${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}
-            ${g.notes ? ' &nbsp;·&nbsp; ' + esc(g.notes) : ''}
-            ${g.assignedUsers && g.assignedUsers.length
-              ? ' &nbsp;·&nbsp; <span style="color:var(--ok)">' + g.assignedUsers.length + ' user' + (g.assignedUsers.length > 1 ? 's' : '') + '</span>'
-              : ''}
+      <div class="gallery-row" id="gr-${esc(g.id)}">
+        <div class="gr-header">
+          <div class="gr-info" onclick="toggleEditPanel('${esc(g.id)}')">
+            <div class="gr-name">
+              ${esc(g.eventName)}
+              <span class="gr-chevron" id="gchev-${esc(g.id)}">▾</span>
+            </div>
+            <div class="gr-meta">
+              ${esc(g.clientName)}
+              &nbsp;·&nbsp; Created ${esc(g.created)}
+              ${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}
+              ${g.notes ? ' &nbsp;·&nbsp; ' + esc(g.notes) : ''}
+              ${g.assignedUsers && g.assignedUsers.length
+                ? ' &nbsp;·&nbsp; <span style="color:var(--ok)">' + g.assignedUsers.length + ' user' + (g.assignedUsers.length > 1 ? 's' : '') + '</span>'
+                : ''}
+            </div>
+          </div>
+          <div class="gr-actions">
+            <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
+            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
+            <button class="btn btn-danger" onclick="deleteGalleryFromServer('${esc(g.id)}')">Delete</button>
           </div>
         </div>
-        <div class="gr-actions">
-          <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
-          <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
-          <button class="btn btn-danger" onclick="deleteGalleryFromServer('${esc(g.id)}')">Delete</button>
+        <div class="gallery-edit-panel" id="gedit-${esc(g.id)}">
+          <div class="form-grid">
+            <div class="fg full">
+              <label>Synology Photos Share Link — leave blank to keep existing</label>
+              <input type="url" id="gedit-shareUrl-${esc(g.id)}"
+                placeholder="Paste new URL to change (current host: ${esc(g.nasUrl || '')})" />
+              <p class="hint">Only needed if pointing this gallery to a different Synology album.</p>
+            </div>
+            <div class="fg full">
+              <label>Share Password — leave blank to keep existing</label>
+              <input type="password" id="gedit-sharePassword-${esc(g.id)}"
+                placeholder="Enter new password to change" />
+            </div>
+            <div class="fg">
+              <label>Event / Gallery Name</label>
+              <input type="text" id="gedit-eventName-${esc(g.id)}" value="${esc(g.eventName)}" required />
+            </div>
+            <div class="fg">
+              <label>Client Name</label>
+              <input type="text" id="gedit-clientName-${esc(g.id)}" value="${esc(g.clientName)}" required />
+            </div>
+            <div class="fg full">
+              <label>Internal Notes</label>
+              <input type="text" id="gedit-notes-${esc(g.id)}" value="${esc(g.notes || '')}" />
+            </div>
+            <div class="fg full" style="flex-direction:row; align-items:center; gap:10px; margin-top:2px;">
+              <input type="checkbox" id="gedit-watermark-${esc(g.id)}"
+                style="width:auto; accent-color:var(--teal); cursor:pointer; flex-shrink:0;"
+                ${g.watermark ? 'checked' : ''} />
+              <label for="gedit-watermark-${esc(g.id)}"
+                style="font-size:11px; letter-spacing:0.08em; text-transform:none; color:var(--dim); cursor:pointer; font-weight:400;">
+                Photos are watermarked — disable downloads in the client gallery
+              </label>
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; margin-top:18px;">
+            <button class="btn btn-primary btn-sm" onclick="saveGalleryEdit('${esc(g.id)}')">Save Changes</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleEditPanel('${esc(g.id)}')">Cancel</button>
+          </div>
         </div>
       </div>`).join('');
   }
@@ -638,6 +697,51 @@
     const g = getGallery(id);
     if (!g) return;
     navigator.clipboard.writeText(buildUrl(g)).then(() => toast('Link copied'));
+  }
+
+  function toggleEditPanel(id) {
+    const panel = document.getElementById('gedit-' + id);
+    const chev  = document.getElementById('gchev-' + id);
+    if (!panel) return;
+    const opening = !panel.classList.contains('open');
+    panel.classList.toggle('open');
+    if (chev) chev.classList.toggle('open', opening);
+  }
+
+  async function saveGalleryEdit(id) {
+    const g = getGallery(id);
+    if (!g) return;
+
+    const shareRaw      = document.getElementById('gedit-shareUrl-' + id).value.trim();
+    const sharePassword = document.getElementById('gedit-sharePassword-' + id).value;
+    const eventName     = document.getElementById('gedit-eventName-' + id).value.trim();
+    const clientName    = document.getElementById('gedit-clientName-' + id).value.trim();
+    const notes         = document.getElementById('gedit-notes-' + id).value.trim();
+    const watermark     = document.getElementById('gedit-watermark-' + id).checked;
+
+    if (!eventName || !clientName) {
+      toast('Event name and client name are required', true);
+      return;
+    }
+
+    const updates = { eventName, clientName, notes, watermark };
+
+    if (shareRaw) {
+      const parsed = parseShareUrl(shareRaw);
+      if (!parsed) { toast('Could not read share URL — check the format', true); return; }
+      updates.nasUrl     = parsed.nasUrl;
+      updates.passphrase = parsed.passphrase;
+    }
+
+    if (sharePassword) updates.sharePassword = sharePassword;
+
+    const { ok, data } = await apiFetch('/admin/galleries/' + id, { method: 'PUT', body: updates });
+    if (!ok) { toast(data.error || 'Save failed', true); return; }
+
+    const idx = galleries.findIndex(gg => gg.id === id);
+    if (idx >= 0) galleries[idx] = { ...galleries[idx], ...data };
+    renderGalleryList();
+    toast('Gallery updated');
   }
 
   // ── User API ─────────────────────────────────────────────────────────────────
