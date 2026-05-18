@@ -311,6 +311,13 @@
           <p class="hint">Synology Photos → open album → ··· menu → Share → copy the link. Paste the full URL here.</p>
         </div>
 
+        <div class="fg full">
+          <label>Share Password <span style="color:var(--teal)">*</span></label>
+          <input type="password" id="sharePassword" required
+            placeholder="Password set on the Synology Photos share" />
+          <p class="hint">In Synology Photos, open the share settings and set a password on this album first, then enter it here.</p>
+        </div>
+
         <div class="fg">
           <label>Event / Gallery Name</label>
           <input type="text" id="eventName" required placeholder="Rivera Wedding · May 2024" />
@@ -534,11 +541,12 @@
     btn.disabled = true;
     btn.textContent = 'Generating…';
 
-    const shareRaw   = document.getElementById('shareUrl').value.trim();
-    const eventName  = document.getElementById('eventName').value.trim();
-    const clientName = document.getElementById('clientName').value.trim();
-    const notes      = document.getElementById('notes').value.trim();
-    const watermark  = document.getElementById('watermark').checked;
+    const shareRaw     = document.getElementById('shareUrl').value.trim();
+    const sharePassword = document.getElementById('sharePassword').value.trim();
+    const eventName    = document.getElementById('eventName').value.trim();
+    const clientName   = document.getElementById('clientName').value.trim();
+    const notes        = document.getElementById('notes').value.trim();
+    const watermark    = document.getElementById('watermark').checked;
 
     const parsed = parseShareUrl(shareRaw);
     if (!parsed) {
@@ -553,7 +561,7 @@
 
     const gallery = {
       id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: CTC_CONFIG.workerUrl,
-      passphrase: parsed.passphrase, eventName, clientName,
+      passphrase: parsed.passphrase, sharePassword, eventName, clientName,
       created, notes, watermark, assignedUsers: [],
     };
 
@@ -569,6 +577,8 @@
     document.getElementById('resultUrl').textContent = currentResultUrl;
     document.getElementById('resultBox').classList.add('show');
 
+    document.getElementById('shareUrl').value = '';
+    document.getElementById('sharePassword').value = '';
     renderGalleryList();
     renderCreateGalleryChecks();
     toast('Gallery link created');

@@ -21,7 +21,7 @@
 //   gallery:{id}        → JSON gallery object
 //   galleries_list      → JSON array of gallery ids (newest first)
 //   reset:{token}       → JSON { email } — auto-expires after 1 hour
-//   tok:{sid}           → passphrase string — auto-expires after 4 hours
+//   tok:{sid}           → JSON { passphrase, sharePassword } — auto-expires after 4 hours
 //   rl:{passphrase}     → request count — auto-expires after 60 seconds
 //   contact_rl:{ip}     → request count — auto-expires after 1 hour
 
@@ -397,7 +397,7 @@ async function handleAuthMe(request, env) {
 
 function stripGallery(g) {
   if (!g) return null;
-  const { passphrase, pw, pwHash, ...safe } = g;
+  const { passphrase, pw, pwHash, sharePassword, ...safe } = g;
   return safe;
 }
 
@@ -532,11 +532,24 @@ function parseCookies(headers) {
     .map(c => c.split(';')[0].trim()).join('; ');
 }
 
-async function getSharingSid(passphrase) {
+async function getSharingSid(passphrase, sharePassword = null) {
   const cached = sidCache[passphrase];
   if (cached && cached.exp > Date.now()) return cached;
 
-  const res = await fetch(NAS_SHARE_PAGE + passphrase, { redirect: 'follow' });
+  let res;
+  if (sharePassword) {
+    // Password-protected share — authenticate via SYNO.Core.Sharing.Login.
+    // Synology names its password param "passphrase" here, distinct from the share URL token.
+    const params = new URLSearchParams({
+      api: 'SYNO.Core.Sharing.Login', version: '1', method: 'login',
+      sharing_id: passphrase,
+      passphrase: sharePassword,
+    });
+    res = await fetch(NAS_SHARE_API + '?' + params, { redirect: 'follow' });
+  } else {
+    res = await fetch(NAS_SHARE_PAGE + passphrase, { redirect: 'follow' });
+  }
+
   const setCookieHeader = res.headers.get('set-cookie') || '';
   const sidMatch = setCookieHeader.match(/sharing_sid=([^;]+)/);
   const sid = sidMatch ? sidMatch[1] : null;
@@ -656,12 +669,12 @@ async function handleRequest(request, env) {
     if (!passphrase) return jsonResponse({ error: 'Gallery configuration error' }, 500);
 
     try {
-      await getSharingSid(passphrase);
+      await getSharingSid(passphrase, gallery.sharePassword || null);
     } catch {
       return jsonResponse({ error: 'Gallery session failed' }, 401);
     }
     const sid = crypto.randomUUID();
-    await env.KV.put('tok:' + sid, passphrase, { expirationTtl: 14400 });
+    await env.KV.put('tok:' + sid, JSON.stringify({ passphrase, sharePassword: gallery.sharePassword || null }), { expirationTtl: 14400 });
     return jsonResponse({ sid });
   }
 
@@ -741,12 +754,19 @@ async function handleRequest(request, env) {
     rawPassphrase = url.searchParams.get('passphrase');
   }
 
+  let sharePassword = null;
   if (rawSid) {
     const stored = await env.KV.get('tok:' + rawSid);
     if (!stored) {
       return jsonResponse({ success: false, error: { code: 401, message: 'Session expired — reload the gallery' } }, 401);
     }
-    passphrase = stored;
+    try {
+      const parsed = JSON.parse(stored);
+      passphrase   = parsed.passphrase;
+      sharePassword = parsed.sharePassword || null;
+    } catch {
+      passphrase = stored; // backward compat: old tokens stored plain passphrase string
+    }
   } else if (rawPassphrase) {
     passphrase = extractPassphrase(rawPassphrase);
   }
@@ -768,7 +788,7 @@ async function handleRequest(request, env) {
 
   let nasAuth;
   try {
-    nasAuth = await getSharingSid(passphrase);
+    nasAuth = await getSharingSid(passphrase, sharePassword);
   } catch (err) {
     return jsonResponse({ success: false, error: { code: 502, message: 'Sharing session failed: ' + err.message } }, 502);
   }
