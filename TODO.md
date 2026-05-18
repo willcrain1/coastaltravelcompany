@@ -8,14 +8,14 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 **Goal:** All Playwright acceptance tests pass, and every piece of existing functionality is covered — contact form, gallery auth flow, admin panel auth, portal, and pipeline.
 
-- [ ] Audit existing tests in `tests/e2e/` — identify which are broken and what errors they produce
-- [ ] Fix all broken tests so the full suite passes cleanly
-- [ ] Add missing coverage for contact form submission (success path, validation errors, rate limit response)
-- [ ] Add missing coverage for gallery auth flow: lock screen, wrong password, correct password → photo grid loads
-- [ ] Add missing coverage for admin panel: unauthenticated redirect to login, authenticated access, gallery creation, gallery expansion/edit
-- [ ] Add missing coverage for client portal: login, gallery list, gallery access via JWT token
-- [ ] Add missing coverage for lead pipeline: Kanban board renders, cards show outstanding action labels, stage progression
-- [ ] Ensure all tests run reliably in CI (no flaky waits or environment-specific assumptions)
+- [x] Audit existing tests in `tests/e2e/` — identify which are broken and what errors they produce
+- [x] Fix all broken tests so the full suite passes cleanly
+- [x] Add missing coverage for contact form submission (success path, validation errors, rate limit response)
+- [x] Add missing coverage for gallery auth flow: lock screen, wrong password, correct password → photo grid loads
+- [x] Add missing coverage for admin panel: unauthenticated redirect to login, authenticated access, gallery creation, gallery expansion/edit
+- [x] Add missing coverage for client portal: login, gallery list, gallery access via JWT token
+- [x] Add missing coverage for lead pipeline: Kanban board renders, cards show outstanding action labels, stage progression
+- [x] Ensure all tests run reliably in CI (no flaky waits or environment-specific assumptions)
 
 ---
 
