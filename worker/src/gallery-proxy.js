@@ -200,6 +200,8 @@ export async function handleNasProxy(request, env) {
     'X-SYNO-SHARING': passphrase,
   };
   if (method === 'POST') nasReqHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+  const rangeHeader = request.headers.get('Range');
+  if (rangeHeader) nasReqHeaders['Range'] = rangeHeader;
 
   let nasResponse;
   try {
@@ -211,9 +213,24 @@ export async function handleNasProxy(request, env) {
     return jsonResponse({ success: false, error: { code: 502, message: 'NAS unreachable: ' + err.message } }, 502);
   }
 
+  const ct = nasResponse.headers.get('Content-Type') || '';
+  const cd = nasResponse.headers.get('Content-Disposition');
+
+  // Stream video responses directly — buffering large video files would exceed Worker memory limits
+  if (ct.startsWith('video/')) {
+    const resHeaders = new Headers(CORS);
+    resHeaders.set('Content-Type', ct);
+    if (cd) resHeaders.set('Content-Disposition', cd);
+    const acceptRanges = nasResponse.headers.get('Accept-Ranges');
+    const contentRange = nasResponse.headers.get('Content-Range');
+    const contentLen   = nasResponse.headers.get('Content-Length');
+    if (acceptRanges) resHeaders.set('Accept-Ranges', acceptRanges);
+    if (contentRange) resHeaders.set('Content-Range', contentRange);
+    if (contentLen)   resHeaders.set('Content-Length', contentLen);
+    return new Response(nasResponse.body, { status: nasResponse.status, headers: resHeaders });
+  }
+
   const body = await nasResponse.arrayBuffer();
-  const ct   = nasResponse.headers.get('Content-Type') || '';
-  const cd   = nasResponse.headers.get('Content-Disposition');
 
   if (wantsWatermark && ct.startsWith('image/')) {
     try {

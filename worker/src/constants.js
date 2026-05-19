@@ -12,6 +12,7 @@ export const ALLOWED_APIS = new Set([
   'SYNO.Foto.Browse.Item',
   'SYNO.Foto.Thumbnail',
   'SYNO.Foto.Download',
+  'SYNO.Foto.Streaming',
 ]);
 
 export const CORS = {
