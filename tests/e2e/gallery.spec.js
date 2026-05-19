@@ -404,3 +404,166 @@ test.describe('Client Gallery', () => {
     expect(changedPixels / pixCount).toBeGreaterThan(0.02);
   });
 });
+
+// ── Video Gallery (item 8) ────────────────────────────────────────────────────
+
+const MOCK_VIDEO = {
+  id: 2001, filename: 'mock-clip-1.mp4', type: 'video',
+  additional: {
+    thumbnail: { unit_id: 2001, cache_key: 'ck2001' },
+    resolution: { width: 1920, height: 1080 },
+  },
+};
+
+const MOCK_PHOTO = {
+  id: 1001, filename: 'mock-photo-1.jpg',
+  additional: {
+    thumbnail: { unit_id: 1001, cache_key: 'ck1001' },
+    resolution: { width: 3000, height: 2000 },
+  },
+};
+
+async function useMockWorkerMixed(context, items) {
+  const thumbJpeg = await sharp({
+    create: { width: 200, height: 150, channels: 3, background: { r: 120, g: 140, b: 160 } },
+  }).jpeg({ quality: 85 }).toBuffer();
+
+  await context.route(
+    (url) => url.toString().startsWith(WORKER_URL),
+    async (route) => {
+      const req    = route.request();
+      const url    = new URL(req.url());
+      const method = req.method();
+      try {
+        if (method === 'OPTIONS') {
+          await route.fulfill({ status: 204, headers: { ...CORS, 'access-control-max-age': '86400' } });
+          return;
+        }
+        if (method === 'POST' && url.pathname === '/token') {
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body: JSON.stringify({ sid: 'mock-sid-mixed' }),
+          });
+          return;
+        }
+        if (method === 'POST') {
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body: JSON.stringify({ success: true, data: { list: items, total: items.length } }),
+          });
+          return;
+        }
+        const api = url.searchParams.get('api');
+        if (api === 'SYNO.Foto.Thumbnail' || api === 'SYNO.Foto.Download') {
+          await route.fulfill({
+            status: 200,
+            headers: { 'content-type': 'image/jpeg', ...CORS },
+            body: thumbJpeg,
+          });
+          return;
+        }
+        await route.fulfill({ status: 404, body: `Unexpected mock: ${method} ${req.url()}` });
+      } catch {
+        route.abort().catch(() => {});
+      }
+    },
+  );
+}
+
+test.describe('Client Gallery — Video Support', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('video items display a play icon badge in the grid', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+    await useMockWorkerMixed(context, [MOCK_VIDEO]);
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+
+    await page.waitForSelector('.p-item img.loaded', { timeout: 60_000 });
+    await expect(page.locator('.v-play-badge')).toHaveCount(1);
+  });
+
+  test('photo-only gallery shows no play badges', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+    await useMockWorkerMixed(context, [MOCK_PHOTO]);
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+
+    await page.waitForSelector('.p-item img.loaded', { timeout: 60_000 });
+    await expect(page.locator('.v-play-badge')).toHaveCount(0);
+  });
+
+  test('mixed gallery nav count shows photos & videos format', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+    await useMockWorkerMixed(context, [MOCK_PHOTO, MOCK_VIDEO]);
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+
+    await page.waitForSelector('.p-item img.loaded', { timeout: 60_000 });
+    const count = await page.locator('.g-count').textContent();
+    expect(count).toMatch(/photo.*video|video.*photo/i);
+  });
+
+  test('clicking a video item opens the video element in the lightbox', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+    await useMockWorkerMixed(context, [MOCK_PHOTO, MOCK_VIDEO]);
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+
+    await page.waitForSelector('.p-item img.loaded', { timeout: 60_000 });
+
+    // The video card is the one with the play badge
+    await page.locator('.v-play-badge').locator('..').click();
+    await page.waitForSelector('#lb.show');
+
+    await expect(page.locator('#lbVideo')).toHaveClass(/show/);
+    await expect(page.locator('#lbVideo')).toHaveAttribute('src', /SYNO\.Foto\.Download/);
+    // Image element should not be visible for a video item
+    await expect(page.locator('#lbImg')).not.toBeVisible();
+  });
+
+  test('navigating from video to photo hides video and shows image', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+    // Video first, then photo
+    await useMockWorkerMixed(context, [MOCK_VIDEO, MOCK_PHOTO]);
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+
+    await page.waitForSelector('.p-item img.loaded', { timeout: 60_000 });
+
+    // Open lightbox on first item (video)
+    await page.locator('.p-item').first().click();
+    await page.waitForSelector('#lb.show');
+    await expect(page.locator('#lbVideo')).toHaveClass(/show/);
+
+    // Navigate to next item (photo)
+    await page.click('#lbNext');
+
+    await expect(page.locator('#lbVideo')).not.toHaveClass(/show/);
+    await expect(page.locator('#lbImg')).toBeVisible();
+  });
+
+  test('video download button uses correct file extension from filename', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+    await useMockWorkerMixed(context, [MOCK_VIDEO]);
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+
+    await page.waitForSelector('.p-item img.loaded', { timeout: 60_000 });
+
+    const dlHref = await page.locator('.p-dl').first().getAttribute('download');
+    expect(dlHref).toMatch(/\.mp4$/i);
+  });
+});
