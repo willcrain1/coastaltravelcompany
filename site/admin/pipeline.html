@@ -246,6 +246,32 @@
         </div>
 
         <div class="pd-documents">
+          <div class="pd-notes-title">Invoices</div>
+          <div class="doc-list" id="pd-invoice-list"></div>
+          <div id="pd-invoice-form">
+            <div id="pd-invoice-items-container"></div>
+            <button class="btn btn-ghost btn-sm" onclick="addInvoiceLineItem()" style="margin-top:6px;margin-bottom:10px;">+ Add Line Item</button>
+            <div class="note-add-form">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+                <div>
+                  <label>Tax ($)</label>
+                  <input type="number" id="pd-invoice-tax" placeholder="0.00" min="0" step="0.01" style="width:90px;" />
+                </div>
+                <div>
+                  <label>Due Date</label>
+                  <input type="date" id="pd-invoice-due" />
+                </div>
+                <div style="flex:1;min-width:140px;">
+                  <label>Notes</label>
+                  <input type="text" id="pd-invoice-notes" placeholder="Optional" />
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="createInvoice()">Create Invoice</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pd-documents">
           <div class="pd-notes-title">Client Portal</div>
           <div class="note-add-form" style="flex-direction:row; align-items:center; gap:8px; flex-wrap:wrap;">
             <input type="text" id="pd-portal-url" placeholder="Generate a portal link…" readonly style="flex:1; min-width:200px;" />
@@ -506,10 +532,12 @@
     document.getElementById('pd-portal-copy').style.display = 'none';
     populateQnSetDropdown();
     renderProposalPackageChecks();
+    invoiceLineItems = [{ description: '', quantity: 1, unit_price: '' }];
+    renderInvoiceLineItemForm();
     await Promise.all([
       loadNotes(id), loadDocuments(id), loadProposals(id),
       loadProjectQuestionnaires(id), loadScheduleLinks(id), loadProjectMessages(id),
-      loadContracts(id),
+      loadContracts(id), loadInvoices(id),
     ]);
   }
 
@@ -1055,11 +1083,137 @@
     toast('Contract fully executed — both parties notified');
   }
 
+  // ── Invoices ─────────────────────────────────────────────────────────────────
+  let invoiceLineItems = [{ description: '', quantity: 1, unit_price: '' }];
+
+  function renderInvoiceLineItemForm() {
+    const el = document.getElementById('pd-invoice-items-container');
+    if (!el) return;
+    el.innerHTML = invoiceLineItems.map((item, i) => `
+      <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:6px;flex-wrap:wrap;">
+        <div style="flex:2;min-width:120px;">
+          <label>Description</label>
+          <input type="text" value="${esc(item.description)}" oninput="invoiceLineItems[${i}].description=this.value" placeholder="e.g. Editorial Stay deposit" />
+        </div>
+        <div style="flex:0 0 60px;">
+          <label>Qty</label>
+          <input type="number" value="${item.quantity}" oninput="invoiceLineItems[${i}].quantity=+this.value||1" min="1" step="1" />
+        </div>
+        <div style="flex:0 0 100px;">
+          <label>Price ($)</label>
+          <input type="number" value="${item.unit_price}" oninput="invoiceLineItems[${i}].unit_price=this.value" min="0" step="0.01" placeholder="0.00" />
+        </div>
+        ${invoiceLineItems.length > 1 ? `<button class="btn btn-ghost btn-sm" style="margin-bottom:0;flex:none;" onclick="removeInvoiceLineItem(${i})">✕</button>` : '<div style="width:32px;"></div>'}
+      </div>`).join('');
+  }
+
+  function addInvoiceLineItem() {
+    invoiceLineItems.push({ description: '', quantity: 1, unit_price: '' });
+    renderInvoiceLineItemForm();
+  }
+
+  function removeInvoiceLineItem(i) {
+    invoiceLineItems.splice(i, 1);
+    renderInvoiceLineItemForm();
+  }
+
+  async function loadInvoices(projectId) {
+    const { ok, data } = await apiFetch('/admin/projects/' + projectId + '/invoices', { method: 'GET' });
+    const el = document.getElementById('pd-invoice-list');
+    if (!el) return;
+    if (!ok || !data.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;padding:4px 0 8px;">No invoices yet.</div>';
+      return;
+    }
+    el.innerHTML = data.map(inv => {
+      const total = (inv.total_cents / 100).toFixed(2);
+      const badge = inv.status === 'paid'
+        ? '<span style="font-size:11px;font-weight:600;background:#d1f0e3;color:#145a35;padding:2px 8px;border-radius:20px;">Paid</span>'
+        : inv.status === 'sent'
+          ? '<span style="font-size:11px;font-weight:600;background:#e8f4fd;color:#0d47a1;padding:2px 8px;border-radius:20px;">Sent</span>'
+          : inv.status === 'void'
+            ? '<span style="font-size:11px;font-weight:600;background:#fce8e8;color:#7f0000;padding:2px 8px;border-radius:20px;">Void</span>'
+            : '<span style="font-size:11px;font-weight:600;background:#f1f1f1;color:#555;padding:2px 8px;border-radius:20px;">Draft</span>';
+      const invoiceUrl = location.origin + '/invoice.html#' + esc(inv.magic_token);
+      return `<div class="doc-item">
+        <div>
+          <div class="doc-title">${esc(inv.invoice_number)} — $${total}</div>
+          <div class="doc-meta">${badge}${inv.due_date ? ' · Due ' + esc(inv.due_date) : ''} · ${esc(relTime(inv.created_at))}</div>
+          ${inv.paid_at ? `<div class="doc-meta" style="color:var(--green);">Paid ${esc(relTime(inv.paid_at))}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <a class="doc-link" href="${invoiceUrl}" target="_blank" rel="noopener">View</a>
+          ${inv.status === 'draft' ? `<button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="sendInvoice('${esc(inv.id)}')">Send</button>` : ''}
+          ${inv.status === 'sent'  ? `<button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="markInvoicePaid('${esc(inv.id)}')">Mark Paid</button>` : ''}
+          ${inv.status !== 'void' && inv.status !== 'paid' ? `<button class="btn btn-ghost btn-sm" style="font-size:10px;" onclick="voidInvoice('${esc(inv.id)}')">Void</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function createInvoice() {
+    if (!selectedProjectId) return;
+    const lineItems = invoiceLineItems
+      .filter(i => i.description.trim())
+      .map(i => ({
+        description:     i.description.trim(),
+        quantity:        Math.max(1, Number(i.quantity) || 1),
+        unit_price_cents: Math.round((parseFloat(i.unit_price) || 0) * 100),
+      }));
+    if (!lineItems.length) { toast('Add at least one line item with a description', true); return; }
+    const tax_cents = Math.round((parseFloat(document.getElementById('pd-invoice-tax').value) || 0) * 100);
+    const due_date  = document.getElementById('pd-invoice-due').value;
+    const notes     = document.getElementById('pd-invoice-notes').value.trim();
+    const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/invoices', {
+      method: 'POST', body: { line_items: lineItems, tax_cents, due_date, notes },
+    });
+    if (!ok) { toast(data?.error || 'Failed to create invoice', true); return; }
+    document.getElementById('pd-invoice-tax').value   = '';
+    document.getElementById('pd-invoice-due').value   = '';
+    document.getElementById('pd-invoice-notes').value = '';
+    invoiceLineItems = [{ description: '', quantity: 1, unit_price: '' }];
+    renderInvoiceLineItemForm();
+    await loadInvoices(selectedProjectId);
+    toast('Invoice created');
+  }
+
+  async function sendInvoice(invoiceId) {
+    const { ok, data } = await apiFetch('/admin/invoices/' + invoiceId + '/send', { method: 'POST' });
+    if (!ok) { toast(data?.error || 'Failed to send invoice', true); return; }
+    await loadInvoices(selectedProjectId);
+    toast('Invoice sent to client');
+  }
+
+  async function markInvoicePaid(invoiceId) {
+    if (!confirm('Mark this invoice as paid? This will advance the project to "Retainer Paid".')) return;
+    const now = new Date().toISOString();
+    const { ok, data } = await apiFetch('/admin/invoices/' + invoiceId, {
+      method: 'PUT', body: { status: 'paid', paid_at: now },
+    });
+    if (!ok) { toast(data?.error || 'Failed to update invoice', true); return; }
+    const idx = projects.findIndex(p => p.id === selectedProjectId);
+    if (idx >= 0) projects[idx].stage = 'Retainer Paid';
+    renderPipeline();
+    await loadInvoices(selectedProjectId);
+    toast('Invoice marked paid — project advanced to Retainer Paid');
+  }
+
+  async function voidInvoice(invoiceId) {
+    if (!confirm('Void this invoice? This cannot be undone.')) return;
+    const { ok, data } = await apiFetch('/admin/invoices/' + invoiceId, {
+      method: 'PUT', body: { status: 'void' },
+    });
+    if (!ok) { toast(data?.error || 'Failed to void invoice', true); return; }
+    await loadInvoices(selectedProjectId);
+    toast('Invoice voided');
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
     if (!authed) return;
     await Promise.all([loadProjects(), loadPackages(), loadQuestionnaireSets(), loadContractTemplates()]);
+    renderInvoiceLineItemForm();
   }
 
   init();
