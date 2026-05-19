@@ -193,14 +193,15 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 9. Availability Calendar
+## ~~9. Availability Calendar~~ ✅ Done
 
 **Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
 
-- [ ] Choose an approach: simple manually-updated HTML calendar, or embed from a booking tool (syncs automatically if item 5 is implemented)
-- [ ] Add to `contact.html` or a new `/availability.html` page
-- [ ] Mark booked periods as unavailable, show open windows clearly
-- [ ] Add a note about travel availability (available worldwide, lead time requirements)
+- [x] Chose dynamic approach: new public `GET /public/availability` Worker endpoint reads `availability_windows` and `blocked_dates` from D1 — calendar always reflects what the admin configures in the scheduling panel, no manual HTML maintenance
+- [x] Added calendar section to `contact.html` between the contact form and collections reference — 3-month rolling view rendered in JS
+- [x] Days marked available (teal) when the admin has an active window for that day-of-week and the date is not in `blocked_dates`; unavailable days shown in linen; past days muted
+- [x] Fallback renders Mon–Fri available if the Worker is unreachable (graceful degradation)
+- [x] Note added: "Based in Palm Beach, Florida — available for travel worldwide. 6–8 week lead time recommended."
 
 ---
 
