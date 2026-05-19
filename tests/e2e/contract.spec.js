@@ -32,11 +32,22 @@ function json(route, data, status = 200) {
   });
 }
 
+// Long enough that the page overflows the 800px test viewport — keeps the
+// scroll gate active (scrollNotice stays visible until the user scrolls).
+const LONG_BODY = [
+  '<p>This agreement is made between Coastal Travel Company and Grand Palms Hotel.</p>',
+  ...Array.from({ length: 30 }, (_, i) =>
+    `<p>Section ${i + 1}: Lorem ipsum dolor sit amet, consectetur adipiscing elit. ` +
+    `Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad ` +
+    `minim veniam, quis nostrud exercitation ullamco laboris.</p>`
+  ),
+].join('');
+
 function makeContract(overrides = {}) {
   return {
     token:              TOKEN,
     title:              'Photography Services Agreement',
-    body:               '<p>This agreement is made between Coastal Travel Company and Grand Palms Hotel.</p><p>Scope of work: The Editorial Stay — full-property shoot over two days.</p>',
+    body:               LONG_BODY,
     created_at:         '2026-05-01T10:00:00Z',
     status:             'sent',
     client_name:        'Grand Palms Hotel',
@@ -87,7 +98,7 @@ test.describe('Contract Signing Page', () => {
     await expect(page.locator('#contractBody')).toContainText('Grand Palms Hotel');
   });
 
-  test('signature block is hidden on load and scroll notice is shown', async ({ page, context }) => {
+  test('scroll notice is shown and submit button is disabled before scrolling', async ({ page, context }) => {
     const contract = makeContract();
     await mockWorker(context, {
       [`GET /contracts/${TOKEN}`]:       (route) => json(route, contract),
@@ -97,12 +108,15 @@ test.describe('Contract Signing Page', () => {
     await page.goto(`${STATIC_BASE}/contract.html#${TOKEN}`);
     await expect(page.locator('#contractWrap')).toBeVisible({ timeout: 10_000 });
 
-    // Scroll notice visible, signature block hidden until scrolled
+    // sigBlock is shown immediately for 'sent' contracts; scroll gate controls
+    // scrollNotice visibility and submit button state
+    await expect(page.locator('#sigBlock')).toBeVisible();
     await expect(page.locator('#scrollNotice')).toBeVisible();
-    await expect(page.locator('#sigBlock')).not.toBeVisible();
+    // Submit must be disabled until the user scrolls to the bottom
+    await expect(page.locator('#submitBtn')).toBeDisabled();
   });
 
-  test('signature block appears after scrolling to the contract bottom', async ({ page, context }) => {
+  test('scroll notice hides after scrolling to the contract bottom', async ({ page, context }) => {
     const contract = makeContract();
     await mockWorker(context, {
       [`GET /contracts/${TOKEN}`]:       (route) => json(route, contract),
@@ -112,15 +126,12 @@ test.describe('Contract Signing Page', () => {
     await page.goto(`${STATIC_BASE}/contract.html#${TOKEN}`);
     await expect(page.locator('#contractWrap')).toBeVisible({ timeout: 10_000 });
 
-    // Simulate scrolling the contract card to its bottom
-    await page.evaluate(() => {
-      const card = document.getElementById('contractCard');
-      if (card) card.scrollTop = card.scrollHeight;
-      else window.scrollTo(0, document.body.scrollHeight);
-    });
+    // Scroll window to bottom so the scroll gate fires
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
-    await expect(page.locator('#sigBlock')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('#scrollNotice')).not.toBeVisible();
+    await expect(page.locator('#scrollNotice')).not.toBeVisible({ timeout: 5_000 });
+    // sigBlock remains visible after scrolling
+    await expect(page.locator('#sigBlock')).toBeVisible();
   });
 
   test('typed name preview updates live as the name is entered', async ({ page, context }) => {
@@ -134,11 +145,7 @@ test.describe('Contract Signing Page', () => {
     await expect(page.locator('#contractWrap')).toBeVisible({ timeout: 10_000 });
 
     // Scroll to reveal sig block
-    await page.evaluate(() => {
-      const card = document.getElementById('contractCard');
-      if (card) card.scrollTop = card.scrollHeight;
-      else window.scrollTo(0, document.body.scrollHeight);
-    });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await expect(page.locator('#sigBlock')).toBeVisible({ timeout: 5_000 });
 
     await page.fill('#sigTypedInput', 'Rebecca Harper');
@@ -161,11 +168,7 @@ test.describe('Contract Signing Page', () => {
     await page.goto(`${STATIC_BASE}/contract.html#${TOKEN}`);
     await expect(page.locator('#contractWrap')).toBeVisible({ timeout: 10_000 });
 
-    await page.evaluate(() => {
-      const card = document.getElementById('contractCard');
-      if (card) card.scrollTop = card.scrollHeight;
-      else window.scrollTo(0, document.body.scrollHeight);
-    });
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await expect(page.locator('#sigBlock')).toBeVisible({ timeout: 5_000 });
 
     await page.fill('#sigTypedInput', 'Rebecca Harper');
@@ -221,9 +224,9 @@ test.describe('Contract Signing Page', () => {
 
     // Fully executed shows signatures panel
     await expect(page.locator('#sigsDisplay')).toBeVisible({ timeout: 5_000 });
-    // Audit trail entries present
-    await expect(page.locator('#auditTrail')).toContainText('client_signed');
-    await expect(page.locator('#auditTrail')).toContainText('admin_countersigned');
+    // Audit trail entries present — labelEvent() maps to human-readable labels
+    await expect(page.locator('#auditTrail')).toContainText('Client signed');
+    await expect(page.locator('#auditTrail')).toContainText('Admin countersigned');
     // Print/download bar visible
     await expect(page.locator('#printBar')).toBeVisible();
     // Signature block not shown for fully executed

@@ -147,6 +147,164 @@
     </div>
   </section>
 
+  <!-- ── Availability Calendar ────────────────────────────── -->
+  <section class="section bg-white">
+    <div class="container">
+      <div class="text-center mb-48 fade-up">
+        <span class="eyebrow">Plan Ahead</span>
+        <h2 style="font-size: clamp(26px, 3.8vw, 46px);">Availability</h2>
+        <p class="body-sm" style="max-width: 540px; margin: 14px auto 0;">
+          Based in Palm Beach, Florida — available for travel worldwide. A lead time of
+          6–8 weeks is recommended; multi-day editorial collections often book further out.
+        </p>
+      </div>
+
+      <div id="avail-cal" class="fade-up" style="display:grid; gap:32px; grid-template-columns:repeat(3,1fr);">
+        <!-- months rendered by JS -->
+        <div style="text-align:center; padding:40px; color:var(--text-light); font-size:12px; letter-spacing:0.2em; grid-column:1/-1;">Loading calendar…</div>
+      </div>
+
+      <div class="text-center fade-up" style="margin-top:36px;">
+        <div style="display:inline-flex; gap:32px; align-items:center; flex-wrap:wrap; justify-content:center;">
+          <span style="display:flex;align-items:center;gap:9px;font-size:10px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-mid);">
+            <span style="width:11px;height:11px;border-radius:50%;background:var(--sage-teal);display:inline-block;"></span>
+            Available
+          </span>
+          <span style="display:flex;align-items:center;gap:9px;font-size:10px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase;color:var(--text-mid);">
+            <span style="width:11px;height:11px;border-radius:50%;background:var(--linen);border:1px solid rgba(0,0,0,0.12);display:inline-block;"></span>
+            Unavailable
+          </span>
+        </div>
+        <p class="body-sm" style="margin-top:20px; max-width:440px; margin-left:auto; margin-right:auto;">
+          Dates shown reflect general weekly availability. Contact us to confirm a specific date for your project.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .cal-month { }
+    .cal-month-title {
+      font-family: 'Gilda Display', serif;
+      font-size: 16px; letter-spacing: 0.06em;
+      text-align: center; margin-bottom: 16px;
+      color: var(--black);
+    }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+    .cal-dow {
+      font-size: 9px; font-weight: 600;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text-light); text-align: center;
+      padding-bottom: 6px;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 400;
+      border-radius: 50%;
+      color: var(--black);
+    }
+    .cal-empty { }
+    .cal-past { color: rgba(0,0,0,0.2); }
+    .cal-avail { background: var(--sage-teal); color: var(--white); font-weight: 500; }
+    .cal-blocked { background: var(--linen); color: rgba(0,0,0,0.3); }
+    .cal-today { outline: 2px solid var(--forest-green); outline-offset: -2px; }
+    @media (max-width: 900px) {
+      #avail-cal { grid-template-columns: 1fr 1fr !important; }
+    }
+    @media (max-width: 560px) {
+      #avail-cal { grid-template-columns: 1fr !important; }
+    }
+  </style>
+
+  <script>
+  (function () {
+    const WORKER = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+    const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function renderCalendar(availDows, blockedSet) {
+      const cal   = document.getElementById('avail-cal');
+      cal.innerHTML = '';
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      for (let m = 0; m < 3; m++) {
+        const ref      = new Date(today.getFullYear(), today.getMonth() + m, 1);
+        const year     = ref.getFullYear();
+        const month    = ref.getMonth();
+        const days     = new Date(year, month + 1, 0).getDate();
+        const startDow = ref.getDay();
+
+        const wrap = document.createElement('div');
+        wrap.className = 'cal-month';
+
+        const title = document.createElement('div');
+        title.className = 'cal-month-title';
+        title.textContent = MONTHS[month] + ' ' + year;
+        wrap.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'cal-grid';
+
+        DAYS.forEach(d => {
+          const h = document.createElement('div');
+          h.className = 'cal-dow';
+          h.textContent = d;
+          grid.appendChild(h);
+        });
+
+        for (let blank = 0; blank < startDow; blank++) {
+          const e = document.createElement('div');
+          e.className = 'cal-day cal-empty';
+          grid.appendChild(e);
+        }
+
+        for (let d = 1; d <= days; d++) {
+          const date    = new Date(year, month, d);
+          const dateStr = date.toISOString().slice(0, 10);
+          const dow     = date.getDay();
+          const isPast  = date < today;
+
+          const cell = document.createElement('div');
+          cell.className = 'cal-day';
+          cell.textContent = d;
+
+          if (date.getTime() === today.getTime()) cell.classList.add('cal-today');
+
+          if (isPast) {
+            cell.classList.add('cal-past');
+          } else if (blockedSet.has(dateStr) || !availDows.has(dow)) {
+            cell.classList.add('cal-blocked');
+          } else {
+            cell.classList.add('cal-avail');
+          }
+
+          grid.appendChild(cell);
+        }
+
+        wrap.appendChild(grid);
+        cal.appendChild(wrap);
+      }
+    }
+
+    fetch(WORKER + '/public/availability')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const availDows  = new Set((data.windows || []).map(w => Number(w.day_of_week)));
+        const blockedSet = new Set(data.blocked_dates || []);
+        renderCalendar(availDows, blockedSet);
+      })
+      .catch(() => {
+        renderCalendar(new Set([1, 2, 3, 4, 5]), new Set());
+      });
+  })();
+  </script>
+
   <!-- ── Collections Reference ──────────────────────────── -->
   <section class="section bg-white">
     <div class="container">

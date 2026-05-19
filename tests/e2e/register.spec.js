@@ -64,6 +64,10 @@ test.describe('Registration Page', () => {
         token: 'mock-jwt-new-client',
         user:  { id: 'u-new', email: 'new@example.com', role: 'client' },
       }),
+      // portal.html calls /auth/me on load — must succeed so it doesn't redirect back to login
+      'GET /auth/me': (route) => json(route, { id: 'u-new', email: 'new@example.com', role: 'client' }),
+      'GET /portal/galleries': (route) => json(route, []),
+      'GET /portal/invoices':  (route) => json(route, []),
     });
 
     await page.goto(`${STATIC_BASE}/register.html`);

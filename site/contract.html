@@ -323,6 +323,7 @@
 
 <script src="config.js"></script>
 <script>
+  const WORKER_URL = CTC_CONFIG.workerUrl;
   const token  = location.hash.slice(1);
   let contract = null;
   let sigMode  = 'type';

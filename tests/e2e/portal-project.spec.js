@@ -118,10 +118,9 @@ test.describe('Client Project Portal', () => {
     await page.goto(`${STATIC_BASE}/portal-project.html#${TOKEN}`);
     await expect(page.locator('#ppTimeline')).toBeVisible({ timeout: 10_000 });
 
-    // Stages before Contract Signed should be done
-    await expect(page.locator('.tl-step.done').first()).toBeVisible();
-    // The active step should exist
-    await expect(page.locator('.tl-step.active')).toBeVisible();
+    // done/active classes are on .tl-dot and .tl-label, not the .tl-step wrapper
+    await expect(page.locator('.tl-dot.done').first()).toBeVisible();
+    await expect(page.locator('.tl-dot.active')).toBeVisible();
   });
 
   test('documents section renders linked document cards', async ({ page, context }) => {

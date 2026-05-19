@@ -59,9 +59,9 @@ test.describe('Availability Calendar', () => {
     const months = page.locator('.cal-month');
     await expect(months).toHaveCount(3);
 
-    // Each month has day cells
-    const dayCells = page.locator('.cal-day');
-    await expect(dayCells).toHaveCount(expect.toBeGreaterThan(60)); // at least 3 × ~20 days
+    // Each month has day cells (at least 3 × ~20 real days plus blank fillers)
+    const dayCellCount = await page.locator('.cal-day').count();
+    expect(dayCellCount).toBeGreaterThan(60);
   });
 
   test('days matching active windows get the cal-avail class', async ({ page, context }) => {
