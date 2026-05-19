@@ -2,6 +2,18 @@ import { ALLOWED_ORIGIN } from '../constants.js';
 import { jsonResponse, authRequired, forbidden, escHtml } from '../utils.js';
 import { getAuth } from '../jwt.js';
 
+export async function handlePublicAvailability(env) {
+  if (!env.DB) return jsonResponse({ windows: [], blocked_dates: [] });
+  const [winRes, blkRes] = await Promise.all([
+    env.DB.prepare('SELECT day_of_week FROM availability_windows WHERE active=1').all(),
+    env.DB.prepare('SELECT date FROM blocked_dates ORDER BY date').all(),
+  ]);
+  return jsonResponse({
+    windows: winRes.results,
+    blocked_dates: blkRes.results.map(r => r.date),
+  });
+}
+
 export async function handleAdminAvailability(request, method, env) {
   const p = await getAuth(request, env);
   if (!p) return authRequired();
