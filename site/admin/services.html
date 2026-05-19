@@ -162,6 +162,63 @@
     <div id="automationLog" style="font-family:'Montserrat',sans-serif;font-size:0.82rem;color:#555;"></div>
   </div>
 
+  <h2 class="sh" style="margin-top:56px;">Contract Templates</h2>
+  <div class="card">
+    <p style="font-family:'Montserrat',sans-serif;font-size:0.85rem;color:#555;margin:0 0 20px;">
+      Create reusable contract templates. Use merge fields like <code>{{client_name}}</code>, <code>{{property_name}}</code>, <code>{{collection}}</code>, <code>{{shoot_date}}</code>, <code>{{total_fee}}</code>, <code>{{location}}</code> — they are replaced with project data when a contract is sent. Supports Markdown: <code>## Section Heading</code>, <code>**bold**</code>.
+    </p>
+    <div class="form-grid">
+      <div class="fg">
+        <label>Template Name</label>
+        <input type="text" id="ct-name" placeholder="Standard Photography Agreement" />
+      </div>
+      <div class="fg">
+        <label>Collection Type (optional)</label>
+        <select id="ct-collection">
+          <option value="">— Any / Generic —</option>
+          <option value="editorial_stay">The Editorial Stay</option>
+          <option value="fashioned_weekend">The Fashioned Weekend</option>
+          <option value="branded_journey">The Branded Journey</option>
+        </select>
+      </div>
+      <div class="fg full">
+        <label>Contract Body</label>
+        <textarea id="ct-body" style="min-height:300px;font-family:monospace;font-size:0.82rem;" placeholder="## Agreement
+
+This Photography Agreement (&quot;Agreement&quot;) is entered into as of the date signed below between Coastal Travel Company (&quot;Photographer&quot;) and {{client_name}} (&quot;Client&quot;).
+
+## Scope of Work
+
+Photographer agrees to provide {{collection}} photography services at {{property_name}}, {{location}} on {{shoot_date}}.
+
+## Fees &amp; Payment
+
+The total fee for services is {{total_fee}}. A 50% deposit is due upon signing. The remaining balance is due upon delivery.
+
+## Usage Rights
+
+Client is granted a non-exclusive commercial license to use the delivered images for digital and print marketing of {{property_name}}.
+
+## Cancellation Policy
+
+Cancellations made less than 14 days before the shoot date forfeit the deposit.
+
+## Limitation of Liability
+
+Photographer's liability shall not exceed the total fees paid under this Agreement.
+
+## Governing Law
+
+This Agreement shall be governed by the laws of the State of Florida."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+      <button class="btn btn-ghost btn-sm" id="ct-cancel-edit" style="display:none;" onclick="cancelTemplateEdit()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveContractTemplate()">Save Template</button>
+    </div>
+  </div>
+  <div class="package-list" id="contractTemplateList"></div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -502,11 +559,102 @@
     return Math.floor(h / 24) + 'd ago';
   }
 
+  // ── Contract templates ────────────────────────────────────────────────────────
+  let editingTemplateId = null;
+
+  async function loadContractTemplates() {
+    const { ok, data } = await apiFetch('/admin/contract-templates', { method: 'GET' });
+    if (!ok) return;
+    renderContractTemplates(Array.isArray(data) ? data : []);
+  }
+
+  function renderContractTemplates(items) {
+    const el = document.getElementById('contractTemplateList');
+    if (!items.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:13px;padding:12px 0;">No contract templates yet.</div>';
+      return;
+    }
+    el.innerHTML = items.map(t => `
+      <div class="package-item card" style="margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div>
+            <div style="font-family:\'Gilda Display\',serif;font-size:1.05rem;">${esc(t.name)}</div>
+            ${t.collection_type ? `<div style="font-size:0.78rem;color:var(--dim);margin-top:2px;">${esc(collectionLabel(t.collection_type))}</div>` : ''}
+            <pre style="margin-top:12px;font-size:0.78rem;font-family:monospace;white-space:pre-wrap;color:#555;max-height:100px;overflow:hidden;background:var(--cream);padding:10px;border-radius:4px;">${esc((t.body || '').slice(0, 400))}${(t.body||'').length > 400 ? '…' : ''}</pre>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn btn-ghost btn-sm" onclick="editContractTemplate('${esc(t.id)}')">Edit</button>
+            <button class="btn btn-ghost btn-sm" style="color:#c0392b;" onclick="deleteContractTemplate('${esc(t.id)}')">Delete</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function collectionLabel(type) {
+    return { editorial_stay: 'The Editorial Stay', fashioned_weekend: 'The Fashioned Weekend', branded_journey: 'The Branded Journey' }[type] || type;
+  }
+
+  function editContractTemplate(id) {
+    const t = window._contractTemplates?.find(t => t.id === id);
+    if (!t) return;
+    editingTemplateId = id;
+    document.getElementById('ct-name').value       = t.name;
+    document.getElementById('ct-collection').value = t.collection_type || '';
+    document.getElementById('ct-body').value        = t.body || '';
+    document.getElementById('ct-cancel-edit').style.display = '';
+    document.getElementById('ct-name').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function cancelTemplateEdit() {
+    editingTemplateId = null;
+    document.getElementById('ct-name').value       = '';
+    document.getElementById('ct-collection').value = '';
+    document.getElementById('ct-body').value        = '';
+    document.getElementById('ct-cancel-edit').style.display = 'none';
+  }
+
+  async function saveContractTemplate() {
+    const name            = document.getElementById('ct-name').value.trim();
+    const collection_type = document.getElementById('ct-collection').value;
+    const body            = document.getElementById('ct-body').value.trim();
+    if (!name) { toast('Template name is required', true); return; }
+    if (!body) { toast('Contract body is required', true); return; }
+    const payload = { name, collection_type, body };
+    let ok, data;
+    if (editingTemplateId) {
+      ({ ok, data } = await apiFetch('/admin/contract-templates/' + editingTemplateId, { method: 'PUT', body: payload }));
+    } else {
+      ({ ok, data } = await apiFetch('/admin/contract-templates', { method: 'POST', body: payload }));
+    }
+    if (!ok) { toast(data?.error || 'Failed to save template', true); return; }
+    cancelTemplateEdit();
+    await loadContractTemplates();
+    toast(editingTemplateId ? 'Template updated' : 'Template saved');
+  }
+
+  async function deleteContractTemplate(id) {
+    if (!confirm('Delete this contract template?')) return;
+    const { ok } = await apiFetch('/admin/contract-templates/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    await loadContractTemplates();
+    toast('Template deleted');
+  }
+
+  // Patch loadContractTemplates to cache for edit
+  const _origLoadCT = loadContractTemplates;
+  window.loadContractTemplates = async function () {
+    const { ok, data } = await apiFetch('/admin/contract-templates', { method: 'GET' });
+    if (!ok) return;
+    const items = Array.isArray(data) ? data : [];
+    window._contractTemplates = items;
+    renderContractTemplates(items);
+  };
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    await Promise.all([loadPackages(), loadQuestionnaires(), loadAvailability(), loadAutomations()]);
+    await Promise.all([loadPackages(), loadQuestionnaires(), loadAvailability(), loadAutomations(), window.loadContractTemplates()]);
   }
 
   init();

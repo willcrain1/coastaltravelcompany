@@ -213,6 +213,39 @@
           </div>
         </div>
         <div class="pd-documents">
+          <div class="pd-notes-title">Contracts</div>
+          <div class="doc-list" id="pd-contract-list"></div>
+          <div class="note-add-form" id="pd-contract-form">
+            <select id="pd-contract-template">
+              <option value="">— Select template (optional) —</option>
+            </select>
+            <input type="text" id="pd-contract-title" placeholder="Contract title" />
+            <textarea id="pd-contract-body" placeholder="Paste or type contract text here. Supports Markdown headings (## Section) and **bold**. Merge fields: {{client_name}}, {{property_name}}, {{collection}}, {{shoot_date}}, {{total_fee}}" style="min-height:120px;"></textarea>
+            <p class="hint">Selecting a template pre-fills the body. Merge fields are replaced with project data when sent.</p>
+            <button class="btn btn-primary btn-sm" style="align-self:flex-end" onclick="createContract()">Send Contract</button>
+          </div>
+          <div id="pd-countersign-block" style="display:none;">
+            <div class="pd-notes-title" style="margin-top:16px;">Countersign</div>
+            <div class="note-add-form">
+              <p style="font-size:0.82rem;color:var(--dim);">Client has signed. Add your signature below to fully execute the contract.</p>
+              <div style="display:flex;gap:0;border:1px solid var(--linen);border-radius:4px;overflow:hidden;margin-bottom:8px;">
+                <button class="note-type-btn active" style="flex:1" onclick="setAdminSigMode('type',this)">Type</button>
+                <button class="note-type-btn" style="flex:1;border-left:1px solid var(--linen);" onclick="setAdminSigMode('draw',this)">Draw</button>
+              </div>
+              <div id="adminSigType">
+                <input type="text" id="adminSigTyped" placeholder="Type your full name as signature" />
+                <div id="adminSigTypedPreview" style="font-family:'Pinyon Script',cursive;font-size:1.8rem;padding:12px;background:var(--cream);border-radius:4px;min-height:60px;text-align:center;"></div>
+              </div>
+              <div id="adminSigDraw" style="display:none;">
+                <canvas id="adminSigCanvas" style="border:1px solid var(--linen);border-radius:4px;background:#fff;cursor:crosshair;touch-action:none;width:100%;height:120px;display:block;"></canvas>
+                <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="clearAdminCanvas()">Clear</button>
+              </div>
+              <button class="btn btn-primary btn-sm" style="align-self:flex-end;margin-top:4px;" onclick="countersignContract()">Countersign &amp; Execute</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pd-documents">
           <div class="pd-notes-title">Client Portal</div>
           <div class="note-add-form" style="flex-direction:row; align-items:center; gap:8px; flex-wrap:wrap;">
             <input type="text" id="pd-portal-url" placeholder="Generate a portal link…" readonly style="flex:1; min-width:200px;" />
@@ -476,6 +509,7 @@
     await Promise.all([
       loadNotes(id), loadDocuments(id), loadProposals(id),
       loadProjectQuestionnaires(id), loadScheduleLinks(id), loadProjectMessages(id),
+      loadContracts(id),
     ]);
   }
 
@@ -839,11 +873,193 @@
     toast('Message sent');
   }
 
+  // ── Contracts ─────────────────────────────────────────────────────────────────
+  let contractTemplates = [];
+  let selectedContractId = null;
+  let adminSigMode = 'type';
+  let adminCanvasCtx = null;
+  let adminCanvasHasContent = false;
+  let adminCanvasDrawing = false;
+
+  async function loadContractTemplates() {
+    const { ok, data } = await apiFetch('/admin/contract-templates', { method: 'GET' });
+    if (!ok) return;
+    contractTemplates = Array.isArray(data) ? data : [];
+    const sel = document.getElementById('pd-contract-template');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Select template (optional) —</option>' +
+      contractTemplates.map(t => `<option value="${esc(t.id)}">${esc(t.name)}</option>`).join('');
+  }
+
+  document.getElementById('pd-contract-template')?.addEventListener('change', function () {
+    const tmpl = contractTemplates.find(t => t.id === this.value);
+    if (!tmpl) return;
+    if (!document.getElementById('pd-contract-title').value) {
+      document.getElementById('pd-contract-title').value = tmpl.name;
+    }
+    document.getElementById('pd-contract-body').value = applyMergeFields(tmpl.body);
+  });
+
+  function applyMergeFields(body) {
+    if (!selectedProjectId) return body;
+    const p = projects.find(p => p.id === selectedProjectId);
+    if (!p) return body;
+    return body
+      .replace(/\{\{client_name\}\}/g,    p.client_name   || '')
+      .replace(/\{\{property_name\}\}/g,  p.property      || '')
+      .replace(/\{\{collection\}\}/g,     p.collection    || '')
+      .replace(/\{\{shoot_date\}\}/g,     p.shoot_date    || '')
+      .replace(/\{\{location\}\}/g,       p.location      || '');
+  }
+
+  async function loadContracts(projectId) {
+    const { ok, data } = await apiFetch('/admin/projects/' + projectId + '/contracts', { method: 'GET' });
+    if (!ok) { renderContracts([]); return; }
+    renderContracts(Array.isArray(data) ? data : []);
+  }
+
+  function renderContracts(items) {
+    const el = document.getElementById('pd-contract-list');
+    const csBlock = document.getElementById('pd-countersign-block');
+    if (!el) return;
+    if (!items.length) {
+      el.innerHTML = '<div style="color:var(--dim);font-size:12px;padding:4px 0 8px;">No contracts sent yet.</div>';
+      csBlock.style.display = 'none';
+      selectedContractId = null;
+      return;
+    }
+    el.innerHTML = items.map(c => {
+      const badge = c.status === 'fully_executed'
+        ? '<span style="color:#145a35;font-size:11px;font-weight:600;background:#d1f0e3;padding:2px 8px;border-radius:20px;">Executed</span>'
+        : c.status === 'client_signed'
+          ? '<span style="color:#0d47a1;font-size:11px;font-weight:600;background:#bbdefb;padding:2px 8px;border-radius:20px;">Client Signed</span>'
+          : '<span style="color:#555;font-size:11px;font-weight:600;background:#f1f1f1;padding:2px 8px;border-radius:20px;">Sent</span>';
+      const url = WORKER_URL.replace(/\/+$/, '').includes('workers.dev')
+        ? location.origin + '/contract.html#' + esc(c.signing_token)
+        : location.origin + '/contract.html#' + esc(c.signing_token);
+      return `<div class="doc-item">
+        <div>
+          <div class="doc-title">${esc(c.title)}</div>
+          <div class="doc-meta">${badge} · ${esc(relTime(c.created_at))}</div>
+          ${c.client_signed_at ? `<div class="doc-meta" style="color:var(--green);">Client signed ${esc(relTime(c.client_signed_at))}</div>` : ''}
+          ${c.admin_signed_at  ? `<div class="doc-meta" style="color:var(--green);">You signed ${esc(relTime(c.admin_signed_at))}</div>` : ''}
+        </div>
+        <a class="doc-link" href="${esc(location.origin)}/contract.html#${esc(c.signing_token)}" target="_blank" rel="noopener">View</a>
+      </div>`;
+    }).join('');
+
+    const clientSignedContract = items.find(c => c.status === 'client_signed');
+    if (clientSignedContract) {
+      selectedContractId = clientSignedContract.id;
+      csBlock.style.display = '';
+      initAdminCanvas();
+    } else {
+      csBlock.style.display = 'none';
+      selectedContractId = null;
+    }
+  }
+
+  async function createContract() {
+    if (!selectedProjectId) return;
+    const title = document.getElementById('pd-contract-title').value.trim();
+    const body  = document.getElementById('pd-contract-body').value.trim();
+    const template_id = document.getElementById('pd-contract-template').value;
+    if (!title) { toast('Contract title is required', true); return; }
+    if (!body)  { toast('Contract body is required', true); return; }
+    const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/contracts', {
+      method: 'POST',
+      body: { title, contract_body: body, template_id: template_id || '' },
+    });
+    if (!ok) { toast(data?.error || 'Failed to send contract', true); return; }
+    document.getElementById('pd-contract-title').value = '';
+    document.getElementById('pd-contract-body').value  = '';
+    document.getElementById('pd-contract-template').value = '';
+    const idx = projects.findIndex(p => p.id === selectedProjectId);
+    if (idx >= 0) { projects[idx].stage = 'Contract Sent'; projects[idx].updated_at = data.created_at; }
+    document.getElementById('pd-stage').value = 'Contract Sent';
+    renderPipeline();
+    await loadContracts(selectedProjectId);
+    await loadDocuments(selectedProjectId);
+    toast('Contract sent to ' + data.client_email);
+  }
+
+  function setAdminSigMode(mode, btn) {
+    adminSigMode = mode;
+    document.querySelectorAll('#pd-countersign-block .note-type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('adminSigType').style.display = mode === 'type' ? '' : 'none';
+    document.getElementById('adminSigDraw').style.display = mode === 'draw' ? '' : 'none';
+    if (mode === 'draw') initAdminCanvas();
+  }
+
+  document.getElementById('adminSigTyped')?.addEventListener('input', function () {
+    document.getElementById('adminSigTypedPreview').textContent = this.value;
+  });
+
+  function initAdminCanvas() {
+    const canvas = document.getElementById('adminSigCanvas');
+    if (!canvas || adminCanvasCtx) return;
+    canvas.width  = canvas.parentElement.clientWidth || 400;
+    canvas.height = 120;
+    adminCanvasCtx = canvas.getContext('2d');
+    adminCanvasCtx.strokeStyle = '#1C1C1C';
+    adminCanvasCtx.lineWidth   = 2;
+    adminCanvasCtx.lineCap     = 'round';
+    adminCanvasCtx.lineJoin    = 'round';
+
+    function getPos(e) {
+      const r = canvas.getBoundingClientRect();
+      const s = e.touches ? e.touches[0] : e;
+      return { x: (s.clientX - r.left) * (canvas.width / r.width), y: (s.clientY - r.top) * (canvas.height / r.height) };
+    }
+    canvas.addEventListener('mousedown', e => { adminCanvasDrawing = true; const p = getPos(e); adminCanvasCtx.beginPath(); adminCanvasCtx.moveTo(p.x, p.y); });
+    canvas.addEventListener('mousemove', e => { if (!adminCanvasDrawing) return; const p = getPos(e); adminCanvasCtx.lineTo(p.x, p.y); adminCanvasCtx.stroke(); adminCanvasHasContent = true; });
+    canvas.addEventListener('mouseup',   () => { adminCanvasDrawing = false; });
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); adminCanvasDrawing = true; const p = getPos(e); adminCanvasCtx.beginPath(); adminCanvasCtx.moveTo(p.x, p.y); }, { passive: false });
+    canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!adminCanvasDrawing) return; const p = getPos(e); adminCanvasCtx.lineTo(p.x, p.y); adminCanvasCtx.stroke(); adminCanvasHasContent = true; }, { passive: false });
+    canvas.addEventListener('touchend',  () => { adminCanvasDrawing = false; });
+  }
+
+  function clearAdminCanvas() {
+    if (!adminCanvasCtx) return;
+    const c = document.getElementById('adminSigCanvas');
+    adminCanvasCtx.clearRect(0, 0, c.width, c.height);
+    adminCanvasHasContent = false;
+  }
+
+  async function countersignContract() {
+    if (!selectedProjectId || !selectedContractId) return;
+    let sig, type;
+    if (adminSigMode === 'type') {
+      sig  = document.getElementById('adminSigTyped').value.trim();
+      type = 'type';
+      if (!sig) { toast('Type your name to sign', true); return; }
+    } else {
+      if (!adminCanvasHasContent) { toast('Draw your signature', true); return; }
+      sig  = document.getElementById('adminSigCanvas').toDataURL('image/png');
+      type = 'draw';
+    }
+    const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/contracts/' + selectedContractId + '/countersign', {
+      method: 'POST',
+      body: { signature: sig, signature_type: type },
+    });
+    if (!ok) { toast(data?.error || 'Countersign failed', true); return; }
+    const idx = projects.findIndex(p => p.id === selectedProjectId);
+    if (idx >= 0) { projects[idx].stage = 'Contract Signed'; projects[idx].updated_at = data.updated_at; }
+    document.getElementById('pd-stage').value = 'Contract Signed';
+    renderPipeline();
+    await loadContracts(selectedProjectId);
+    adminCanvasCtx = null;
+    adminCanvasHasContent = false;
+    selectedContractId = null;
+    toast('Contract fully executed — both parties notified');
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    await Promise.all([loadProjects(), loadPackages(), loadQuestionnaireSets()]);
+    await Promise.all([loadProjects(), loadPackages(), loadQuestionnaireSets(), loadContractTemplates()]);
   }
 
   init();
