@@ -319,6 +319,35 @@ async function useMockAdminWorker(context, projects = []) {
           });
           return;
         }
+        if (url.pathname === '/admin/contract-templates') {
+          await route.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) });
+          return;
+        }
+        const contractsMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/contracts$/);
+        if (contractsMatch) {
+          await route.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) });
+          return;
+        }
+        const qInstancesMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/questionnaires$/);
+        if (qInstancesMatch) {
+          await route.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) });
+          return;
+        }
+        const schedLinksMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/schedule-links$/);
+        if (schedLinksMatch) {
+          await route.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) });
+          return;
+        }
+        const msgsMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/messages$/);
+        if (msgsMatch) {
+          await route.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) });
+          return;
+        }
+        const invoicesMatch = url.pathname.match(/^\/admin\/projects\/([^/]+)\/invoices$/);
+        if (invoicesMatch) {
+          await route.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) });
+          return;
+        }
         await route.fulfill({ status: 404, headers: CORS });
       } catch {
         route.abort().catch(() => {});

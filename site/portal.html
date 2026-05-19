@@ -372,7 +372,7 @@
     if (!invoices.length) { section.style.display = 'none'; return; }
     section.style.display = '';
     content.innerHTML = invoices.map(inv => {
-      const total = '$' + (inv.total_cents / 100).toFixed(2);
+      const total = '$' + (inv.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const dueStr = inv.due_date
         ? 'Due ' + new Date(inv.due_date + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
         : '';

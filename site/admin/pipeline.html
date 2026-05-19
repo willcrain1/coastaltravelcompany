@@ -1126,7 +1126,7 @@
       return;
     }
     el.innerHTML = data.map(inv => {
-      const total = (inv.total_cents / 100).toFixed(2);
+      const total = (inv.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const badge = inv.status === 'paid'
         ? '<span style="font-size:11px;font-weight:600;background:#d1f0e3;color:#145a35;padding:2px 8px;border-radius:20px;">Paid</span>'
         : inv.status === 'sent'
