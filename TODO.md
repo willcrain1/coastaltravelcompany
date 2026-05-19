@@ -178,29 +178,30 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 8. Video Support in Client Gallery
+## ~~8. Video Support in Client Gallery~~ ✅ Done
 
 **Goal:** Deliver video files alongside photos in the same client gallery — clients see a unified view of all their deliverables.
 
-- [ ] Research Synology Photos API for video items — check whether `SYNO.Foto.Browse.Item` returns videos in a shared album and what fields differ from photos (likely a `type` or `mime_type` field)
-- [ ] Update `fetchAll()` in `client-gallery.html` to include video items in the results
-- [ ] Render video cards in the masonry grid differently from photos — show a play icon overlay, use the video thumbnail returned by the Synology API
-- [ ] On click, open the lightbox with an HTML `<video>` element instead of an `<img>` — proxy the video stream through the Worker the same way thumbnails are proxied
-- [ ] Add video download support — route through `SYNO.Foto.Download` via the Worker (same as photo downloads)
-- [ ] Handle mixed galleries gracefully — photos and videos interleaved in chronological order
-- [ ] Test with Synology video formats (MP4, MOV) — confirm the Worker can stream binary video data without buffering issues at Cloudflare Worker memory limits
-- [ ] Consider file size: large video files may need to be linked for direct download rather than streamed through the Worker (Cloudflare Workers have a 128MB response limit)
+- [x] Research Synology Photos API for video items — `SYNO.Foto.Browse.Item` returns videos alongside photos; videos have `type: "video"` with the same thumbnail/resolution fields as photos
+- [x] Update `fetchAll()` in `client-gallery.html` to include video items in the results — no API change needed; `isVideo()` detects videos by `type` field with filename extension fallback
+- [x] Render video cards in the masonry grid differently from photos — circular play-icon badge overlay; thumbnail served via existing `SYNO.Foto.Thumbnail` proxy
+- [x] On click, open the lightbox with an HTML `<video>` element instead of an `<img>` — `showLbItem()` swaps between photo/video modes; video pauses and clears on navigation or close
+- [x] Add video download support — routed through `SYNO.Foto.Download` via the Worker with correct file extension from filename
+- [x] Handle mixed galleries gracefully — photos and videos interleaved in chronological order; nav count shows "X photos & Y videos"
+- [x] Confirm the Worker can stream binary video data without buffering issues — video responses use `ReadableStream` passthrough instead of `arrayBuffer()`; `Range` headers forwarded for seeking; `Accept-Ranges` / `Content-Range` / `Content-Length` passed back
+- [x] File size handled — streaming via `nasResponse.body` avoids the 128 MB Worker memory limit; large files stream rather than buffer
 
 ---
 
-## 9. Availability Calendar
+## ~~9. Availability Calendar~~ ✅ Done
 
 **Goal:** Let prospective clients see open dates before reaching out, reducing low-intent inquiries.
 
-- [ ] Choose an approach: simple manually-updated HTML calendar, or embed from a booking tool (syncs automatically if item 5 is implemented)
-- [ ] Add to `contact.html` or a new `/availability.html` page
-- [ ] Mark booked periods as unavailable, show open windows clearly
-- [ ] Add a note about travel availability (available worldwide, lead time requirements)
+- [x] Chose dynamic approach: new public `GET /public/availability` Worker endpoint reads `availability_windows` and `blocked_dates` from D1 — calendar always reflects what the admin configures in the scheduling panel, no manual HTML maintenance
+- [x] Added calendar section to `contact.html` between the contact form and collections reference — 3-month rolling view rendered in JS
+- [x] Days marked available (teal) when the admin has an active window for that day-of-week and the date is not in `blocked_dates`; unavailable days shown in linen; past days muted
+- [x] Fallback renders Mon–Fri available if the Worker is unreachable (graceful degradation)
+- [x] Note added: "Based in Palm Beach, Florida — available for travel worldwide. 6–8 week lead time recommended."
 
 ---
 

@@ -43,6 +43,7 @@ import {
 } from './admin/projects.js';
 
 import {
+  handlePublicAvailability,
   handleAdminAvailability, handleAdminBlockedDates,
   handleAdminProjectScheduleLinks, handlePublicSchedule,
 } from './admin/scheduling.js';
@@ -157,6 +158,7 @@ export async function handleRequest(request, env) {
     return handlePublicProjectPortal(request, method, env, publicPortalProjMatch[1]);
 
   // ── Scheduling ───────────────────────────────────────────────────────────────
+  if (method === 'GET' && pathname === '/public/availability') return handlePublicAvailability(env);
   if (pathname === '/admin/availability' && (method === 'GET' || method === 'PUT'))
     return handleAdminAvailability(request, method, env);
   const blockedDateDelMatch = pathname.match(/^\/admin\/blocked-dates\/([^/]+)$/);
