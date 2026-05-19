@@ -205,6 +205,69 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Invoices section ── */
+    .invoices-section {
+      margin-top: 56px;
+      border-top: 1px solid var(--linen);
+      padding-top: 40px;
+    }
+    .section-heading {
+      font-family: 'Gilda Display', serif;
+      font-size: 1.5rem;
+      font-weight: 400;
+      color: var(--black);
+      margin-bottom: 20px;
+    }
+    .invoice-row {
+      background: #fff;
+      border: 1px solid var(--linen);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .invoice-row-left { flex: 1; min-width: 160px; }
+    .invoice-row-number { font-size: 14px; font-weight: 500; color: var(--black); }
+    .invoice-row-meta { font-size: 12px; color: var(--mid); margin-top: 3px; }
+    .invoice-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-right: 6px;
+    }
+    .badge-paid   { background: #d1f0e3; color: #145a35; }
+    .badge-sent   { background: #e8f4fd; color: #0d47a1; }
+    .badge-void   { background: #fce8e8; color: #7f0000; }
+    .invoice-pay-btn {
+      display: inline-block;
+      background: var(--green);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 9px 18px;
+      text-decoration: none;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .invoice-view-link {
+      font-size: 12px;
+      color: var(--green);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .invoice-view-link:hover { text-decoration: underline; }
+
     @media (max-width: 640px) {
       nav { padding: 16px 20px; }
       main { padding: 100px 20px 60px; }
@@ -237,6 +300,10 @@
       <div class="spinner"></div>
       Loading your galleries…
     </div>
+  </div>
+  <div class="invoices-section" id="invoices-section" style="display:none">
+    <h2 class="section-heading">Invoices</h2>
+    <div id="invoices-content"></div>
   </div>
 </main>
 
@@ -299,6 +366,37 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  function renderInvoices(invoices) {
+    const section = document.getElementById('invoices-section');
+    const content = document.getElementById('invoices-content');
+    if (!invoices.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    content.innerHTML = invoices.map(inv => {
+      const total = '$' + (inv.total_cents / 100).toFixed(2);
+      const dueStr = inv.due_date
+        ? 'Due ' + new Date(inv.due_date + 'T12:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
+      const paidStr = inv.paid_at
+        ? 'Paid ' + new Date(inv.paid_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
+      const context = [inv.collection, inv.property].filter(Boolean).join(' · ');
+      const badgeCls = inv.status === 'paid' ? 'badge-paid' : inv.status === 'void' ? 'badge-void' : 'badge-sent';
+      const badgeLabel = inv.status === 'paid' ? 'Paid' : inv.status === 'void' ? 'Void' : 'Due';
+      return `<div class="invoice-row">
+        <div class="invoice-row-left">
+          <div class="invoice-row-number">${esc(inv.invoice_number)} — ${total}</div>
+          <div class="invoice-row-meta">
+            <span class="invoice-badge ${badgeCls}">${badgeLabel}</span>
+            ${esc(paidStr || dueStr || '')}${context ? ' · ' + esc(context) : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          ${inv.status === 'sent' ? `<a class="invoice-pay-btn" href="${esc(inv.public_url)}">Pay ${total}</a>` : `<a class="invoice-view-link" href="${esc(inv.public_url)}">View →</a>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
   async function load() {
     const token = localStorage.getItem(JWT_KEY);
     if (!token) { window.location.href = '/login.html'; return; }
@@ -324,19 +422,25 @@
       return;
     }
 
-    // Fetch galleries
-    const res = await fetch(WORKER_URL + '/portal/galleries', {
-      headers: { 'Authorization': 'Bearer ' + token },
-    }).catch(() => null);
+    // Fetch galleries and invoices in parallel
+    const [galRes, invRes] = await Promise.all([
+      fetch(WORKER_URL + '/portal/galleries', { headers: { 'Authorization': 'Bearer ' + token } }).catch(() => null),
+      fetch(WORKER_URL + '/portal/invoices',  { headers: { 'Authorization': 'Bearer ' + token } }).catch(() => null),
+    ]);
 
-    if (!res || !res.ok) {
+    if (!galRes || !galRes.ok) {
       document.getElementById('content').innerHTML =
         '<div class="state-error">Could not load galleries. Please try again later.</div>';
       return;
     }
 
-    const galleries = await res.json();
+    const galleries = await galRes.json();
     renderGalleries(galleries);
+
+    if (invRes && invRes.ok) {
+      const invoices = await invRes.json();
+      renderInvoices(invoices);
+    }
   }
 
   load();

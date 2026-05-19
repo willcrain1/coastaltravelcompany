@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="/config.js"></script>
+  <style>
+    :root {
+      --black: #1C1C1C;
+      --green: #2A5C45;
+      --teal:  #8FBFBE;
+      --cream: #F4F1EC;
+      --linen: #E8DDD0;
+      --text:  #2C2C2C;
+      --mid:   #5A5A5A;
+      --dim:   #8A8A8A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--cream);
+      border-bottom: 1px solid var(--linen);
+      padding: 20px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-main {
+      display: block;
+      font-family: 'Gilda Display', serif;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--black);
+    }
+    .logo-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 26px;
+      color: var(--green);
+      line-height: 1;
+    }
+    .header-tagline {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .state-loading, .state-error {
+      text-align: center;
+      padding: 80px 24px;
+      font-size: 14px;
+      color: var(--dim);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 2px solid var(--linen);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Invoice card */
+    .invoice-card {
+      background: #fff;
+      border: 1px solid var(--linen);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .invoice-header {
+      padding: 32px 40px 24px;
+      border-bottom: 1px solid var(--linen);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .invoice-number {
+      font-family: 'Gilda Display', serif;
+      font-size: 1.4rem;
+      color: var(--black);
+      margin-bottom: 4px;
+    }
+    .invoice-meta {
+      font-size: 12px;
+      color: var(--dim);
+      letter-spacing: 0.04em;
+    }
+    .invoice-meta + .invoice-meta { margin-top: 4px; }
+
+    .status-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 20px;
+    }
+    .status-paid    { background: #d1f0e3; color: #145a35; }
+    .status-sent    { background: #e8f4fd; color: #0d47a1; }
+    .status-draft   { background: #f1f1f1; color: #555; }
+    .status-void    { background: #fce8e8; color: #7f0000; }
+
+    .invoice-body { padding: 32px 40px; }
+
+    .bill-to {
+      margin-bottom: 28px;
+    }
+    .bill-to-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 6px;
+    }
+    .bill-to-name {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--black);
+    }
+
+    /* Line items table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .items-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      padding: 0 0 10px;
+      border-bottom: 1px solid var(--linen);
+    }
+    .items-table th:not(:first-child) { text-align: right; }
+    .items-table td {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--cream);
+      font-size: 14px;
+      color: var(--text);
+      vertical-align: top;
+    }
+    .items-table td:not(:first-child) { text-align: right; }
+    .item-description { font-weight: 400; }
+
+    .totals-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .totals-row {
+      display: flex;
+      gap: 48px;
+      font-size: 13px;
+      color: var(--mid);
+    }
+    .totals-row.total-line {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--black);
+      border-top: 1px solid var(--linen);
+      padding-top: 8px;
+      margin-top: 4px;
+    }
+    .totals-row .label { min-width: 80px; text-align: right; }
+    .totals-row .amount { min-width: 80px; text-align: right; }
+
+    .invoice-notes {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--linen);
+      font-size: 13px;
+      color: var(--mid);
+      line-height: 1.6;
+    }
+
+    .invoice-footer {
+      padding: 24px 40px 32px;
+      border-top: 1px solid var(--linen);
+      background: var(--cream);
+    }
+    .pay-btn {
+      display: inline-block;
+      background: var(--green);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 14px 32px;
+      text-decoration: none;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .pay-btn:hover { background: #1e4432; }
+    .pay-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .pay-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--dim);
+    }
+
+    .paid-banner {
+      background: #d1f0e3;
+      color: #145a35;
+      padding: 14px 40px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .paid-checkmark { font-size: 18px; }
+
+    @media (max-width: 600px) {
+      header { padding: 16px 20px; }
+      .invoice-header, .invoice-body, .invoice-footer { padding-left: 20px; padding-right: 20px; }
+      .paid-banner { padding-left: 20px; padding-right: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </div>
+  <span class="header-tagline">Invoice</span>
+</header>
+
+<main>
+  <div id="loading" class="state-loading">
+    <div class="spinner"></div>
+    Loading invoice…
+  </div>
+  <div id="error-view" class="state-error" style="display:none"></div>
+  <div id="invoice-view" style="display:none">
+    <div class="invoice-card">
+      <div class="invoice-header">
+        <div>
+          <div class="invoice-number" id="inv-number"></div>
+          <div class="invoice-meta" id="inv-date"></div>
+          <div class="invoice-meta" id="inv-due"></div>
+        </div>
+        <div id="inv-status-badge"></div>
+      </div>
+
+      <div id="paid-banner" class="paid-banner" style="display:none">
+        <span class="paid-checkmark">✓</span>
+        <span>Payment received — thank you!</span>
+      </div>
+
+      <div class="invoice-body">
+        <div class="bill-to">
+          <div class="bill-to-label">Bill To</div>
+          <div class="bill-to-name" id="inv-client"></div>
+        </div>
+
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Qty</th>
+              <th>Rate</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody id="inv-line-items"></tbody>
+        </table>
+
+        <div class="totals-block" id="inv-totals"></div>
+        <div class="invoice-notes" id="inv-notes" style="display:none"></div>
+      </div>
+
+      <div class="invoice-footer" id="inv-footer"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const WORKER_URL = CTC_CONFIG.workerUrl;
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function fmt(cents) {
+    return '$' + (cents / 100).toFixed(2);
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    return new Date(iso + (iso.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  }
+
+  async function load() {
+    const token = location.hash.replace('#', '').trim();
+    if (!token) {
+      showError('No invoice token in URL.');
+      return;
+    }
+
+    const res = await fetch(WORKER_URL + '/invoices/' + token).catch(() => null);
+    if (!res || !res.ok) {
+      showError('Invoice not found or link has expired.');
+      return;
+    }
+
+    const inv = await res.json();
+    render(inv, token);
+  }
+
+  function render(inv, token) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('invoice-view').style.display = '';
+
+    // Header
+    document.getElementById('inv-number').textContent = inv.invoice_number || 'Invoice';
+    document.getElementById('inv-date').textContent = inv.created_at
+      ? 'Issued ' + fmtDate(inv.created_at.slice(0, 10))
+      : '';
+    document.getElementById('inv-due').textContent = inv.due_date
+      ? 'Due ' + fmtDate(inv.due_date)
+      : '';
+
+    // Status badge
+    const badgeEl = document.getElementById('inv-status-badge');
+    const badgeMap = {
+      paid:  ['status-paid',  'Paid'],
+      sent:  ['status-sent',  'Awaiting Payment'],
+      draft: ['status-draft', 'Draft'],
+      void:  ['status-void',  'Void'],
+    };
+    const [cls, label] = badgeMap[inv.status] || ['status-draft', inv.status];
+    badgeEl.innerHTML = `<span class="status-badge ${cls}">${label}</span>`;
+
+    // Paid banner
+    if (inv.status === 'paid') {
+      document.getElementById('paid-banner').style.display = '';
+    }
+
+    // Bill-to
+    document.getElementById('inv-client').textContent = inv.client_name || '';
+
+    // Line items
+    const items = JSON.parse(inv.line_items || '[]');
+    const tbody = document.getElementById('inv-line-items');
+    tbody.innerHTML = items.map(item => {
+      const qty  = Number(item.quantity) || 1;
+      const rate = Number(item.unit_price_cents) || 0;
+      return `<tr>
+        <td class="item-description">${esc(item.description || '')}</td>
+        <td>${qty}</td>
+        <td>${fmt(rate)}</td>
+        <td>${fmt(qty * rate)}</td>
+      </tr>`;
+    }).join('');
+
+    // Totals
+    const totalsEl = document.getElementById('inv-totals');
+    let totalsHtml = '';
+    if (inv.tax_cents > 0) {
+      totalsHtml += `<div class="totals-row"><span class="label">Subtotal</span><span class="amount">${fmt(inv.subtotal_cents)}</span></div>`;
+      totalsHtml += `<div class="totals-row"><span class="label">Tax</span><span class="amount">${fmt(inv.tax_cents)}</span></div>`;
+    }
+    totalsHtml += `<div class="totals-row total-line"><span class="label">Total</span><span class="amount">${fmt(inv.total_cents)}</span></div>`;
+    totalsEl.innerHTML = totalsHtml;
+
+    // Notes
+    if (inv.notes) {
+      const notesEl = document.getElementById('inv-notes');
+      notesEl.textContent = inv.notes;
+      notesEl.style.display = '';
+    }
+
+    // Footer (pay button or receipt)
+    const footerEl = document.getElementById('inv-footer');
+    if (inv.status === 'paid') {
+      const paidDate = inv.paid_at ? fmtDate(inv.paid_at.slice(0, 10)) : '';
+      footerEl.innerHTML = `<p style="font-size:13px;color:var(--mid);">Payment confirmed${paidDate ? ' on ' + paidDate : ''}. Thank you for your business.</p>`;
+    } else if (inv.status === 'sent') {
+      if (inv.stripe_enabled) {
+        footerEl.innerHTML = `
+          <button class="pay-btn" id="pay-btn" onclick="startPayment()">Pay ${fmt(inv.total_cents)} Now</button>
+          <p class="pay-note">Secure payment powered by Stripe. You will be redirected to complete payment.</p>`;
+      } else {
+        footerEl.innerHTML = `<p style="font-size:13px;color:var(--mid);">To pay this invoice, please contact <a href="mailto:thecoastaltravelcompany@gmail.com" style="color:var(--green);">thecoastaltravelcompany@gmail.com</a>.</p>`;
+      }
+    } else if (inv.status === 'void') {
+      footerEl.innerHTML = `<p style="font-size:13px;color:var(--dim);">This invoice has been voided. Please contact us if you have questions.</p>`;
+    } else {
+      footerEl.innerHTML = '';
+    }
+
+    window._invoiceToken = token;
+    window._invoiceData  = inv;
+  }
+
+  async function startPayment() {
+    const btn = document.getElementById('pay-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+    const res = await fetch(WORKER_URL + '/invoices/' + window._invoiceToken + '/checkout', {
+      method: 'POST',
+    }).catch(() => null);
+    if (!res || !res.ok) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Pay ' + fmt(window._invoiceData.total_cents) + ' Now'; }
+      alert('Could not initiate payment. Please try again or contact us.');
+      return;
+    }
+    const { url, error } = await res.json();
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Pay ' + fmt(window._invoiceData.total_cents) + ' Now'; }
+      alert(error);
+      return;
+    }
+    window.location.href = url;
+  }
+
+  function showError(msg) {
+    document.getElementById('loading').style.display = 'none';
+    const el = document.getElementById('error-view');
+    el.textContent = msg;
+    el.style.display = '';
+  }
+
+  load();
+</script>
+</body>
+</html>

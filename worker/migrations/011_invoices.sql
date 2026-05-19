@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS invoices (
+  id                       TEXT PRIMARY KEY,
+  project_id               TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  invoice_number           TEXT NOT NULL DEFAULT '',
+  status                   TEXT NOT NULL DEFAULT 'draft',
+  line_items               TEXT NOT NULL DEFAULT '[]',
+  subtotal_cents           INTEGER NOT NULL DEFAULT 0,
+  tax_cents                INTEGER NOT NULL DEFAULT 0,
+  total_cents              INTEGER NOT NULL DEFAULT 0,
+  due_date                 TEXT NOT NULL DEFAULT '',
+  magic_token              TEXT NOT NULL UNIQUE,
+  stripe_session_id        TEXT NOT NULL DEFAULT '',
+  stripe_payment_intent_id TEXT NOT NULL DEFAULT '',
+  client_name              TEXT NOT NULL DEFAULT '',
+  client_email             TEXT NOT NULL DEFAULT '',
+  notes                    TEXT NOT NULL DEFAULT '',
+  sent_at                  TEXT NOT NULL DEFAULT '',
+  paid_at                  TEXT NOT NULL DEFAULT '',
+  created_at               TEXT NOT NULL,
+  updated_at               TEXT NOT NULL
+);

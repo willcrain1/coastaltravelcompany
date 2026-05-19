@@ -160,17 +160,21 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 7. Billing & Invoicing
+## ~~7. Billing & Invoicing~~ ✅ Done
 
 **Goal:** Send, track, and collect payment on invoices directly — no third-party tool required unless a full CRM (HoneyBook/Dubsado) is preferred.
 
-- [ ] Evaluate approach: (a) Stripe Invoicing — send invoices via Stripe, client pays by card, automatic receipts; (b) HoneyBook/Dubsado — all-in-one with contracts, invoices, scheduling; (c) custom Worker + Stripe API
-- [ ] If Stripe: set up Stripe account, configure invoice templates with Coastal Travel Company branding
-- [ ] Add deposit/retainer collection to the booking flow (item 5) — charge a percentage at booking, remainder on delivery
-- [ ] Add an invoices section to `gallery-admin.html` or the admin portal — create invoice, mark as paid, view status
-- [ ] Send invoice links to clients via email (Resend, shared with auth infrastructure in item 4)
-- [ ] Add invoice history to the client portal (item 4) so clients can view and download past invoices
-- [ ] Handle sales tax if applicable (Stripe Tax can automate this)
+- [x] Evaluate approach: chose custom Worker + Stripe API — keeps everything in one system, no per-invoice platform fee, Stripe handles card processing and receipts
+- [x] Add an invoices section to admin pipeline — create invoices with line items, tax, due date; send, mark paid, void
+- [x] Send invoice links to clients via email (Resend) with branded HTML email and a Pay button
+- [x] Client-facing invoice page (`/invoice.html`) — shows line items, total, Stripe Checkout payment flow
+- [x] Stripe Checkout integration — POST /invoices/:token/checkout creates a hosted payment session; Stripe webhook marks invoice paid and advances project stage to "Retainer Paid"
+- [x] Add invoice history to client portal — clients see all non-draft invoices with Pay / View links
+- [x] Handle sales tax — tax_cents field on each invoice, shown as separate line in email and on invoice page
+- [x] Automation hooks wired: contract_signed → invoice created (manual); invoice_paid → stage auto-advances to Retainer Paid via webhook
+- [ ] Set up Stripe account and configure Worker secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- [ ] Register Stripe webhook endpoint: `POST https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev/stripe/webhook` for `checkout.session.completed` event
+- [ ] Run D1 migration: `worker/migrations/011_invoices.sql`
 
 ---
 
