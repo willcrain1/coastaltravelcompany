@@ -155,6 +155,20 @@
     .p-item img.loaded { opacity: 1; }
     .p-item:hover img { transform: scale(1.035); }
 
+    /* Video play overlay on grid thumbnails */
+    .v-play-badge {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px; height: 44px; border-radius: 50%;
+      background: rgba(10,10,10,0.62);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none; z-index: 3;
+      transition: background 0.2s;
+    }
+    .p-item:hover .v-play-badge { background: rgba(42,92,69,0.85); }
+    .v-play-badge svg { margin-left: 3px; }
+
     .p-hover {
       position: absolute; inset: 0;
       background: rgba(28,28,28,0);
@@ -228,6 +242,12 @@
       opacity: 0; transition: opacity 0.3s ease;
     }
     #lbImg.loaded { opacity: 1; }
+    #lbVideo {
+      max-width: 90vw; max-height: 82vh;
+      display: none; outline: none;
+      background: #000;
+    }
+    #lbVideo.show { display: block; }
     .lb-spin {
       position: absolute;
       width: 28px; height: 28px;
@@ -330,6 +350,7 @@
   <div class="lb-img-wrap">
     <div class="lb-spin" id="lbSpin"></div>
     <img id="lbImg" src="" alt="" />
+    <video id="lbVideo" controls preload="metadata"></video>
   </div>
   <button class="lb-arrow" id="lbNext">&#8594;</button>
 
@@ -339,7 +360,7 @@
 <script>
 // ── State ─────────────────────────────────────────────────
 let cfg = null;
-let photos = [];
+let items = [];      // all media items (photos + videos)
 let lbIndex = 0;
 let gallerySid = null;
 
@@ -366,16 +387,28 @@ function thumbUrl(photo, size) {
   });
 }
 
-function dlUrl(photo) {
+function dlUrl(item) {
   return PROXY_API() + '?' + new URLSearchParams({
     api: 'SYNO.Foto.Download', version: '1', method: 'download',
-    unit_id: photo.id,
+    unit_id: item.id,
     sid: gallerySid,
   });
 }
 
-function dlUrlWm(photo) {
-  return thumbUrl(photo, 'xl') + '&watermark=1';
+function dlUrlWm(item) {
+  return thumbUrl(item, 'xl') + '&watermark=1';
+}
+
+function isVideo(item) {
+  return item.type === 'video' || (item.filename && /\.(mp4|mov|m4v|avi|mkv|webm)$/i.test(item.filename));
+}
+
+function itemExtension(item) {
+  if (item.filename) {
+    const m = item.filename.match(/(\.[^.]+)$/);
+    if (m) return m[1].toLowerCase();
+  }
+  return isVideo(item) ? '.mp4' : '.jpg';
 }
 
 // ── Session token exchange ────────────────────────────────
@@ -437,12 +470,18 @@ async function loadGallery() {
   showSkeletons();
   try {
     gallerySid = await getGallerySid();
-    photos = await fetchAll();
-    if (!photos.length) {
+    items = await fetchAll();
+    if (!items.length) {
       showError('No photos found in this gallery.', '');
       return;
     }
-    document.getElementById('gCount').textContent = photos.length + ' photos';
+    const videoCount = items.filter(isVideo).length;
+    const photoCount = items.length - videoCount;
+    let countLabel;
+    if (videoCount === 0) countLabel = photoCount + ' photos';
+    else if (photoCount === 0) countLabel = videoCount + ' videos';
+    else countLabel = photoCount + ' photos & ' + videoCount + ' videos';
+    document.getElementById('gCount').textContent = countLabel;
     document.getElementById('dlAll').classList.add('show');
     document.getElementById('loading').style.display = 'none';
     document.getElementById('grid').classList.add('show');
@@ -493,42 +532,54 @@ function showSkeletons() {
   document.getElementById('grid').classList.add('show');
 }
 
-// ── Render photos ─────────────────────────────────────────
+// ── Render items (photos + videos) ───────────────────────
 function renderPhotos() {
   const masonry = document.getElementById('masonry');
   masonry.innerHTML = '';
 
-  photos.forEach((photo, i) => {
-    const w = photo.additional?.resolution?.width;
-    const h = photo.additional?.resolution?.height;
+  items.forEach((mediaItem, i) => {
+    const w = mediaItem.additional?.resolution?.width;
+    const h = mediaItem.additional?.resolution?.height;
+    const video = isVideo(mediaItem);
 
-    const item = document.createElement('div');
-    item.className = 'p-item';
+    const card = document.createElement('div');
+    card.className = 'p-item';
+    card.style.cursor = 'pointer';
 
     const img = document.createElement('img');
-    img.dataset.src = thumbUrl(photo, 'm');
-    img.alt = 'Photo ' + (i + 1);
+    img.dataset.src = thumbUrl(mediaItem, 'm');
+    img.alt = (video ? 'Video' : 'Photo') + ' ' + (i + 1);
     if (w && h) img.style.aspectRatio = w + '/' + h;
 
     const hover = document.createElement('div');
     hover.className = 'p-hover';
 
-    const dlBtn = document.createElement('a');
-    dlBtn.className = 'p-dl';
-    dlBtn.href = cfg.watermark ? dlUrlWm(photo) : dlUrl(photo);
-    dlBtn.download = 'coastal-' + (i + 1) + '.jpg';
-    dlBtn.textContent = '↓ Save';
-    dlBtn.addEventListener('click', e => e.stopPropagation());
-    hover.appendChild(dlBtn);
-    item.appendChild(img);
-    item.appendChild(hover);
+    if (!video || !cfg.watermark) {
+      const dlBtn = document.createElement('a');
+      dlBtn.className = 'p-dl';
+      dlBtn.href = cfg.watermark ? dlUrlWm(mediaItem) : dlUrl(mediaItem);
+      dlBtn.download = 'coastal-' + (i + 1) + itemExtension(mediaItem);
+      dlBtn.textContent = video ? '↓ Download' : '↓ Save';
+      dlBtn.addEventListener('click', e => e.stopPropagation());
+      hover.appendChild(dlBtn);
+    }
+
+    if (video) {
+      const badge = document.createElement('div');
+      badge.className = 'v-play-badge';
+      badge.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="white"><path d="M4 2l10 6-10 6z"/></svg>';
+      card.appendChild(badge);
+    }
+
+    card.appendChild(img);
+    card.appendChild(hover);
     if (cfg.watermark) {
       const wm = document.createElement('div');
       wm.className = 'wm-overlay';
-      item.appendChild(wm);
+      card.appendChild(wm);
     }
-    item.addEventListener('click', () => openLb(i));
-    masonry.appendChild(item);
+    card.addEventListener('click', () => openLb(i));
+    masonry.appendChild(card);
   });
 
   const io = new IntersectionObserver(entries => {
@@ -561,43 +612,66 @@ function openLb(i) {
   lbIndex = i;
   document.getElementById('lb').classList.add('show');
   document.body.style.overflow = 'hidden';
-  showLbPhoto(i);
+  showLbItem(i);
 }
 
 function closeLb() {
+  const vid = document.getElementById('lbVideo');
+  vid.pause();
+  vid.src = '';
+  vid.classList.remove('show');
+  document.getElementById('lbImg').classList.remove('loaded');
   document.getElementById('lb').classList.remove('show');
   document.body.style.overflow = '';
 }
 
-function showLbPhoto(i) {
-  const photo = photos[i];
-  const img = document.getElementById('lbImg');
-  const spin = document.getElementById('lbSpin');
+function showLbItem(i) {
+  const mediaItem = items[i];
+  const img   = document.getElementById('lbImg');
+  const vid   = document.getElementById('lbVideo');
+  const spin  = document.getElementById('lbSpin');
+  const lbDl  = document.getElementById('lbDl');
+  const video = isVideo(mediaItem);
 
+  // Stop any playing video when switching items
+  vid.pause();
+  vid.src = '';
+  vid.classList.remove('show');
   img.classList.remove('loaded');
   img.src = '';
-  spin.style.display = 'block';
 
-  img.onload = () => { img.classList.add('loaded'); spin.style.display = 'none'; };
-  img.onerror = () => { spin.style.display = 'none'; };
-  img.src = cfg.watermark ? thumbUrl(photo, 'xl') + '&watermark=1' : thumbUrl(photo, 'xl');
+  if (video) {
+    spin.style.display = 'none';
+    img.style.display = 'none';
+    vid.classList.add('show');
+    vid.src = dlUrl(mediaItem);
+    lbDl.href = dlUrl(mediaItem);
+    lbDl.download = 'coastal-' + (i + 1) + itemExtension(mediaItem);
+    lbDl.style.display = '';
+  } else {
+    img.style.display = '';
+    spin.style.display = 'block';
+    img.onload  = () => { img.classList.add('loaded'); spin.style.display = 'none'; };
+    img.onerror = () => { spin.style.display = 'none'; };
+    img.src = cfg.watermark ? thumbUrl(mediaItem, 'xl') + '&watermark=1' : thumbUrl(mediaItem, 'xl');
+    lbDl.href = cfg.watermark ? dlUrlWm(mediaItem) : dlUrl(mediaItem);
+    lbDl.download = 'coastal-' + (i + 1) + itemExtension(mediaItem);
+    lbDl.style.display = '';
+  }
 
-  const lbDl = document.getElementById('lbDl');
-  lbDl.download = 'coastal-' + (i + 1) + '.jpg';
-  lbDl.href = cfg.watermark ? dlUrlWm(photo) : dlUrl(photo);
-  document.getElementById('lbCount').textContent = (i + 1) + ' / ' + photos.length;
-  document.getElementById('lbName').textContent = photo.filename ?? '';
+  document.getElementById('lbCount').textContent = (i + 1) + ' / ' + items.length;
+  document.getElementById('lbName').textContent = mediaItem.filename ?? '';
 
   document.getElementById('lbPrev').disabled = i === 0;
-  document.getElementById('lbNext').disabled = i === photos.length - 1;
+  document.getElementById('lbNext').disabled = i === items.length - 1;
   lbIndex = i;
 }
 
 document.getElementById('lbPrev').addEventListener('click', () => {
-  if (lbIndex > 0) showLbPhoto(lbIndex - 1);
+  if (lbIndex > 0) showLbItem(lbIndex - 1);
 });
 document.getElementById('lbNext').addEventListener('click', () => {
-  if (lbIndex < photos.length - 1) showLbPhoto(lbIndex + 1);
+  if (lbIndex < items.length - 1) showLbItem(lbIndex + 1);
 });
 document.getElementById('lbClose').addEventListener('click', closeLb);
 
@@ -608,22 +682,25 @@ document.getElementById('lb').addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (!document.getElementById('lb').classList.contains('show')) return;
   if (e.key === 'Escape') closeLb();
-  if (e.key === 'ArrowLeft' && lbIndex > 0) showLbPhoto(lbIndex - 1);
-  if (e.key === 'ArrowRight' && lbIndex < photos.length - 1) showLbPhoto(lbIndex + 1);
+  if (e.key === 'ArrowLeft' && lbIndex > 0) showLbItem(lbIndex - 1);
+  if (e.key === 'ArrowRight' && lbIndex < items.length - 1) showLbItem(lbIndex + 1);
 });
 
 // ── Download All ──────────────────────────────────────────
 document.getElementById('dlAll').addEventListener('click', () => {
   const MAX = 20;
-  if (photos.length > MAX) {
-    if (!confirm(`This gallery has ${photos.length} photos.\n\nBrowsers limit batch downloads, so only the first ${MAX} will download automatically.\n\nFor all photos, use the Synology Photos app with your share link, or download individually.\n\nContinue with first ${MAX}?`)) return;
+  // Only photos in watermark mode (watermarking videos not supported)
+  const downloadable = cfg.watermark ? items.filter(it => !isVideo(it)) : items;
+  if (downloadable.length > MAX) {
+    if (!confirm(`This gallery has ${downloadable.length} downloadable items.\n\nBrowsers limit batch downloads, so only the first ${MAX} will download automatically.\n\nDownload individually or use the Synology Photos app for the rest.\n\nContinue with first ${MAX}?`)) return;
   }
-  const limit = Math.min(photos.length, MAX);
+  const limit = Math.min(downloadable.length, MAX);
   for (let i = 0; i < limit; i++) {
     setTimeout(() => {
+      const mediaItem = downloadable[i];
       const a = document.createElement('a');
-      a.href = cfg.watermark ? dlUrlWm(photos[i]) : dlUrl(photos[i]);
-      a.download = 'coastal-' + (i + 1) + '.jpg';
+      a.href = cfg.watermark ? dlUrlWm(mediaItem) : dlUrl(mediaItem);
+      a.download = 'coastal-' + (i + 1) + itemExtension(mediaItem);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
