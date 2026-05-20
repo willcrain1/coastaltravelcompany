@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Print Order — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@300;400;500;600&family=Pinyon+Script&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { background: var(--cream); }
+    .po-wrap {
+      min-height: 100vh; display: flex;
+      align-items: center; justify-content: center;
+      padding: 40px 20px;
+    }
+    .po-card {
+      background: #fff; max-width: 520px; width: 100%;
+      padding: 48px 40px;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.06);
+    }
+    .po-brand {
+      font-family: 'Montserrat', sans-serif; font-size: 9px;
+      font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--green); margin-bottom: 32px;
+    }
+    .po-icon {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: #e8f5ef; display: flex; align-items: center;
+      justify-content: center; margin-bottom: 20px;
+    }
+    .po-title {
+      font-family: 'Gilda Display', serif; font-size: 28px;
+      margin: 0 0 8px;
+    }
+    .po-subtitle {
+      font-family: 'Montserrat', sans-serif; font-size: 13px;
+      color: #666; line-height: 1.7; margin: 0 0 32px;
+    }
+    .po-divider { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+    .po-label {
+      font-family: 'Montserrat', sans-serif; font-size: 9px;
+      font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+      color: #999; margin: 0 0 12px;
+    }
+    .po-table {
+      width: 100%; border-collapse: collapse;
+      font-family: 'Montserrat', sans-serif; font-size: 13px;
+      margin-bottom: 24px;
+    }
+    .po-table td { padding: 6px 0; vertical-align: top; }
+    .po-table td:first-child { color: #888; width: 48%; }
+    .po-table td:last-child { font-weight: 500; }
+    .po-total-row td { font-weight: 700; font-size: 14px; border-top: 1px solid #eee; padding-top: 10px; }
+    .po-status {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif; font-size: 10px;
+      font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
+      padding: 4px 12px; border-radius: 2px;
+      margin-bottom: 24px;
+    }
+    .po-status.paid    { background: #e8f5ef; color: #2A5C45; }
+    .po-status.pending { background: #fef9e7; color: #856404; }
+    .po-status.cancelled { background: #fdecea; color: #c0392b; }
+    .po-note {
+      font-family: 'Montserrat', sans-serif; font-size: 12px;
+      color: #666; line-height: 1.7; background: #f9f7f4;
+      padding: 16px 20px; margin-bottom: 24px;
+    }
+    .po-btn {
+      display: inline-block;
+      font-family: 'Montserrat', sans-serif; font-size: 9px;
+      font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+      padding: 12px 28px; background: var(--green); color: #fff;
+      text-decoration: none; transition: background 0.2s;
+    }
+    .po-btn:hover { background: #1e4433; }
+    .po-loading {
+      font-family: 'Montserrat', sans-serif; font-size: 13px;
+      color: #888; text-align: center; padding: 40px 0;
+    }
+    .po-spinner {
+      width: 24px; height: 24px; border: 2px solid #eee;
+      border-top-color: var(--green); border-radius: 50%;
+      animation: spin 0.75s linear infinite; margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="po-wrap">
+  <div class="po-card">
+    <p class="po-brand">Coastal Travel Company</p>
+    <div id="poLoading" class="po-loading">
+      <div class="po-spinner"></div>
+      Loading your order…
+    </div>
+    <div id="poContent" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+const WORKER_URL = (function() {
+  if (window.location.hostname === 'preprod.coastaltravelcompany.com')
+    return 'https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev';
+  return 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+})();
+
+const PRODUCTS = [
+  { size: '4x6',   label: '4 × 6"' },
+  { size: '5x7',   label: '5 × 7"' },
+  { size: '8x10',  label: '8 × 10"' },
+  { size: '11x14', label: '11 × 14"' },
+  { size: '16x20', label: '16 × 20"' },
+  { size: '20x30', label: '20 × 30"' },
+];
+
+function sizeLabel(size) {
+  return PRODUCTS.find(p => p.size === size)?.label || size;
+}
+function cap(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+}
+function fmt(cents) {
+  return '$' + (Number(cents) / 100).toFixed(2);
+}
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+
+async function init() {
+  const hash = location.hash.slice(1);
+  const cancelled = new URLSearchParams(location.search).get('cancelled') === '1'
+    || hash.includes('&cancelled=1');
+  const token = hash.replace('&cancelled=1', '');
+
+  const content = document.getElementById('poContent');
+
+  if (!token) {
+    document.getElementById('poLoading').style.display = 'none';
+    content.style.display = '';
+    content.innerHTML = `
+      <h2 class="po-title">Order not found</h2>
+      <p class="po-subtitle">No order token was found in this URL.</p>
+      <a href="/" class="po-btn">Back to Home</a>`;
+    return;
+  }
+
+  try {
+    const res = await fetch(WORKER_URL + '/print/orders/' + token);
+    document.getElementById('poLoading').style.display = 'none';
+    content.style.display = '';
+
+    if (!res.ok) {
+      content.innerHTML = `
+        <h2 class="po-title">Order not found</h2>
+        <p class="po-subtitle">We couldn't find an order for this link. It may have expired or the URL may be incorrect.</p>
+        <a href="/" class="po-btn">Back to Home</a>`;
+      return;
+    }
+
+    const order = await res.json();
+    const addr  = (() => { try { return JSON.parse(order.shipping_address); } catch { return {}; } })();
+    const addrStr = [addr.line1, addr.line2, addr.city, addr.state, addr.zip].filter(Boolean).join(', ');
+
+    let statusBadge, heading, subtitle, note;
+    if (cancelled) {
+      statusBadge = '<span class="po-status cancelled">Payment Cancelled</span>';
+      heading     = 'Payment was not completed';
+      subtitle    = 'Your order has not been placed. No charge was made.';
+      note        = 'If you&rsquo;d like to order a print, please return to your gallery and try again.';
+    } else if (order.status === 'paid') {
+      statusBadge = '<span class="po-status paid">Order Confirmed</span>';
+      heading     = 'Thank you for your order!';
+      subtitle    = `A confirmation has been sent to <strong>${esc(order.customer_email)}</strong>. Your print will be produced and shipped within 5–7 business days.`;
+      note        = 'You&rsquo;ll receive a shipping confirmation with tracking once your order is on its way.';
+    } else {
+      statusBadge = '<span class="po-status pending">Payment Pending</span>';
+      heading     = 'Order received';
+      subtitle    = 'We&rsquo;re waiting to confirm your payment. This page will update once payment clears.';
+      note        = 'If you completed payment and this page still shows pending after a few minutes, please contact us.';
+    }
+
+    content.innerHTML = `
+      ${statusBadge}
+      <h2 class="po-title">${esc(heading)}</h2>
+      <p class="po-subtitle">${subtitle}</p>
+      <hr class="po-divider">
+      <p class="po-label">Order Summary</p>
+      <table class="po-table">
+        <tr><td>Print</td><td>${esc(sizeLabel(order.size))} — ${esc(cap(order.material))}</td></tr>
+        <tr><td>Quantity</td><td>${esc(order.quantity)}</td></tr>
+        ${order.photo_filename ? `<tr><td>Photo</td><td>${esc(order.photo_filename)}</td></tr>` : ''}
+        <tr><td>Ship to</td><td>${esc(order.customer_name)}<br><span style="color:#888">${esc(addrStr)}</span></td></tr>
+        <tr><td>Print</td><td>${fmt(order.subtotal_cents)}</td></tr>
+        <tr><td>Shipping</td><td>${fmt(order.shipping_cents)}</td></tr>
+        <tr class="po-total-row"><td>Total</td><td>${fmt(order.total_cents)}</td></tr>
+      </table>
+      <div class="po-note">${note}</div>
+      <a href="/" class="po-btn">Back to Home</a>`;
+  } catch {
+    document.getElementById('poLoading').style.display = 'none';
+    content.style.display = '';
+    content.innerHTML = `
+      <h2 class="po-title">Something went wrong</h2>
+      <p class="po-subtitle">We couldn&rsquo;t load your order details. Please try refreshing the page.</p>
+      <a href="/" class="po-btn">Back to Home</a>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

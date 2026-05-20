@@ -60,6 +60,11 @@ import {
   handlePublicInvoice, handleInvoiceCheckout, handleStripeWebhook, handlePortalInvoices,
 } from './admin/invoices.js';
 
+import {
+  handlePublicPrintProducts, handlePublicCreatePrintOrder,
+  handlePublicPrintOrder, handleAdminPrintOrders,
+} from './admin/print-orders.js';
+
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 
 export async function handleRequest(request, env) {
@@ -228,6 +233,13 @@ export async function handleRequest(request, env) {
     return handlePublicInvoice(request, env, publicInvoiceMatch[1]);
   if (method === 'POST' && pathname === '/stripe/webhook')
     return handleStripeWebhook(request, env);
+
+  // ── Print ordering ───────────────────────────────────────────────────────────
+  const publicPrintOrderMatch = pathname.match(/^\/print\/orders\/([^/]+)$/);
+  if (method === 'GET'  && pathname === '/print/products')     return handlePublicPrintProducts();
+  if (method === 'POST' && pathname === '/print/orders')       return handlePublicCreatePrintOrder(request, env);
+  if (method === 'GET'  && pathname === '/admin/print-orders') return handleAdminPrintOrders(request, env);
+  if (publicPrintOrderMatch && method === 'GET')               return handlePublicPrintOrder(request, env, publicPrintOrderMatch[1]);
 
   // ── Token exchange + contact form ────────────────────────────────────────────
   if (method === 'POST' && pathname === '/token')   return handleTokenExchange(request, env);

@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS print_orders (
+  id                       TEXT PRIMARY KEY,
+  gallery_passphrase       TEXT NOT NULL DEFAULT '',
+  photo_filename           TEXT NOT NULL DEFAULT '',
+  photo_index              INTEGER NOT NULL DEFAULT 0,
+  size                     TEXT NOT NULL DEFAULT '',
+  material                 TEXT NOT NULL DEFAULT '',
+  quantity                 INTEGER NOT NULL DEFAULT 1,
+  unit_price_cents         INTEGER NOT NULL DEFAULT 0,
+  subtotal_cents           INTEGER NOT NULL DEFAULT 0,
+  shipping_cents           INTEGER NOT NULL DEFAULT 0,
+  total_cents              INTEGER NOT NULL DEFAULT 0,
+  customer_name            TEXT NOT NULL DEFAULT '',
+  customer_email           TEXT NOT NULL DEFAULT '',
+  shipping_address         TEXT NOT NULL DEFAULT '{}',
+  magic_token              TEXT NOT NULL UNIQUE,
+  stripe_session_id        TEXT NOT NULL DEFAULT '',
+  stripe_payment_intent_id TEXT NOT NULL DEFAULT '',
+  status                   TEXT NOT NULL DEFAULT 'pending_payment',
+  paid_at                  TEXT NOT NULL DEFAULT '',
+  created_at               TEXT NOT NULL,
+  updated_at               TEXT NOT NULL
+);

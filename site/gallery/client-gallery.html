@@ -231,6 +231,102 @@
     }
     .lb-btn:hover { border-color: rgba(255,255,255,0.45); color: var(--white); }
 
+    /* ═══════════════════════════════════════
+       PRINT ORDER MODAL
+    ═══════════════════════════════════════ */
+    #printModal {
+      display: none; position: fixed; inset: 0; z-index: 900;
+      background: rgba(0,0,0,0.6);
+      align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    #printModal.show { display: flex; }
+    .pm-panel {
+      background: #fff; color: #1C1C1C;
+      width: 100%; max-width: 500px;
+      max-height: 92vh; overflow-y: auto;
+      padding: 32px; position: relative;
+    }
+    .pm-close {
+      position: absolute; top: 16px; right: 20px;
+      background: none; border: none; font-size: 16px;
+      cursor: pointer; color: #999; line-height: 1;
+    }
+    .pm-close:hover { color: #333; }
+    .pm-title {
+      font-family: 'Gilda Display', serif; font-size: 22px;
+      margin: 0 0 4px;
+    }
+    .pm-photo-label {
+      font-family: 'Montserrat', sans-serif; font-size: 10px;
+      letter-spacing: 0.12em; text-transform: uppercase;
+      color: #999; margin: 0 0 24px;
+    }
+    .pm-label {
+      font-family: 'Montserrat', sans-serif; font-size: 9px;
+      font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase;
+      color: #888; margin: 0 0 10px;
+    }
+    .pm-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin-bottom: 20px;
+    }
+    .pm-opt {
+      border: 1px solid #ddd; padding: 10px 6px; text-align: center;
+      cursor: pointer; background: none;
+      font-family: 'Montserrat', sans-serif; font-size: 11px;
+      font-weight: 500; letter-spacing: 0.05em;
+      transition: all 0.15s; line-height: 1.3;
+    }
+    .pm-opt:hover:not(:disabled) { border-color: #8FBFBE; }
+    .pm-opt.selected { border-color: #2A5C45; background: #2A5C45; color: #fff; }
+    .pm-opt:disabled { opacity: 0.28; cursor: default; }
+    .pm-price-hint { font-size: 10px; color: inherit; opacity: 0.7; display: block; margin-top: 3px; }
+    .pm-qty {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+    }
+    .pm-qty-btn {
+      width: 32px; height: 32px; border: 1px solid #ddd; background: none;
+      font-size: 20px; cursor: pointer; line-height: 1; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .pm-qty-btn:hover { border-color: #2A5C45; }
+    .pm-qty-val {
+      font-family: 'Montserrat', sans-serif; font-size: 15px;
+      font-weight: 600; min-width: 24px; text-align: center;
+    }
+    .pm-field {
+      width: 100%; box-sizing: border-box; border: 1px solid #ddd;
+      padding: 10px 12px; font-family: 'Montserrat', sans-serif;
+      font-size: 13px; outline: none; margin-bottom: 10px; background: #fff;
+    }
+    .pm-field:focus { border-color: #2A5C45; }
+    .pm-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .pm-divider { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+    .pm-summary {
+      font-family: 'Montserrat', sans-serif; font-size: 13px; margin-bottom: 20px;
+    }
+    .pm-sum-row {
+      display: flex; justify-content: space-between;
+      padding: 5px 0; color: #555;
+    }
+    .pm-sum-row.pm-total {
+      font-weight: 700; color: #1C1C1C;
+      border-top: 1px solid #eee; margin-top: 6px; padding-top: 10px;
+    }
+    .pm-err {
+      font-family: 'Montserrat', sans-serif; font-size: 11px;
+      color: #c0392b; margin-bottom: 12px; display: none;
+    }
+    .pm-submit {
+      width: 100%; padding: 14px; background: #2A5C45; color: #fff;
+      border: none; font-family: 'Montserrat', sans-serif;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.22em;
+      text-transform: uppercase; cursor: pointer; transition: background 0.2s;
+    }
+    .pm-submit:hover:not(:disabled) { background: #1e4433; }
+    .pm-submit:disabled { opacity: 0.5; cursor: default; }
+
     .lb-img-wrap {
       max-width: 90vw; max-height: 82vh;
       position: relative;
@@ -342,6 +438,12 @@
         </svg>
         Download
       </a>
+      <button class="lb-btn" id="lbPrint">
+        <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
+          <path d="M3 1h6v3H3zM1 4h10a1 1 0 0 1 1 1v4H9v2H3V9H0V5a1 1 0 0 1 1-1zm8 2.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zM4 9h4v2H4z"/>
+        </svg>
+        Order Print
+      </button>
       <button class="lb-btn" id="lbClose">&#10005; Close</button>
     </div>
   </div>
@@ -355,6 +457,54 @@
   <button class="lb-arrow" id="lbNext">&#8594;</button>
 
   <p class="lb-name" id="lbName"></p>
+</div>
+
+<!-- ══ PRINT ORDER MODAL ══════════════════════════════════ -->
+<div id="printModal">
+  <div class="pm-panel">
+    <button class="pm-close" id="pmClose">&#10005;</button>
+    <h2 class="pm-title">Order a Print</h2>
+    <p class="pm-photo-label" id="pmPhotoName"></p>
+
+    <p class="pm-label">Size</p>
+    <div class="pm-grid" id="pmSizes"></div>
+
+    <p class="pm-label">Material</p>
+    <div class="pm-grid" id="pmMaterials"></div>
+
+    <p class="pm-label">Quantity</p>
+    <div class="pm-qty">
+      <button class="pm-qty-btn" id="pmQtyDec">&#8722;</button>
+      <span class="pm-qty-val" id="pmQtyVal">1</span>
+      <button class="pm-qty-btn" id="pmQtyInc">&#43;</button>
+    </div>
+
+    <hr class="pm-divider">
+
+    <p class="pm-label">Your Details</p>
+    <input class="pm-field" id="pmName"  type="text"  placeholder="Full name"      autocomplete="name">
+    <input class="pm-field" id="pmEmail" type="email" placeholder="Email address"  autocomplete="email">
+
+    <p class="pm-label" style="margin-top:10px">Shipping Address</p>
+    <input class="pm-field" id="pmAddr1" type="text" placeholder="Address line 1"                       autocomplete="address-line1">
+    <input class="pm-field" id="pmAddr2" type="text" placeholder="Apartment, suite, etc. (optional)"   autocomplete="address-line2">
+    <div class="pm-field-row">
+      <input class="pm-field" id="pmCity"  type="text" placeholder="City"  autocomplete="address-level2">
+      <input class="pm-field" id="pmState" type="text" placeholder="State" autocomplete="address-level1">
+    </div>
+    <input class="pm-field" id="pmZip" type="text" placeholder="ZIP code" autocomplete="postal-code">
+
+    <hr class="pm-divider">
+
+    <div class="pm-summary">
+      <div class="pm-sum-row"><span>Print</span><span id="pmSubtotal">—</span></div>
+      <div class="pm-sum-row"><span>Standard shipping</span><span>$8.95</span></div>
+      <div class="pm-sum-row pm-total"><span>Total</span><span id="pmTotal">—</span></div>
+    </div>
+
+    <p class="pm-err" id="pmErr"></p>
+    <button class="pm-submit" id="pmSubmit">Proceed to Payment</button>
+  </div>
 </div>
 
 <script>
@@ -659,6 +809,7 @@ function showLbItem(i) {
     lbDl.style.display = '';
   }
 
+  document.getElementById('lbPrint').style.display = video ? 'none' : '';
   document.getElementById('lbCount').textContent = (i + 1) + ' / ' + items.length;
   document.getElementById('lbName').textContent = mediaItem.filename ?? '';
 
@@ -684,6 +835,156 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeLb();
   if (e.key === 'ArrowLeft' && lbIndex > 0) showLbItem(lbIndex - 1);
   if (e.key === 'ArrowRight' && lbIndex < items.length - 1) showLbItem(lbIndex + 1);
+});
+
+// ── Print Order ───────────────────────────────────────────
+const PRINT_PRODUCTS = [
+  { size: '4x6',   label: '4 × 6"',   materials: { glossy: 1500, matte: 1800 } },
+  { size: '5x7',   label: '5 × 7"',   materials: { glossy: 2000, matte: 2400 } },
+  { size: '8x10',  label: '8 × 10"',  materials: { glossy: 3500, matte: 4200, canvas: 5500 } },
+  { size: '11x14', label: '11 × 14"', materials: { glossy: 5500, matte: 6500, canvas: 8500 } },
+  { size: '16x20', label: '16 × 20"', materials: { glossy: 8500, matte: 10000, canvas: 13500 } },
+  { size: '20x30', label: '20 × 30"', materials: { glossy: 13000, matte: 15500, canvas: 19500 } },
+];
+const PRINT_SHIPPING = 895;
+let pmState = { size: null, material: null, qty: 1, item: null, index: 0 };
+
+function openPrintModal(i) {
+  const item = items[i];
+  pmState = { size: null, material: null, qty: 1, item, index: i };
+  document.getElementById('pmPhotoName').textContent = item.filename || ('Photo ' + (i + 1));
+  document.getElementById('pmQtyVal').textContent = '1';
+  document.getElementById('pmErr').style.display = 'none';
+  document.getElementById('pmSubmit').disabled = false;
+  document.getElementById('pmSubmit').textContent = 'Proceed to Payment';
+  renderPmSizes();
+  renderPmMaterials();
+  updatePmSummary();
+  document.getElementById('printModal').classList.add('show');
+}
+
+function closePrintModal() {
+  document.getElementById('printModal').classList.remove('show');
+}
+
+function renderPmSizes() {
+  const grid = document.getElementById('pmSizes');
+  grid.innerHTML = '';
+  PRINT_PRODUCTS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'pm-opt' + (pmState.size === p.size ? ' selected' : '');
+    btn.innerHTML = p.label;
+    btn.addEventListener('click', () => {
+      pmState.size = p.size;
+      if (pmState.material && !p.materials[pmState.material]) pmState.material = null;
+      renderPmSizes();
+      renderPmMaterials();
+      updatePmSummary();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function renderPmMaterials() {
+  const grid = document.getElementById('pmMaterials');
+  grid.innerHTML = '';
+  const product = PRINT_PRODUCTS.find(p => p.size === pmState.size);
+  ['glossy', 'matte', 'canvas'].forEach(mat => {
+    const btn = document.createElement('button');
+    const available = !!(product && product.materials[mat] !== undefined);
+    const price = available ? product.materials[mat] : null;
+    btn.className = 'pm-opt' + (pmState.material === mat ? ' selected' : '');
+    btn.disabled = !available;
+    btn.innerHTML = mat.charAt(0).toUpperCase() + mat.slice(1) +
+      (price !== null ? `<span class="pm-price-hint">$${(price / 100).toFixed(0)}</span>` : '');
+    if (available) {
+      btn.addEventListener('click', () => {
+        pmState.material = mat;
+        renderPmMaterials();
+        updatePmSummary();
+      });
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function updatePmSummary() {
+  const product = PRINT_PRODUCTS.find(p => p.size === pmState.size);
+  const unitPrice = (product && pmState.material) ? (product.materials[pmState.material] ?? null) : null;
+  if (unitPrice === null) {
+    document.getElementById('pmSubtotal').textContent = '—';
+    document.getElementById('pmTotal').textContent = '—';
+  } else {
+    const sub = unitPrice * pmState.qty;
+    document.getElementById('pmSubtotal').textContent = '$' + (sub / 100).toFixed(2);
+    document.getElementById('pmTotal').textContent = '$' + ((sub + PRINT_SHIPPING) / 100).toFixed(2);
+  }
+}
+
+document.getElementById('lbPrint').addEventListener('click', () => openPrintModal(lbIndex));
+document.getElementById('pmClose').addEventListener('click', closePrintModal);
+document.getElementById('printModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('printModal')) closePrintModal();
+});
+
+document.getElementById('pmQtyDec').addEventListener('click', () => {
+  if (pmState.qty > 1) { pmState.qty--; document.getElementById('pmQtyVal').textContent = pmState.qty; updatePmSummary(); }
+});
+document.getElementById('pmQtyInc').addEventListener('click', () => {
+  if (pmState.qty < 99) { pmState.qty++; document.getElementById('pmQtyVal').textContent = pmState.qty; updatePmSummary(); }
+});
+
+document.getElementById('pmSubmit').addEventListener('click', async () => {
+  const errEl = document.getElementById('pmErr');
+  errEl.style.display = 'none';
+
+  if (!pmState.size || !pmState.material) {
+    errEl.textContent = 'Please select a size and material.';
+    errEl.style.display = 'block'; return;
+  }
+  const name  = document.getElementById('pmName').value.trim();
+  const email = document.getElementById('pmEmail').value.trim();
+  const addr1 = document.getElementById('pmAddr1').value.trim();
+  const city  = document.getElementById('pmCity').value.trim();
+  const state = document.getElementById('pmState').value.trim();
+  const zip   = document.getElementById('pmZip').value.trim();
+  if (!name || !email || !addr1 || !city || !state || !zip) {
+    errEl.textContent = 'Please fill in all required fields.';
+    errEl.style.display = 'block'; return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.style.display = 'block'; return;
+  }
+
+  const btn = document.getElementById('pmSubmit');
+  btn.disabled = true; btn.textContent = 'Redirecting…';
+
+  try {
+    const res = await fetch(proxyBase() + '/print/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        size: pmState.size, material: pmState.material, quantity: pmState.qty,
+        customer_name: name, customer_email: email,
+        shipping_address: {
+          line1: addr1,
+          line2: document.getElementById('pmAddr2').value.trim(),
+          city, state, zip,
+        },
+        photo_filename: pmState.item?.filename || '',
+        photo_index: pmState.index || 0,
+        gallery_passphrase: cfg.id || '',
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Unable to create order');
+    window.location.href = data.url;
+  } catch (err) {
+    errEl.textContent = err.message || 'Something went wrong. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Proceed to Payment';
+  }
 });
 
 // ── Download All ──────────────────────────────────────────

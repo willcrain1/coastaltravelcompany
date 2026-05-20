@@ -1,6 +1,7 @@
 import { ALLOWED_ORIGIN, CONTACT_TO } from '../constants.js';
 import { jsonResponse, authRequired, forbidden, escHtml } from '../utils.js';
 import { getAuth } from '../jwt.js';
+import { handlePrintOrderPaid } from './print-orders.js';
 
 function calcInvoiceTotals(lineItems, taxCents) {
   const subtotal = lineItems.reduce(
@@ -216,6 +217,11 @@ export async function handleStripeWebhook(request, env) {
   try { event = JSON.parse(rawBody); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
   if (event.type === 'checkout.session.completed') {
     const session   = event.data.object;
+
+    if (session.metadata?.print_order_id && session.payment_status === 'paid') {
+      await handlePrintOrderPaid(env, session);
+    }
+
     const invoiceId = session.metadata?.invoice_id;
     if (invoiceId && session.payment_status === 'paid') {
       const now = new Date().toISOString();
