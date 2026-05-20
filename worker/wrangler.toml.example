@@ -53,6 +53,15 @@ database_id = "your-preprod-d1-database-id"  # filled in by deploy-worker-prepro
 #   wrangler secret put STRIPE_WEBHOOK_SECRET
 #     → Register a separate webhook endpoint for preprod in Stripe dashboard.
 #
+#   wrangler secret put GITHUB_TOKEN
+#     → Fine-grained personal access token (github.com → Settings → Developer settings →
+#       Fine-grained tokens). Required scopes for this repo only:
+#         Contents: Read and write   (read/update site HTML files)
+#         Pages: Read                (poll deployment build status)
+#       Used by the CMS content editor (item 18) to read/commit site pages via the
+#       GitHub Contents API. Same token works for both prod and preprod workers since
+#       both edit the same repo. Never use a classic token with broad repo:* scope.
+#
 # ── Optional variables (set in Cloudflare dashboard → Worker → Settings → Variables) ──
 #
 #   GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"

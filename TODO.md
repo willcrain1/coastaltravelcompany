@@ -386,43 +386,21 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 18. Admin Content Editor (CMS)
+## ~~18. Admin Content Editor (CMS)~~ ✅ Done
 
 **Goal:** Allow the admin to update text and photos on every public website page directly from the browser — no HTML editing or git knowledge required. Changes commit to the GitHub repo via the API and GitHub Pages deploys automatically within ~2 minutes.
 
-### Architecture
-- Extend `gallery-admin.html` or create `admin/content-editor.html` — gated behind admin auth (item 4)
-- Mark editable zones in each HTML page using `data-content-id` attributes (e.g. `<h1 data-content-id="home-hero-headline">`) so the Worker can parse and update only the relevant zones without touching surrounding markup
-- Worker reads current file content via GitHub API (`GET /repos/{owner}/{repo}/contents/{path}`), extracts zone values, serves them to the editor; on save, injects updated values back and commits via `PUT /repos/{owner}/{repo}/contents/{path}` with the file's current SHA
-- Store `GITHUB_TOKEN` (fine-grained personal access token with repo write scope, scoped to this repo only) as a Worker secret
-- Show a "Deploying — live in ~2 minutes" status badge after a successful commit; poll GitHub API for deployment status and update badge to "Live" when complete
-
-### Editable content zones per page
-- **`index.html`**: hero headline, hero subheadline, hero CTA button label, about-preview paragraph, featured collection names and one-line descriptions (per card), homepage testimonial quotes (2–3 pull quotes with attribution)
-- **`about.html`**: bio / brand story paragraphs, brand photo (replaceable), pull-quote overlays
-- **`services.html`**: per-collection card — name, description, inclusions list, price range indicator, hero photo
-- **`collections.html`**: portfolio photos per collection — add, remove, reorder; per-photo caption
-- **`contact.html`**: intro paragraph, contact details text
-- **`testimonials.html`** (item 13): add / edit / remove testimonials — quote text, client name, property name, optional photo
-- **`faq.html`** (item 19): add / edit / remove FAQ entries — question and answer; drag-to-reorder
-
-### Photo management
-- **Upload**: admin drags an image into the editor → Worker uploads to a public Cloudflare R2 bucket → returns the CDN URL → URL written into the content zone on save
-- **Pick from NAS**: admin opens a picker that loads gallery thumbnails via the existing Worker proxy → selects a photo → Worker fetches full-res from NAS and copies to R2 → URL used in content zone
-- **Reorder**: drag-and-drop handles on photo grids in `collections.html` and services cards; order persisted as a data attribute the Worker commits back to the file
-
-### Editor UI
-- Per-page editor shows each content zone as a labeled field — short text zones use a single-line input, body copy uses a minimal rich-text editor (bold, italic, line breaks only — no full HTML)
-- Inline photo picker appears on hover over any image zone — "Replace" opens upload or NAS picker, "Remove" clears the zone
-- Live preview panel renders the full page in an `<iframe>` using the current (unsaved) edits so the admin can see exactly how the page will look before publishing
-- **Save & Publish** commits all changed zones in a single GitHub API call with a descriptive auto-generated message (e.g. "Update home hero headline and about photo")
-- **Change history**: list of recent commits affecting website pages — shows timestamp, changed zones summary, and a "Revert" action that creates a new reverting commit (non-destructive)
-
-### Implementation notes
-- Use the GitHub Contents API — no git CLI or deploy script needed; the Worker handles all API calls server-side so `GITHUB_TOKEN` is never exposed to the browser
-- Each `PUT` to the GitHub Contents API requires the current file's `sha` to prevent conflicts — fetch it fresh immediately before each save
-- Add `GITHUB_TOKEN` to the Worker secrets checklist alongside `JWT_SECRET`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`
-- Mark all editable HTML zones before building the editor so zone IDs are stable; add a `data-content-id` naming convention to `CLAUDE.md` once established
+- [x] Created `admin/content-editor.html` — gated behind admin auth, two-panel editor (form fields left, live srcdoc preview right)
+- [x] Marked editable zones in `index.html`, `about.html`, `services.html`, `contact.html` using `data-content-id` attributes
+- [x] Worker reads file from GitHub API, extracts all `data-content-id` zones automatically, returns them with raw HTML for preview
+- [x] Worker saves updated zones via `PUT /repos/{owner}/{repo}/contents/{path}` (fetches fresh SHA immediately before each commit to prevent conflicts)
+- [x] `GITHUB_TOKEN` stored as Worker secret — never exposed to the browser; naming convention and required scopes documented in `CLAUDE.md`
+- [x] Deploy status badge polls `GET /pages/builds/latest` every 15 s after a commit; transitions built → building → live
+- [x] Change history shows last 10 commits to the selected page; non-destructive **Revert** creates a new reverting commit
+- [x] Live preview uses `<iframe srcdoc>` + injected `<base href>` so the modified HTML renders with full site CSS/JS before publishing
+- [x] "Content" nav link added to all admin pages
+- [ ] Photo management (R2 upload, NAS picker, reorder) — deferred; text zones cover the primary use case
+- [ ] `testimonials.html` and `faq.html` zones — deferred until those pages exist (items 16 & 21)
 
 
 ---

@@ -62,6 +62,12 @@ import {
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 
+import {
+  handleAdminCmsPages, handleAdminCmsContent,
+  handleAdminCmsSave, handleAdminCmsDeployment,
+  handleAdminCmsHistory, handleAdminCmsRevert,
+} from './admin/cms.js';
+
 export async function handleRequest(request, env) {
   initCors(env.ALLOWED_ORIGIN);
 
@@ -228,6 +234,14 @@ export async function handleRequest(request, env) {
     return handlePublicInvoice(request, env, publicInvoiceMatch[1]);
   if (method === 'POST' && pathname === '/stripe/webhook')
     return handleStripeWebhook(request, env);
+
+  // ── CMS (content editor) ─────────────────────────────────────────────────────
+  if (method === 'GET'  && pathname === '/admin/cms/pages')      return handleAdminCmsPages(request, env);
+  if (method === 'GET'  && pathname === '/admin/cms/content')    return handleAdminCmsContent(request, env);
+  if (method === 'PUT'  && pathname === '/admin/cms/content')    return handleAdminCmsSave(request, env);
+  if (method === 'GET'  && pathname === '/admin/cms/deployment') return handleAdminCmsDeployment(request, env);
+  if (method === 'GET'  && pathname === '/admin/cms/history')    return handleAdminCmsHistory(request, env);
+  if (method === 'POST' && pathname === '/admin/cms/revert')     return handleAdminCmsRevert(request, env);
 
   // ── Token exchange + contact form ────────────────────────────────────────────
   if (method === 'POST' && pathname === '/token')   return handleTokenExchange(request, env);

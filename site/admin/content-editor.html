@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Editor — Coastal Travel Company Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+  <style>
+    .cms-layout {
+      display: flex;
+      gap: 24px;
+      height: calc(100vh - 88px);
+      overflow: hidden;
+    }
+    .cms-panel {
+      width: 400px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-bottom: 40px;
+    }
+    .cms-preview {
+      flex: 1;
+      background: #f0f0f0;
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .cms-preview-bar {
+      background: #e5e5e5;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      color: #888;
+      flex-shrink: 0;
+    }
+    .cms-preview-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    #previewFrame {
+      flex: 1;
+      border: none;
+      width: 100%;
+    }
+    .zone-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .zone-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim, #999);
+      font-family: 'Montserrat', sans-serif;
+    }
+    .zone-input, .zone-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 13px;
+      font-family: 'Montserrat', sans-serif;
+      padding: 8px 10px;
+      border: 1px solid var(--border, #ddd);
+      border-radius: 4px;
+      background: var(--white, #fff);
+      color: var(--text, #1c1c1c);
+      transition: border-color 0.15s;
+      resize: vertical;
+    }
+    .zone-input:focus, .zone-textarea:focus {
+      outline: none;
+      border-color: var(--teal, #8fbfbe);
+    }
+    .zone-input.changed, .zone-textarea.changed {
+      border-color: #f59e0b;
+      background: #fffbf0;
+    }
+    .deploy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .deploy-badge.built    { background: #d1fae5; color: #065f46; }
+    .deploy-badge.building { background: #fef3c7; color: #92400e; }
+    .deploy-badge.queued   { background: #e0e7ff; color: #3730a3; }
+    .deploy-badge.unknown  { background: #f3f4f6; color: #6b7280; }
+    .deploy-badge.errored  { background: #fee2e2; color: #991b1b; }
+    .pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+    .history-item {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border, #ddd);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-msg {
+      font-size: 12px;
+      color: var(--text, #1c1c1c);
+      font-family: 'Montserrat', sans-serif;
+    }
+    .history-meta {
+      font-size: 10px;
+      color: var(--dim, #999);
+      font-family: 'Montserrat', sans-serif;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .history-revert {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      color: var(--teal, #8fbfbe);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      font-family: 'Montserrat', sans-serif;
+      text-transform: uppercase;
+    }
+    .history-revert:hover { color: var(--green, #2a5c45); }
+    #saveBtn {
+      width: 100%;
+      padding: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    #saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .page-select {
+      width: 100%;
+      font-size: 13px;
+      font-family: 'Montserrat', sans-serif;
+      padding: 9px 10px;
+      border: 1px solid var(--border, #ddd);
+      border-radius: 4px;
+      background: var(--white, #fff);
+      cursor: pointer;
+    }
+    .tag-html {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+      text-transform: uppercase;
+      font-family: 'Montserrat', sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </div>
+  <div class="header-right">
+    <span class="admin-email" id="adminEmail"></span>
+    <nav class="admin-nav">
+      <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
+      <a href="galleries.html" class="admin-nav-link">Galleries</a>
+      <a href="clients.html" class="admin-nav-link">Clients</a>
+      <a href="services.html" class="admin-nav-link">Services</a>
+      <a href="content-editor.html" class="admin-nav-link active">Content</a>
+    </nav>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <div class="cms-layout">
+
+    <!-- ── Left panel: editor ──────────────────────────────── -->
+    <div class="cms-panel">
+
+      <!-- Page selector -->
+      <div class="card" style="padding:16px 18px;">
+        <label class="zone-label" style="display:block; margin-bottom:8px;">Page</label>
+        <select id="pageSelect" class="page-select" onchange="loadPage(this.value)">
+          <option value="">— Select a page —</option>
+        </select>
+      </div>
+
+      <!-- Deploy status -->
+      <div id="deployWrap" style="display:none;" class="card" style="padding:14px 18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <span style="font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim); font-family:'Montserrat',sans-serif;">Deploy Status</span>
+          <span id="deployBadge" class="deploy-badge unknown">Unknown</span>
+        </div>
+        <p id="deployTime" style="margin:6px 0 0; font-size:11px; color:var(--dim); font-family:'Montserrat',sans-serif;"></p>
+      </div>
+
+      <!-- Zones form -->
+      <div id="zonesWrap" style="display:none;">
+        <div class="card" style="padding:18px;">
+          <div id="zonesList" style="display:flex; flex-direction:column; gap:16px;"></div>
+        </div>
+      </div>
+
+      <!-- Save & Publish -->
+      <div id="saveWrap" style="display:none;">
+        <div class="card" style="padding:16px 18px;">
+          <div class="zone-field" style="margin-bottom:12px;">
+            <label class="zone-label">Commit message (optional)</label>
+            <input type="text" id="commitMsg" class="zone-input" placeholder="e.g. Update homepage hero text" />
+          </div>
+          <button id="saveBtn" class="btn btn-green" onclick="saveChanges()">Save &amp; Publish</button>
+          <p id="saveStatus" style="margin:8px 0 0; font-size:11px; color:var(--dim); font-family:'Montserrat',sans-serif;"></p>
+        </div>
+      </div>
+
+      <!-- Change history -->
+      <div id="historyWrap" style="display:none;">
+        <h3 class="sh" style="margin-bottom:8px;">Change History</h3>
+        <div class="card" style="padding:4px 18px;">
+          <div id="historyList"></div>
+        </div>
+      </div>
+
+    </div><!-- /cms-panel -->
+
+    <!-- ── Right panel: live preview ──────────────────────── -->
+    <div class="cms-preview">
+      <div class="cms-preview-bar">
+        <div class="cms-preview-dot" style="background:#ff5f57;"></div>
+        <div class="cms-preview-dot" style="background:#febc2e;"></div>
+        <div class="cms-preview-dot" style="background:#28c840;"></div>
+        <span id="previewUrl" style="margin-left:4px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+          Select a page to preview
+        </span>
+        <button onclick="refreshPreview()" style="background:none; border:none; cursor:pointer; font-size:12px; color:#888; font-family:'Montserrat',sans-serif; font-weight:600;">↺ Refresh</button>
+      </div>
+      <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+
+  </div><!-- /cms-layout -->
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../config.js"></script>
+<script src="admin-shared.js"></script>
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let currentPage   = null;  // { path, label }
+let currentZones  = [];    // [{id, label, type, value}]
+let rawHtml       = '';    // current page HTML from GitHub
+let changes       = {};    // {zoneId: newValue} — pending edits
+let deployPoller  = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+(async () => {
+  const ok = await authGate();
+  if (!ok) return;
+  await loadPages();
+  await pollDeployment();
+})();
+
+async function loadPages() {
+  const { ok, data } = await apiFetch('/admin/cms/pages');
+  if (!ok) return;
+  const sel = document.getElementById('pageSelect');
+  data.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.path;
+    opt.textContent = p.label;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Page load ─────────────────────────────────────────────────────────────────
+
+async function loadPage(path) {
+  if (!path) return;
+  changes = {};
+  document.getElementById('zonesWrap').style.display = 'none';
+  document.getElementById('saveWrap').style.display  = 'none';
+  document.getElementById('historyWrap').style.display = 'none';
+  document.getElementById('zonesList').innerHTML = '<p style="font-size:12px; color:var(--dim); font-family:\'Montserrat\',sans-serif;">Loading…</p>';
+  document.getElementById('zonesWrap').style.display = '';
+
+  const { ok, data } = await apiFetch(`/admin/cms/content?page=${encodeURIComponent(path)}`);
+  if (!ok) {
+    document.getElementById('zonesList').innerHTML =
+      `<p style="font-size:12px; color:#b00; font-family:'Montserrat',sans-serif;">
+        ${data.error || 'Failed to load page content.'}
+        ${data.error === 'GITHUB_TOKEN not configured'
+          ? '<br><br>Set <code>GITHUB_TOKEN</code> as a Worker secret in the Cloudflare dashboard.'
+          : ''}
+      </p>`;
+    return;
+  }
+
+  currentPage  = { path: data.page, label: data.label };
+  currentZones = data.zones;
+  rawHtml      = data.rawHtml;
+
+  renderZones(data.zones);
+  document.getElementById('saveWrap').style.display    = '';
+  document.getElementById('historyWrap').style.display = '';
+  updatePreview();
+  loadHistory(path);
+}
+
+// ── Zone rendering ────────────────────────────────────────────────────────────
+
+function renderZones(zones) {
+  if (!zones.length) {
+    document.getElementById('zonesList').innerHTML =
+      '<p style="font-size:12px; color:var(--dim); font-family:\'Montserrat\',sans-serif;">No editable zones found on this page.</p>';
+    return;
+  }
+
+  const list = document.getElementById('zonesList');
+  list.innerHTML = '';
+  zones.forEach(zone => {
+    const wrap = document.createElement('div');
+    wrap.className = 'zone-field';
+
+    const labelRow = document.createElement('div');
+    labelRow.style.cssText = 'display:flex; align-items:center; gap:6px;';
+    const lbl = document.createElement('span');
+    lbl.className = 'zone-label';
+    lbl.textContent = zone.label;
+    labelRow.appendChild(lbl);
+    if (zone.value.includes('<')) {
+      const tag = document.createElement('span');
+      tag.className = 'tag-html';
+      tag.textContent = 'html';
+      labelRow.appendChild(tag);
+    }
+    wrap.appendChild(labelRow);
+
+    const isMultiline = zone.type === 'multiline' || zone.value.length > 80 || zone.value.includes('<');
+    const field = document.createElement(isMultiline ? 'textarea' : 'input');
+    field.className = isMultiline ? 'zone-textarea' : 'zone-input';
+    if (isMultiline) field.rows = Math.min(6, Math.max(2, Math.ceil(zone.value.length / 60)));
+    field.value = zone.value;
+    field.dataset.zoneId = zone.id;
+    field.dataset.original = zone.value;
+    field.addEventListener('input', () => onZoneChange(field, zone.id));
+    wrap.appendChild(field);
+
+    list.appendChild(wrap);
+  });
+}
+
+function onZoneChange(field, id) {
+  const changed = field.value !== field.dataset.original;
+  field.classList.toggle('changed', changed);
+  if (changed) changes[id] = field.value;
+  else delete changes[id];
+  updatePreview();
+}
+
+// ── Live preview ──────────────────────────────────────────────────────────────
+
+function applyZoneUpdatesLocal(html, updates) {
+  let result = html;
+  for (const [id, val] of Object.entries(updates)) {
+    const esc = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re  = new RegExp(
+      `(<(\\w+)[^>]*\\sdata-content-id="${esc}"[^>]*>)[\\s\\S]*?(<\\/\\2>)`,
+      'i',
+    );
+    result = result.replace(re, (_, open, _tag, close) => `${open}${val}${close}`);
+  }
+  return result;
+}
+
+function updatePreview() {
+  if (!rawHtml || !currentPage) return;
+
+  const applied = Object.keys(changes).length
+    ? applyZoneUpdatesLocal(rawHtml, changes)
+    : rawHtml;
+
+  // Inject <base> so relative CSS/JS/images resolve against the live site
+  const baseTag  = `<base href="https://coastaltravelcompany.com/">`;
+  const withBase = applied.replace(/<head>/i, `<head>${baseTag}`);
+
+  const frame = document.getElementById('previewFrame');
+  frame.srcdoc = withBase;
+
+  const pageName = currentPage.path.split('/').pop();
+  document.getElementById('previewUrl').textContent =
+    `https://coastaltravelcompany.com/${pageName} — live preview`;
+}
+
+function refreshPreview() {
+  if (currentPage) loadPage(currentPage.path);
+}
+
+// ── Save & Publish ────────────────────────────────────────────────────────────
+
+async function saveChanges() {
+  if (!currentPage) return;
+  if (!Object.keys(changes).length) {
+    setStatus('No changes to save.'); return;
+  }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Publishing…';
+  setStatus('');
+
+  const message = document.getElementById('commitMsg').value.trim() ||
+    `Update ${currentPage.label} content`;
+
+  const { ok, data } = await apiFetch('/admin/cms/content', {
+    method: 'PUT',
+    body: { page: currentPage.path, updates: changes, message },
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Save & Publish';
+
+  if (!ok) {
+    setStatus(`Error: ${data.error || 'Commit failed'}`, true);
+    return;
+  }
+
+  // Clear change highlights
+  document.querySelectorAll('.zone-input.changed, .zone-textarea.changed').forEach(f => {
+    f.classList.remove('changed');
+    f.dataset.original = f.value;
+  });
+  changes = {};
+
+  setStatus(`✓ Published — deploying to GitHub Pages (~2 min)  ·  <a href="${data.commit.url}" target="_blank" style="color:var(--teal);">${data.commit.sha.slice(0,7)}</a>`);
+  document.getElementById('commitMsg').value = '';
+
+  // Start polling deployment status
+  startDeployPoll();
+  loadHistory(currentPage.path);
+}
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('saveStatus');
+  el.innerHTML = msg;
+  el.style.color = isError ? '#b00' : 'var(--dim)';
+}
+
+// ── Deployment status ─────────────────────────────────────────────────────────
+
+async function pollDeployment() {
+  const { ok, data } = await apiFetch('/admin/cms/deployment');
+  if (!ok) return;
+  renderDeployBadge(data);
+}
+
+function renderDeployBadge(data) {
+  const wrap  = document.getElementById('deployWrap');
+  const badge = document.getElementById('deployBadge');
+  const time  = document.getElementById('deployTime');
+
+  wrap.style.display = '';
+  badge.className    = `deploy-badge ${data.status || 'unknown'}`;
+  badge.textContent  = {
+    built:    'Live',
+    building: 'Deploying…',
+    queued:   'Queued',
+    errored:  'Error',
+    unknown:  'Unknown',
+  }[data.status] || data.status;
+
+  if (data.status === 'building' || data.status === 'queued') {
+    badge.classList.add('pulse');
+  }
+
+  if (data.updated_at) {
+    time.textContent = `Last deploy: ${new Date(data.updated_at).toLocaleString()}`;
+  }
+}
+
+function startDeployPoll() {
+  if (deployPoller) clearInterval(deployPoller);
+  deployPoller = setInterval(async () => {
+    const { ok, data } = await apiFetch('/admin/cms/deployment');
+    if (!ok) return;
+    renderDeployBadge(data);
+    if (data.status === 'built' || data.status === 'errored') {
+      clearInterval(deployPoller);
+      deployPoller = null;
+    }
+  }, 15000); // poll every 15s
+}
+
+// ── Change history ────────────────────────────────────────────────────────────
+
+async function loadHistory(path) {
+  const { ok, data } = await apiFetch(`/admin/cms/history?page=${encodeURIComponent(path)}`);
+  if (!ok) return;
+  renderHistory(data.commits);
+}
+
+function renderHistory(commits) {
+  document.getElementById('historyWrap').style.display = '';
+  const list = document.getElementById('historyList');
+  if (!commits.length) {
+    list.innerHTML = '<p style="font-size:12px; color:var(--dim); font-family:\'Montserrat\',sans-serif; padding:12px 0;">No history yet.</p>';
+    return;
+  }
+  list.innerHTML = commits.map(c => `
+    <div class="history-item">
+      <span class="history-msg">${esc(c.message)}</span>
+      <div class="history-meta">
+        <span>${esc(c.author)}</span>
+        <span>${new Date(c.date).toLocaleDateString()}</span>
+        <a href="${esc(c.url)}" target="_blank" style="color:var(--teal); font-size:10px; text-decoration:none;">${c.sha.slice(0,7)}</a>
+        <button class="history-revert" onclick="revertTo('${esc(c.sha)}')">Revert</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function revertTo(sha) {
+  if (!currentPage) return;
+  if (!confirm(`Revert ${currentPage.label} to commit ${sha.slice(0,7)}? This creates a new reverting commit.`)) return;
+
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  const { ok, data } = await apiFetch('/admin/cms/revert', {
+    method: 'POST',
+    body: { page: currentPage.path, commitSha: sha },
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Revert';
+
+  if (!ok) {
+    alert(`Revert failed: ${data.error || 'Unknown error'}`);
+    return;
+  }
+
+  setStatus(`✓ Reverted — <a href="${data.commit.url}" target="_blank" style="color:var(--teal);">${data.commit.sha.slice(0,7)}</a>`);
+  startDeployPoll();
+  await loadPage(currentPage.path);
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+name: Validate PR source
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  check-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require PR from preprod branch
+        run: |
+          if [ "${{ github.head_ref }}" != "preprod" ]; then
+            echo "PRs to master must come from the preprod branch."
+            echo "Source branch was: ${{ github.head_ref }}"
+            exit 1
+          fi
+          echo "Source branch is preprod — OK"

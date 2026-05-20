@@ -183,3 +183,35 @@ Always run migrations against preprod **before** production:
 2. Deploy to preprod: `wrangler d1 execute ctc-preprod --env preprod --file worker/migrations/NNN_description.sql`
 3. Verify the feature works end-to-end in preprod
 4. Merge to master, then run against production: `wrangler d1 execute CTC_PROJECTS --file worker/migrations/NNN_description.sql`
+
+---
+
+## Content editor (CMS) — `data-content-id` convention
+
+Public site pages have editable zones marked with `data-content-id` attributes. The admin content editor (`admin/content-editor.html`) reads these via the GitHub API, presents them as labeled form fields, and commits changes back on save.
+
+### Naming convention
+
+IDs follow the pattern `{page}-{section}-{element}`:
+
+| Page | Prefix | Examples |
+|---|---|---|
+| `index.html` | `home-` | `home-hero-title`, `home-pull-quote`, `home-cta-btn` |
+| `about.html` | `about-` | `about-opening-p1`, `about-photographer-name`, `about-pull-quote` |
+| `services.html` | `services-` | `services-intro-headline`, `services-intro-body` |
+| `contact.html` | `contact-` | `contact-intro-body`, `contact-intro-script` |
+
+### Rules
+
+- Only add `data-content-id` to **leaf elements** — elements whose text content has no child HTML elements (or only self-closing tags like `<br />`).
+- Zone IDs must be **unique across the entire file** (not just the page section).
+- Short text (`<h1>`–`<h4>`, `<span>`, `<a>`, `<cite>`) → rendered as a single-line input in the editor.
+- Body copy (`<p>`, `<blockquote>`) → rendered as a resizable textarea.
+- The Worker's `extractZones` function in `worker/src/admin/cms.js` automatically discovers all zones from a page's HTML — no Worker-side zone registry needed.
+
+### Required Worker secret
+
+`GITHUB_TOKEN` — fine-grained PAT with **Contents: Read+Write** and **Pages: Read** on this repo. Set via:
+```bash
+wrangler secret put GITHUB_TOKEN
+```
