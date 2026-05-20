@@ -115,6 +115,28 @@ export async function handleScheduled(event, env) {
       }
     }
 
+    if (cfg['gallery_delivered_notification'] && proj.stage === 'Delivered') {
+      const { results: logged } = await env.DB.prepare("SELECT id FROM automation_logs WHERE project_id=? AND trigger_key='gallery_delivered_notification'").bind(proj.id).all();
+      if (!logged.length) {
+        const { results: docs } = await env.DB.prepare("SELECT * FROM project_documents WHERE project_id=? AND type='gallery' ORDER BY created_at DESC LIMIT 1").bind(proj.id).all();
+        const galleryUrl = docs.length ? docs[0].url : null;
+        const collection = proj.collection || 'your collection';
+        const licenseMap = {
+          'The Editorial Stay': 'commercial digital and print use, 5 years, worldwide',
+          'The Fashioned Weekend': 'commercial digital and property print use, 3 years, worldwide',
+          'The Signature Story': 'full commercial digital and print use, 5 years, worldwide',
+        };
+        const licenseSummary = licenseMap[collection] || 'commercial use — see your license certificate for full details';
+        const gallerySection = galleryUrl
+          ? `<p style="font-family:sans-serif;font-size:15px;margin-top:24px"><a href="${escHtml(galleryUrl)}" style="display:inline-block;background:#2A5C45;color:#ffffff;font-family:sans-serif;font-size:14px;font-weight:600;padding:14px 28px;text-decoration:none">View Your Gallery →</a></p>`
+          : `<p style="font-family:sans-serif;font-size:14px;color:#555">Your gallery link will be sent separately by your photographer.</p>`;
+        await sendAutomationEmail(env, proj.client_email,
+          `Your gallery is ready — Coastal Travel Company`,
+          `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(proj.client_name)},</p><p style="font-family:sans-serif;font-size:15px">Your photos from ${escHtml(proj.property || 'your shoot')} are ready. We hope you love them.</p>${gallerySection}<p style="font-family:sans-serif;font-size:13px;color:#555;margin-top:24px;border-top:1px solid #eee;padding-top:16px"><strong>Your license</strong><br>Your delivery includes ${escHtml(licenseSummary)}. This covers your hotel website, social media, email marketing, OTA listings, digital advertising, and in-property print materials.<br><br>For questions about extended use, exclusivity, or additional rights, visit <a href="https://coastaltravelcompany.com/licensing.html" style="color:#2A5C45">coastaltravelcompany.com/licensing</a> or reply to this email.</p><p style="font-family:sans-serif;font-size:14px;color:#555">Your license certificate and all project documents are available any time through your <a href="https://coastaltravelcompany.com/portal.html" style="color:#2A5C45">client portal</a>.</p><p style="font-family:sans-serif;font-size:15px">Thank you — it was a pleasure working on this project with you.<br>Warmly,<br>Coastal Travel Company</p>`);
+        await logAutomation(env.DB, proj.id, 'gallery_delivered_notification', 'gallery delivery email sent', nowIso);
+      }
+    }
+
     if (cfg['post_delivery_review_request'] && proj.stage === 'Delivered') {
       if (hrsSince(proj.updated_at) >= cfg['post_delivery_review_request'].delay_hours) {
         const { results: logged } = await env.DB.prepare("SELECT id FROM automation_logs WHERE project_id=? AND trigger_key='post_delivery_review_request'").bind(proj.id).all();
