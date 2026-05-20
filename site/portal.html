@@ -211,6 +211,47 @@
       border-top: 1px solid var(--linen);
       padding-top: 40px;
     }
+
+    /* ── Licensing section ── */
+    .licensing-section {
+      margin-top: 56px;
+      border-top: 1px solid var(--linen);
+      padding-top: 40px;
+    }
+    .license-banner {
+      background: #fff;
+      border: 1px solid var(--linen);
+      border-left: 3px solid var(--teal);
+      padding: 24px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .license-banner-body { flex: 1; min-width: 200px; }
+    .license-banner-title {
+      font-family: 'Gilda Display', serif;
+      font-size: 16px;
+      color: var(--black);
+      margin-bottom: 6px;
+    }
+    .license-banner-detail {
+      font-size: 12px;
+      color: var(--mid);
+      line-height: 1.7;
+    }
+    .license-banner-link {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--green);
+      text-decoration: none;
+      white-space: nowrap;
+      align-self: center;
+    }
+    .license-banner-link:hover { text-decoration: underline; }
     .section-heading {
       font-family: 'Gilda Display', serif;
       font-size: 1.5rem;
@@ -304,6 +345,10 @@
   <div class="invoices-section" id="invoices-section" style="display:none">
     <h2 class="section-heading">Invoices</h2>
     <div id="invoices-content"></div>
+  </div>
+  <div class="licensing-section" id="licensing-section" style="display:none">
+    <h2 class="section-heading">Your License</h2>
+    <div id="licensing-content"></div>
   </div>
 </main>
 
@@ -436,11 +481,38 @@
 
     const galleries = await galRes.json();
     renderGalleries(galleries);
+    renderLicensing(galleries);
 
     if (invRes && invRes.ok) {
       const invoices = await invRes.json();
       renderInvoices(invoices);
     }
+  }
+
+  function renderLicensing(galleries) {
+    if (!galleries.length) return;
+    const section  = document.getElementById('licensing-section');
+    const content  = document.getElementById('licensing-content');
+    section.style.display = '';
+    const licenseMap = {
+      'The Editorial Stay':    { scope: 'Commercial digital and print use', duration: '5 years from delivery', territory: 'Worldwide' },
+      'The Fashioned Weekend': { scope: 'Commercial digital and property print use', duration: '3 years from delivery', territory: 'Worldwide' },
+      'The Signature Story':   { scope: 'Full commercial digital and print use', duration: '5 years from delivery', territory: 'Worldwide' },
+    };
+    const defaultLicense = { scope: 'Commercial use', duration: 'See your contract for duration', territory: 'Worldwide' };
+    content.innerHTML = galleries.map(g => {
+      const lic = licenseMap[g.collection] || defaultLicense;
+      return `<div class="license-banner" style="margin-bottom:10px">
+        <div class="license-banner-body">
+          <div class="license-banner-title">${esc(g.eventName)}</div>
+          <div class="license-banner-detail">
+            ${esc(lic.scope)} &middot; ${esc(lic.duration)} &middot; ${esc(lic.territory)}<br>
+            Covers: hotel website, social media, OTA listings, digital advertising, in-property print materials.
+          </div>
+        </div>
+        <a href="/licensing.html" target="_blank" class="license-banner-link">Full Details →</a>
+      </div>`;
+    }).join('');
   }
 
   load();

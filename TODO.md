@@ -427,16 +427,17 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 19. Licensing Information
+## ~~19. Licensing Information~~ ✅ Done
 
 **Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
 
-- [ ] Build a licensing page (`/licensing.html`) covering: personal use vs. commercial use, print vs. digital, exclusivity options, duration, geographic scope, third-party sub-licensing
-- [ ] Define license tiers per collection (e.g. The Editorial Stay includes X years of digital commercial use; extended licenses available for an additional fee)
-- [ ] Add license summary to each collection on `collections.html` — short plain-English version with a link to the full licensing page
-- [ ] Include licensing terms in the FAQ (item 19)
-- [ ] Add licensing details to client delivery emails and the client portal (item 4) so clients have a permanent record
-- [ ] Consider a simple license certificate PDF generated per delivery — client name, property, collection, usage rights, expiry
+- [x] Build a licensing page (`/licensing.html`) covering: personal use vs. commercial use, print vs. digital, exclusivity options, duration, geographic scope, third-party sub-licensing
+- [x] Define license tiers per collection — Editorial Stay (commercial digital + print, 5 yr, worldwide), Fashioned Weekend (commercial digital + property print, 3 yr, worldwide), Signature Story (full commercial, 5 yr, worldwide)
+- [x] Add license summary to each collection on `collections.html` — short plain-English version with link to `/licensing.html`
+- [x] Add licensing details to client delivery emails — `gallery_delivered_notification` automation sends gallery link with license scope and link to `/licensing.html`
+- [x] Add licensing section to client portal — each gallery card shows its included license scope, duration, and territory with link to full details
+- [x] Added "Licensing" footer link to all public pages (index, about, services, collections, contact, licensing itself)
+- [ ] License certificate PDF generated per delivery (deferred — currently shown as a static mockup on licensing.html; full PDF generation depends on item 13 Digital Licensing Store infrastructure)
 
 ---
 
