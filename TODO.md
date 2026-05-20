@@ -451,14 +451,14 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 21. FAQ Page
+## ~~21. FAQ Page~~ ✅ Done
 
 **Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
 
-- [ ] Build `faq.html` with an accordion layout
-- [ ] Cover: pricing / how collections are priced, what's included, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
-- [ ] Add "FAQ" to footer nav
-- [ ] Link to FAQ from the contact page ("Have questions? See our FAQ") and from the collections page
+- [x] Build `faq.html` with an accordion layout
+- [x] Cover: pricing / how collections are priced, what's included, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
+- [x] Add "FAQ" to footer nav
+- [x] Link to FAQ from the contact page ("Have questions? See our FAQ") and from the collections page
 
 ---
 

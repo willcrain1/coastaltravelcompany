@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ — Coastal Travel Company</title>
+  <meta name="description" content="Answers to common questions about pricing, collections, licensing, travel fees, turnaround time, and what to expect when working with Coastal Travel Company." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    .faq-category {
+      margin-bottom: 64px;
+    }
+    .faq-category-title {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--forest-green);
+      margin-bottom: 28px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--linen);
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--linen);
+    }
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 24px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      text-align: left;
+      gap: 24px;
+    }
+    .faq-question-text {
+      font-family: 'Gilda Display', serif;
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--black);
+      line-height: 1.4;
+    }
+    .faq-icon {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--forest-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, transform 0.3s;
+      color: var(--forest-green);
+      font-size: 18px;
+      font-weight: 300;
+      line-height: 1;
+    }
+    .faq-item.open .faq-icon {
+      background: var(--forest-green);
+      color: var(--white);
+      transform: rotate(45deg);
+    }
+    .faq-answer {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.35s ease, padding 0.2s;
+      padding-bottom: 0;
+    }
+    .faq-item.open .faq-answer {
+      max-height: 600px;
+      padding-bottom: 28px;
+    }
+    .faq-answer p {
+      font-size: 14px;
+      line-height: 1.85;
+      color: #4a4a4a;
+      margin: 0 0 12px;
+    }
+    .faq-answer p:last-child { margin-bottom: 0; }
+    .faq-answer ul {
+      margin: 0 0 12px 20px;
+      font-size: 14px;
+      line-height: 1.85;
+      color: #4a4a4a;
+    }
+    .faq-answer a {
+      color: var(--forest-green);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .faq-cta-strip {
+      background: var(--forest-green);
+      padding: 64px 40px;
+      text-align: center;
+    }
+    .faq-cta-strip .script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: clamp(32px, 4.5vw, 56px);
+      color: var(--sage-teal);
+      display: block;
+      margin-bottom: 12px;
+    }
+    .faq-cta-strip h2 {
+      color: var(--white);
+      font-size: clamp(22px, 3vw, 36px);
+      margin-bottom: 28px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ─────────────────────────────────────── -->
+  <nav id="main-nav">
+    <a href="index.html" class="nav-logo">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="collections.html">Collections</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <a href="login.html" class="nav-account">Account</a>
+    <button class="nav-toggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ── Page Hero ──────────────────────────────────────── -->
+  <section class="page-hero">
+    <div class="page-hero-bg" style="background-image: url('https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="page-hero-overlay"></div>
+    <div class="page-hero-content">
+      <span class="eyebrow">Common Questions</span>
+      <h1>FAQ</h1>
+      <span class="hero-script-sub">everything you need to know</span>
+    </div>
+  </section>
+
+  <!-- ── Intro ──────────────────────────────────────────── -->
+  <section class="section bg-cream">
+    <div class="container-narrow text-center fade-up">
+      <span class="eyebrow">Before You Inquire</span>
+      <h2 style="font-size: clamp(26px, 3.8vw, 46px); margin-bottom: 20px;">Answers Up Front</h2>
+      <span class="script" style="font-size: clamp(22px, 3vw, 40px); color: var(--forest-green); display: block; margin-bottom: 24px;">no surprises, just clarity.</span>
+      <p class="body-sm" style="max-width: 520px; margin: 0 auto;">
+        We've compiled the questions most clients ask before their first shoot — from pricing and licensing to what to expect on the day itself. Still have something on your mind? <a href="contact.html" style="color: var(--forest-green); text-decoration: underline; text-underline-offset: 3px;">Reach out directly.</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ── FAQ Accordion ──────────────────────────────────── -->
+  <section class="section bg-white">
+    <div class="container" style="max-width: 820px;">
+
+      <!-- Pricing -->
+      <div class="faq-category fade-up">
+        <div class="faq-category-title">Pricing &amp; Collections</div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">How are collections priced?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Each collection is a defined project engagement with a base investment tailored to scope and scale. Pricing reflects travel, shoot days, editing depth, and deliverable volume — not an hourly rate.</p>
+            <p><strong>The Editorial Stay</strong> is our most comprehensive offering: multi-day, full-property coverage. <strong>The Fashioned Weekend</strong> is a focused two-day engagement built for lifestyle and social content. <strong>The Signature Story</strong> is our campaign-level collection for brands that want a complete visual identity.</p>
+            <p>Exact investment is provided after an initial conversation — properties vary too much in scope for a single public price point to be meaningful. <a href="contact.html">Contact us</a> to receive a proposal tailored to your property.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">What's included in each collection?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Every collection includes pre-shoot consultation, professional editing, a private client gallery, and a commercial-use license for the delivered images. Specific deliverables depend on the collection:</p>
+            <ul>
+              <li><strong>The Editorial Stay</strong> — full-property still photography across all key spaces, delivered as a complete campaign library</li>
+              <li><strong>The Fashioned Weekend</strong> — lifestyle photography with a fashion-forward perspective, plus short-form video content optimized for social platforms</li>
+              <li><strong>The Signature Story</strong> — everything in the above collections plus a hero film, complete creative direction, and a brand-defining visual library</li>
+            </ul>
+            <p>Add-ons such as rush delivery, extended licensing, additional shoot days, and 3D walkthroughs are available on any collection. Visit the <a href="services.html">Services page</a> for full details.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">Do you offer rush delivery?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Yes. Rush delivery is available as a paid add-on if you need final images sooner than the standard turnaround window. This is discussed during the proposal stage and confirmed before the shoot so we can plan editing time accordingly.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Licensing -->
+      <div class="faq-category fade-up">
+        <div class="faq-category-title">Licensing &amp; Usage Rights</div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">What can I do with the delivered photos?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>All collections include a commercial license for digital use — website, social media, digital advertising, and email marketing — for the duration specified in your contract (typically three years, renewable).</p>
+            <p>Print use (brochures, signage, magazines) and extended exclusivity are available as add-ons. Sub-licensing to third parties (e.g. a booking platform or PR agency) requires a separate extended license.</p>
+            <p>For full details on what each tier covers, see our <a href="licensing.html">Licensing page</a>.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">Do you retain the copyright?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Yes. Coastal Travel Company retains copyright in all images. Your license grants you the right to use the photos within the agreed scope — it does not transfer ownership of the copyright. This is standard practice for professional photography and protects both parties.</p>
+            <p>If you need a work-for-hire arrangement where copyright transfers to you, this can be discussed and is quoted separately.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">Can Coastal Travel Company use the images for its own portfolio?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Yes, unless you request an embargo. We reserve the right to display delivered work in our portfolio, website, and social media. If your project is under a soft launch or NDA, we'll agree on an embargo period — typically until the property has published its own campaign — before the images appear on our channels.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logistics -->
+      <div class="faq-category fade-up">
+        <div class="faq-category-title">Travel &amp; Logistics</div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">Do you charge travel fees?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>We're based in Palm Beach, Florida, and available for travel worldwide. Travel fees apply for properties outside the Palm Beach metro area and cover flights, accommodation, ground transport, and per diem — billed at cost. These are itemized in your proposal so there are no surprises.</p>
+            <p>For multi-day shoots at a destination property, we typically arrive the day before the shoot begins to do a walkthrough and plan the shot sequence with your team.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">How far in advance should I book?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>We recommend a minimum of six to eight weeks lead time — this allows time for proposal, contract, pre-shoot consultation, and travel logistics. For peak seasons (late autumn and winter in Florida, summer in European destinations) or multi-week campaigns, three to four months is advisable.</p>
+            <p>Check the <a href="contact.html#availability">availability calendar</a> on our Contact page for open dates, or reach out directly to discuss your timeline.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">What do I need to prepare before the shoot?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>After booking, we'll send a pre-shoot questionnaire to gather property details, must-have shots, access contacts, and any restrictions. Key things that make a shoot run smoothly:</p>
+            <ul>
+              <li>Rooms staged and cleaned before our arrival (including removing personal items, power cables, and toiletries)</li>
+              <li>A dedicated property contact available on shoot days for access and quick decisions</li>
+              <li>Pool and outdoor areas clear of guests during scheduled exterior slots</li>
+              <li>Lighting conditions noted — we'll plan indoor versus outdoor sequences around the light</li>
+            </ul>
+            <p>We'll walk through everything in a pre-shoot call so your team knows exactly what to expect.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shoot Day -->
+      <div class="faq-category fade-up">
+        <div class="faq-category-title">The Shoot</div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">What should I expect on shoot day?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Shoot days typically begin at sunrise or shortly after — early light is the most flattering for interiors and outdoor spaces. We work through a pre-agreed shot list but stay flexible to respond to conditions and spontaneous moments.</p>
+            <p>You don't need to be on-site the entire time, but a point of contact who can quickly open rooms or clear spaces makes a significant difference. We handle all equipment, styling direction, and scene composition — your role is simply to facilitate access.</p>
+            <p>For multi-day collections, we'll debrief at the end of each day to review coverage and adjust the next day's plan if needed.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">What is the turnaround time for edited images?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Standard turnaround is two to four weeks from the final shoot day, depending on collection volume. You'll receive a private, password-protected client gallery with full-resolution downloads. Rush delivery within one week is available as an add-on.</p>
+            <p>A selection of hero images may be delivered sooner as a priority batch if you need something for an announcement or campaign launch.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">How do I receive my final images?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Final images are delivered via a private client gallery accessible from your account on this website. You can preview every image, download individual files or the full set, and share access with your marketing team — all from one URL. The gallery remains accessible for the duration of your license period.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Booking -->
+      <div class="faq-category fade-up">
+        <div class="faq-category-title">Booking</div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">How do I book?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>The process is straightforward:</p>
+            <ul>
+              <li><strong>1. Inquire</strong> — submit the <a href="contact.html">contact form</a> with your property name, preferred dates, and the collection you're interested in</li>
+              <li><strong>2. Proposal</strong> — we'll send a tailored proposal within 48 hours for you to review</li>
+              <li><strong>3. Contract &amp; deposit</strong> — sign digitally and pay a 50% retainer to secure your shoot dates</li>
+              <li><strong>4. Pre-shoot</strong> — complete the questionnaire and join a brief call to align on the shot plan</li>
+              <li><strong>5. Shoot</strong> — we arrive, capture, and deliver</li>
+            </ul>
+            <p>The full balance is due upon gallery delivery.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">What is your cancellation policy?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Cancellations made more than 30 days before the shoot date are eligible for a full refund of the retainer, minus a non-refundable booking fee. Cancellations within 30 days forfeit the retainer. Rescheduling is accommodated when possible subject to availability — no rescheduling fee if notice is given more than 14 days out.</p>
+            <p>Full cancellation terms are detailed in your contract.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span class="faq-question-text">Do you work with hotels outside the United States?</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-answer" role="region">
+            <p>Yes — we're based in Palm Beach but shoot internationally. Past and upcoming projects span the Caribbean, Europe, and Southeast Asia. International bookings include itemized travel costs in the proposal and typically require slightly more lead time for logistics. If you have a property anywhere in the world that would benefit from editorial photography, we'd love to hear about it.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── CTA Strip ───────────────────────────────────────── -->
+  <section class="faq-cta-strip fade-up">
+    <div class="container-narrow">
+      <span class="script">still have questions?</span>
+      <h2>We're happy to talk it through.</h2>
+      <a href="contact.html" class="btn btn-white-outline">Start the Conversation</a>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <span class="f-logo-main">Coastal</span>
+          <span class="f-logo-script">Travel Company</span>
+          <p>Editorial photography and short-form video for luxury hotels and destinations that want to be desired, not just seen.</p>
+          <p class="f-location">Palm Beach, Florida</p>
+        </div>
+        <div class="footer-col">
+          <h5>Navigate</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="collections.html">Collections</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="faq.html">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Collections</h5>
+          <ul>
+            <li><a href="collections.html#editorial-stay">The Editorial Stay</a></li>
+            <li><a href="collections.html#fashioned-weekend">The Fashioned Weekend</a></li>
+            <li><a href="collections.html#signature-story">The Signature Story</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">Pinterest</a></li>
+            <li><a href="mailto:thecoastaltravelcompany@gmail.com">Email Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 Coastal Travel Company. All rights reserved.</p>
+        <p style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+  <script>
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.faq-item');
+        const isOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item.open').forEach(openItem => {
+          openItem.classList.remove('open');
+          openItem.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+        });
+        if (!isOpen) {
+          item.classList.add('open');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
