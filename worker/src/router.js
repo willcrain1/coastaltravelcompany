@@ -62,6 +62,10 @@ import {
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 
+import {
+  handleAdminStarsGet, handleAdminStarToggle, handleSubmitSelections,
+} from './gallery-favorites.js';
+
 export async function handleRequest(request, env) {
   initCors(env.ALLOWED_ORIGIN);
 
@@ -228,6 +232,14 @@ export async function handleRequest(request, env) {
     return handlePublicInvoice(request, env, publicInvoiceMatch[1]);
   if (method === 'POST' && pathname === '/stripe/webhook')
     return handleStripeWebhook(request, env);
+
+  // ── Gallery favorites & admin stars ─────────────────────────────────────────
+  const adminStarsGalleryMatch = pathname.match(/^\/gallery\/([^/]+)\/admin-stars$/);
+  const adminStarsPhotoMatch   = pathname.match(/^\/gallery\/([^/]+)\/admin-stars\/([^/]+)$/);
+  const submitSelectionsMatch  = pathname.match(/^\/gallery\/([^/]+)\/submit-selections$/);
+  if (adminStarsGalleryMatch && method === 'GET')  return handleAdminStarsGet(request, env, adminStarsGalleryMatch[1]);
+  if (adminStarsPhotoMatch   && method === 'PUT')  return handleAdminStarToggle(request, env, adminStarsPhotoMatch[1], adminStarsPhotoMatch[2]);
+  if (submitSelectionsMatch  && method === 'POST') return handleSubmitSelections(request, env, submitSelectionsMatch[1]);
 
   // ── Token exchange + contact form ────────────────────────────────────────────
   if (method === 'POST' && pathname === '/token')   return handleTokenExchange(request, env);

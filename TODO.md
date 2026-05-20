@@ -462,7 +462,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 22. Photo Favorites / Proofing in Client Gallery
+## 22. ✅ Photo Favorites / Proofing in Client Gallery
 
 **Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
 

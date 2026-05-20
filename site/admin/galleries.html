@@ -192,6 +192,20 @@
     return mainSiteUrl + '#' + encode(config);
   }
 
+  function buildAdminUrl(g) {
+    const { mainSiteUrl } = getSettings();
+    const config = {
+      id:          g.id,
+      nasClientUrl: g.nasClientUrl || CTC_CONFIG.nasClientUrl,
+      proxyUrl:    g.proxyUrl || CTC_CONFIG.workerUrl,
+      eventName:   g.eventName,
+      clientName:  g.clientName,
+      watermark:   g.watermark || false,
+      adminMode:   true,
+    };
+    return mainSiteUrl + '#' + encode(config);
+  }
+
   // ── Gallery API ──────────────────────────────────────────────────────────────
   async function loadGalleries() {
     const { ok, data } = await apiFetch('/admin/galleries', { method: 'GET' });
@@ -313,6 +327,7 @@
           <div class="gr-actions">
             <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
             <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
+            <button class="btn btn-ghost" onclick="window.open(buildAdminUrl(getGallery('${esc(g.id)}')),'_blank')" title="Open gallery in admin mode to star photos as Admin Picks">★ Admin View</button>
             <button class="btn btn-danger" onclick="deleteGallery('${esc(g.id)}')">Delete</button>
           </div>
         </div>
