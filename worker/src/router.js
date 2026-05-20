@@ -62,6 +62,12 @@ import {
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 
+import {
+  handlePublicWalkthroughs,
+  handleAdminWalkthroughs,
+  handleAdminWalkthroughById,
+} from './walkthroughs.js';
+
 export async function handleRequest(request, env) {
   initCors(env.ALLOWED_ORIGIN);
 
@@ -228,6 +234,12 @@ export async function handleRequest(request, env) {
     return handlePublicInvoice(request, env, publicInvoiceMatch[1]);
   if (method === 'POST' && pathname === '/stripe/webhook')
     return handleStripeWebhook(request, env);
+
+  // ── Walkthroughs ─────────────────────────────────────────────────────────────
+  if (method === 'GET' && pathname === '/public/walkthroughs') return handlePublicWalkthroughs(request, env);
+  if (pathname === '/admin/walkthroughs') return handleAdminWalkthroughs(request, env);
+  const walkthroughIdMatch = pathname.match(/^\/admin\/walkthroughs\/([^/]+)$/);
+  if (walkthroughIdMatch) return handleAdminWalkthroughById(request, env, walkthroughIdMatch[1]);
 
   // ── Token exchange + contact form ────────────────────────────────────────────
   if (method === 'POST' && pathname === '/token')   return handleTokenExchange(request, env);

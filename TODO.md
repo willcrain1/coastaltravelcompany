@@ -257,19 +257,24 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ### Processing
 - [ ] Evaluate processing tools: **Luma AI** (cloud, fast, free tier) vs. **Postshot** (local GPU, high quality, paid) vs. **COLMAP + nerfstudio/3DGS** (open source, technical) — Luma AI is the recommended starting point for speed
-- [ ] Output a `.splat` or `.ply` file per scene after processing
+- [ ] Output a `.splat` or `.ply` file per scene after processing; upload to Luma AI or SuperSplat to get the iframe-embeddable URL
 - [ ] Establish a naming convention and folder structure on the NAS for raw capture footage and processed splat files
 
 ### Hosting & Display
-- [ ] Evaluate hosting options for `.splat` files: **SuperSplat** (PlayCanvas) for hosted/shareable scenes with iframe embed, vs. self-hosted viewer using `@playcanvas/splat` or `three-gaussian-splat` JS libraries, vs. Cloudflare R2 for file hosting with an open-source viewer on the site
-- [ ] For portfolio use: embed SuperSplat-published scenes via `<iframe>` on `collections.html` or a new `/walkthroughs.html` page
-- [ ] For client delivery: add a "3D Walkthrough" section to the client gallery (`client-gallery.html`) that loads the scene viewer when a splat URL is present in the gallery config
-- [ ] Add `splat_url` (nullable) to the `galleries` table in D1 so walkthrough scenes are linked to their gallery delivery (see database architecture)
+- [x] Hosting approach chosen: iframe-embeddable URLs (Luma AI, SuperSplat) — no self-hosting required; admin pastes the embed URL into the gallery or walkthrough record
+- [x] `/walkthroughs.html` built — fetches from `GET /public/walkthroughs`; card grid opens full-screen iframe modal; shows "check back soon" empty state
+- [x] 3D Walkthrough section added to `client-gallery.html` — collapsible section below the photo grid; iframe lazy-loads on first expand; only visible when `cfg.splat_url` is set
+- [x] `splat_url` (nullable) added to `galleries` D1 table via migration `012_walkthroughs.sql`
 
 ### Services & Portfolio
-- [ ] Add "3D Walkthrough" as a deliverable option to `services.html` — position as a premium add-on to The Editorial Stay and similar property collections
-- [ ] Build `/walkthroughs.html` as a showcase page: grid of property cards, each opening a full-screen splat viewer — use as a sales tool for prospective hotel clients
-- [ ] Add walkthrough pricing to `faq.html` alongside print pricing
+- [x] "3D Property Walkthroughs" added as service #05 to `services.html` — positioned as premium add-on with tags, "See Examples" link to walkthroughs.html, and Inquire CTA
+- [x] `/walkthroughs.html` showcase page built — hero, intro, card grid, "How it works" process section, CTA
+- [ ] Add walkthrough pricing to `faq.html` alongside print pricing (defer until FAQ page is built in item 21)
+
+### Admin & Data
+- [x] `walkthroughs` D1 table created (`012_walkthroughs.sql`) — title, property_name, location, description, embed_url, thumbnail_url, collection, sort_order, published
+- [x] Worker endpoints: `GET /public/walkthroughs`, `GET/POST /admin/walkthroughs`, `PUT/DELETE /admin/walkthroughs/:id`
+- [x] Walkthroughs admin section added to `admin/galleries.html` — create, publish/unpublish, delete; `splat_url` field added to per-gallery edit panel with "3D walkthrough" badge in gallery list
 
 ---
 

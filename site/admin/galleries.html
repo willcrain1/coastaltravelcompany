@@ -114,6 +114,55 @@
   <h2 class="sh">Active Galleries</h2>
   <div id="galleryList"></div>
 
+  <h2 class="sh" style="margin-top:48px;">3D Walkthroughs — Public Showcase</h2>
+  <div class="card" style="margin-bottom:20px;">
+    <form id="wtCreateForm">
+      <div class="form-grid">
+        <div class="fg">
+          <label>Property Name <span style="color:var(--teal)">*</span></label>
+          <input type="text" id="wt-property" required placeholder="The Grand Palms" />
+        </div>
+        <div class="fg">
+          <label>Title / Scene Label</label>
+          <input type="text" id="wt-title" placeholder="Grand Suite Walkthrough" />
+        </div>
+        <div class="fg">
+          <label>Location</label>
+          <input type="text" id="wt-location" placeholder="Palm Beach, Florida" />
+        </div>
+        <div class="fg">
+          <label>Collection</label>
+          <input type="text" id="wt-collection" placeholder="The Editorial Stay" />
+        </div>
+        <div class="fg full">
+          <label>Embed URL <span style="color:var(--teal)">*</span></label>
+          <input type="url" id="wt-embed" required placeholder="https://lumalabs.ai/capture/... or SuperSplat scene URL" />
+          <p class="hint">Any iframe-embeddable URL — Luma AI, SuperSplat (PlayCanvas), or similar hosted viewer.</p>
+        </div>
+        <div class="fg full">
+          <label>Thumbnail URL <span style="color:var(--dim); font-weight:400; text-transform:none;">(optional)</span></label>
+          <input type="url" id="wt-thumb" placeholder="https://... preview image URL" />
+        </div>
+        <div class="fg full">
+          <label>Description <span style="color:var(--dim); font-weight:400; text-transform:none;">(optional)</span></label>
+          <input type="text" id="wt-desc" placeholder="Brief description shown on the walkthroughs page" />
+        </div>
+        <div class="fg" style="flex-direction:row; align-items:center; gap:10px;">
+          <input type="checkbox" id="wt-published" style="width:auto; accent-color:var(--teal); cursor:pointer; flex-shrink:0;" />
+          <label for="wt-published" style="font-size:11px; letter-spacing:0.08em; text-transform:none; color:var(--dim); cursor:pointer; font-weight:400;">Published — visible on walkthroughs.html</label>
+        </div>
+        <div class="fg">
+          <label>Sort Order</label>
+          <input type="number" id="wt-sort" value="0" min="0" style="width:100px;" />
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Add Walkthrough</button>
+      </div>
+    </form>
+  </div>
+  <div id="wtList"></div>
+
 </main>
 
 <div class="toast" id="toast"></div>
@@ -308,6 +357,7 @@
               ${g.assignedUsers && g.assignedUsers.length
                 ? ' &nbsp;·&nbsp; <span style="color:var(--ok)">' + g.assignedUsers.length + ' user' + (g.assignedUsers.length > 1 ? 's' : '') + '</span>'
                 : ''}
+              ${g.splat_url ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">3D walkthrough</span>' : ''}
             </div>
           </div>
           <div class="gr-actions">
@@ -350,6 +400,12 @@
                 Photos are watermarked — disable downloads in the client gallery
               </label>
             </div>
+            <div class="fg full">
+              <label>3D Walkthrough URL <span style="color:var(--dim); font-weight:400; text-transform:none;">(optional)</span></label>
+              <input type="url" id="gedit-splat_url-${esc(g.id)}" value="${esc(g.splat_url || '')}"
+                placeholder="https://lumalabs.ai/capture/... or SuperSplat embed URL" />
+              <p class="hint">Paste an iframe-embeddable scene URL (Luma AI, SuperSplat, etc.). Clients will see a 3D Walkthrough section in their gallery when this is set.</p>
+            </div>
           </div>
           <div style="display:flex; gap:8px; margin-top:18px;">
             <button class="btn btn-primary btn-sm" onclick="saveGalleryEdit('${esc(g.id)}')">Save Changes</button>
@@ -385,14 +441,15 @@
     const eventName     = document.getElementById('gedit-eventName-' + id).value.trim();
     const clientName    = document.getElementById('gedit-clientName-' + id).value.trim();
     const notes         = document.getElementById('gedit-notes-' + id).value.trim();
-    const watermark     = document.getElementById('gedit-watermark-' + id).checked;
+    const watermark  = document.getElementById('gedit-watermark-' + id).checked;
+    const splat_url  = document.getElementById('gedit-splat_url-' + id).value.trim();
 
     if (!eventName || !clientName) {
       toast('Event name and client name are required', true);
       return;
     }
 
-    const updates = { eventName, clientName, notes, watermark };
+    const updates = { eventName, clientName, notes, watermark, splat_url: splat_url || null };
 
     if (shareRaw) {
       const parsed = parseShareUrl(shareRaw);
@@ -412,12 +469,102 @@
     toast('Gallery updated');
   }
 
+  // ── Walkthroughs admin ───────────────────────────────────────────────────────
+  let walkthroughs = [];
+
+  async function loadWalkthroughs() {
+    const { ok, data } = await apiFetch('/admin/walkthroughs', { method: 'GET' });
+    if (!ok) { toast('Failed to load walkthroughs', true); return; }
+    walkthroughs = data || [];
+    renderWalkthroughList();
+  }
+
+  function renderWalkthroughList() {
+    const el = document.getElementById('wtList');
+    if (!walkthroughs.length) {
+      el.innerHTML = '<div class="empty">No walkthroughs yet — add the first one above.</div>';
+      return;
+    }
+    el.innerHTML = walkthroughs.map(wt => `
+      <div class="gallery-row">
+        <div class="gr-header">
+          <div class="gr-info">
+            <div class="gr-name">
+              ${esc(wt.property_name)}
+              ${wt.title ? ' <span style="color:var(--dim); font-weight:400; font-size:12px;">· ' + esc(wt.title) + '</span>' : ''}
+            </div>
+            <div class="gr-meta">
+              ${wt.location ? esc(wt.location) + ' &nbsp;·&nbsp; ' : ''}
+              ${wt.collection ? esc(wt.collection) + ' &nbsp;·&nbsp; ' : ''}
+              ${wt.published
+                ? '<span style="color:var(--ok)">Published</span>'
+                : '<span style="color:var(--dim)">Draft</span>'}
+              &nbsp;·&nbsp; Sort: ${wt.sort_order}
+            </div>
+          </div>
+          <div class="gr-actions">
+            <button class="btn btn-ghost" onclick="window.open(${JSON.stringify(wt.embed_url)},'_blank')">Preview</button>
+            <button class="btn btn-ghost" onclick="toggleWtPublished('${esc(wt.id)}', ${wt.published ? 0 : 1})">
+              ${wt.published ? 'Unpublish' : 'Publish'}
+            </button>
+            <button class="btn btn-danger" onclick="deleteWalkthrough('${esc(wt.id)}')">Delete</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  document.getElementById('wtCreateForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = e.submitter;
+    btn.disabled = true; btn.textContent = 'Adding…';
+
+    const body = {
+      property_name: document.getElementById('wt-property').value.trim(),
+      title:         document.getElementById('wt-title').value.trim(),
+      location:      document.getElementById('wt-location').value.trim(),
+      collection:    document.getElementById('wt-collection').value.trim(),
+      embed_url:     document.getElementById('wt-embed').value.trim(),
+      thumbnail_url: document.getElementById('wt-thumb').value.trim() || null,
+      description:   document.getElementById('wt-desc').value.trim() || null,
+      published:     document.getElementById('wt-published').checked,
+      sort_order:    parseInt(document.getElementById('wt-sort').value, 10) || 0,
+    };
+
+    const { ok, data } = await apiFetch('/admin/walkthroughs', { method: 'POST', body });
+    btn.disabled = false; btn.textContent = 'Add Walkthrough';
+    if (!ok) { toast(data.error || 'Failed to add walkthrough', true); return; }
+    walkthroughs.unshift(data);
+    renderWalkthroughList();
+    e.target.reset();
+    toast('Walkthrough added');
+  });
+
+  async function toggleWtPublished(id, published) {
+    const wt = walkthroughs.find(w => w.id === id);
+    if (!wt) return;
+    const { ok } = await apiFetch('/admin/walkthroughs/' + id, { method: 'PUT', body: { ...wt, published } });
+    if (!ok) { toast('Update failed', true); return; }
+    wt.published = published;
+    renderWalkthroughList();
+    toast(published ? 'Published' : 'Unpublished');
+  }
+
+  async function deleteWalkthrough(id) {
+    if (!confirm('Remove this walkthrough from the showcase?')) return;
+    const { ok } = await apiFetch('/admin/walkthroughs/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    walkthroughs = walkthroughs.filter(w => w.id !== id);
+    renderWalkthroughList();
+    toast('Walkthrough removed');
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
     if (!authed) return;
     updateEnvUI();
     await loadGalleries();
+    await loadWalkthroughs();
   }
 
   init();
