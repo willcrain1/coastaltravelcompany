@@ -10,6 +10,10 @@ jobs:
     steps:
       - name: Require PR from preprod branch
         run: |
+          if [ "${{ github.base_ref }}" != "master" ]; then
+            echo "Target branch is ${{ github.base_ref }}, not master — no source restriction applies"
+            exit 0
+          fi
           if [ "${{ github.head_ref }}" != "preprod" ]; then
             echo "PRs to master must come from the preprod branch."
             echo "Source branch was: ${{ github.head_ref }}"
