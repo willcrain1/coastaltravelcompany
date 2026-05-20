@@ -205,7 +205,49 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 10. 3D Property Walkthroughs (Gaussian Splatting)
+## 10. Preprod Environment
+
+**Goal:** Create a staging environment that mirrors production so every change — especially Worker deploys, D1 migrations, and auth flows — can be validated end-to-end before touching production. This is a forcing function for safe deployments; Worker changes can't be rolled back once live, and D1 schema migrations that fail in prod require manual intervention.
+
+### GitHub Pages staging site
+- [ ] Create a `preprod` branch in the repo (branch off master; keep it rebased on master going forward)
+- [ ] Configure a GitHub Pages deployment environment named `preprod` in repo Settings → Pages → Environments; point it at the `preprod` branch so pushes to `preprod` deploy to a separate Pages URL (e.g. `willcrain1.github.io/coastaltravelcompany` on the `preprod` environment, or a custom subdomain)
+- [ ] Add a `preprod.coastaltravelcompany.com` CNAME DNS record in Cloudflare pointing to the Pages deployment URL; enable "Proxied" so it goes through Cloudflare
+- [ ] Add `preprod.coastaltravelcompany.com` as an allowed origin in the preprod Worker's CORS config (mirrors the production `ALLOWED_ORIGIN` pattern)
+
+### Cloudflare Worker — preprod instance
+- [ ] Create a second Cloudflare Worker named `coastal-gallery-proxy-preprod` in the Cloudflare dashboard (Workers → Create); deploy an initial copy of the current worker source
+- [ ] Add a `[env.preprod]` section to `worker/wrangler.toml` so `wrangler deploy --env preprod` targets the preprod Worker independently from production; update `worker/wrangler.toml.example` to show the preprod env block
+- [ ] Create a `worker/deploy-worker-preprod.sh` script (mirrors `deploy-worker.sh`) that reads `CF_WORKER_NAME_PREPROD` from `.worker-config` and deploys to the preprod Worker only
+- [ ] Add `CF_WORKER_NAME_PREPROD` to `worker/.worker-config.example` alongside the existing production fields
+
+### KV namespace — isolated session state
+- [ ] Create a new KV namespace named `CTC_AUTH_PREPROD` in the Cloudflare dashboard (Workers → KV); bind it to the preprod Worker as `KV` so rate limiting and gallery session tokens are completely isolated from production
+- [ ] Verify the preprod Worker's `wrangler.toml` `[env.preprod]` section binds `CTC_AUTH_PREPROD`, not `CTC_AUTH`
+
+### D1 database — isolated data store
+- [ ] Create a new D1 database named `ctc-preprod` in the Cloudflare dashboard (Workers → D1); bind it to the preprod Worker as `DB`
+- [ ] Run all existing migrations against `ctc-preprod`: `wrangler d1 execute ctc-preprod --env preprod --file worker/migrations/<each>.sql` in order
+- [ ] Document the migration run order and preprod DB ID in `worker/README.md` so future migrations include a preprod step before prod
+
+### Secrets — separate values per environment
+- [ ] Set each Worker secret on the preprod Worker independently via Cloudflare dashboard → preprod Worker → Settings → Variables, or `wrangler secret put <NAME> --env preprod`: `JWT_SECRET` (different value from prod), `RESEND_API_KEY` (can reuse prod key; preprod emails will go to real inboxes), `GOOGLE_CLIENT_ID` (same value — authorized origins must include `preprod.coastaltravelcompany.com` in Google Cloud Console), `STRIPE_SECRET_KEY` (use Stripe **test mode** key for preprod), `STRIPE_WEBHOOK_SECRET` (register a separate Stripe webhook endpoint for preprod)
+- [ ] Register the preprod Stripe webhook in the Stripe dashboard pointing to `POST https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev/stripe/webhook` for `checkout.session.completed`
+
+### GitHub Actions CI/CD
+- [ ] Add `.github/workflows/deploy-worker-preprod.yml` that triggers on push to `preprod` and runs `wrangler deploy --env preprod`; mirrors the existing `deploy-worker.yml` but targets the preprod environment
+- [ ] Add a branch protection rule on `preprod` requiring PR review before merge (prevents accidental direct pushes to preprod)
+
+### Admin environment switcher
+- [ ] Update `admin/galleries.html` to let the admin toggle between Production and Preprod when generating gallery links — show a small env badge and swap the `proxyUrl` in the encoded config to the preprod Worker URL when Preprod is selected; store the selection in `localStorage` so it persists across sessions
+
+### Testing checklist and promotion workflow
+- [ ] Document in `CLAUDE.md` the full preprod test checklist: auth flow (login, register, Google OAuth, password reset), gallery creation and proxy (token exchange, photo fetch, watermark), contract signing end-to-end, invoice creation + Stripe test payment, D1 migration smoke test
+- [ ] Document the promotion workflow in `CLAUDE.md`: create a PR from `preprod` → `master`, confirm all checklist items pass in preprod, merge; then run any new D1 migrations against production DB
+
+---
+
+## 11. 3D Property Walkthroughs (Gaussian Splatting)
 
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
 
@@ -231,7 +273,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 11. Print Ordering
+## 12. Print Ordering
 
 **Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
 
@@ -245,7 +287,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 12. Individual Photo Purchase (Digital Licensing Store)
+## 13. Individual Photo Purchase (Digital Licensing Store)
 
 **Goal:** Let anyone purchase a digital license for specific portfolio photos hand-picked by the admin — generating passive revenue from the back catalog without requiring a full shoot booking.
 
@@ -277,7 +319,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 13. Email Capture / Mailing List
+## 14. Email Capture / Mailing List
 
 **Goal:** Collect visitor emails for newsletters, availability announcements, or seasonal campaigns.
 
@@ -289,7 +331,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 14. Video Reel / Showreel
+## 15. Video Reel / Showreel
 
 **Goal:** Feature short-form video work prominently, since it's a core part of the collections offering.
 
@@ -300,7 +342,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 15. Testimonials Page
+## 16. Testimonials Page
 
 **Goal:** Dedicated page (and homepage section) showing client reviews to build credibility with prospective hotel/property clients.
 
@@ -312,7 +354,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 16. Enhanced SEO & AI Search Visibility
+## 17. Enhanced SEO & AI Search Visibility
 
 **Goal:** Ensure the site ranks in traditional search and surfaces in AI-powered search engines (Google AI Overviews, Perplexity, ChatGPT Search, Bing Copilot) — both for branded queries ("Coastal Travel Company") and category queries ("hospitality photographer", "hotel photography", "luxury property photographer").
 
@@ -344,7 +386,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 17. Admin Content Editor (CMS)
+## 18. Admin Content Editor (CMS)
 
 **Goal:** Allow the admin to update text and photos on every public website page directly from the browser — no HTML editing or git knowledge required. Changes commit to the GitHub repo via the API and GitHub Pages deploys automatically within ~2 minutes.
 
@@ -385,7 +427,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 18. Licensing Information
+## 19. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients — what they can and can't do with delivered photos.
 
@@ -398,7 +440,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 19. Before/After Editing Sliders
+## 20. Before/After Editing Sliders
 
 **Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
 
@@ -409,7 +451,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 20. FAQ Page
+## 21. FAQ Page
 
 **Goal:** Answer the most common pre-booking questions so clients arrive at the inquiry form already informed.
 
@@ -420,7 +462,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 21. Photo Favorites / Proofing in Client Gallery
+## 22. Photo Favorites / Proofing in Client Gallery
 
 **Goal:** Clients and admins each have independent star/heart capabilities — clients mark their selects, admins mark their own picks (e.g. recommended edits, hero shots) — tracked and displayed separately.
 
@@ -442,7 +484,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 22. Admin Photo Editing
+## 23. Admin Photo Editing
 
 **Goal:** Give admins a browser-based, non-destructive photo editor inside the gallery admin tool — adjust individual photos or apply edits globally across a gallery before client delivery. Edit parameters are stored in D1 and applied at serve time; original NAS files are never modified.
 
@@ -508,7 +550,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 23. AI-Powered Auto Edit
+## 24. AI-Powered Auto Edit
 
 **Goal:** Analyze each photo individually using vision AI and automatically generate a tailored set of edit parameters that make that specific photo look its best — accounting for scene type, lighting conditions, color cast, exposure, and subject matter. Results feed directly into the item 21 edit system so admins can review, tweak, or approve with one click.
 
@@ -553,7 +595,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 24. Photo License Enforcement & Monitoring
+## 25. Photo License Enforcement & Monitoring
 
 **Goal:** Deter misuse of purchased photos and enable discovery of violations through invisible watermarking, metadata embedding, a public license lookup URL, and automated reverse image search monitoring. Cannot prevent misuse of delivered digital files, but makes violations traceable and creates strong deterrents.
 
@@ -586,7 +628,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 25. Employee Email Addresses (@coastaltravelcompany.com)
+## 26. Employee Email Addresses (@coastaltravelcompany.com)
 
 **Goal:** Set up professional email addresses on the company domain for any employees or contractors — replaces personal Gmail/etc. addresses for client-facing communication.
 
@@ -595,20 +637,6 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [ ] Create addresses for each employee/role (e.g. `will@coastaltravelcompany.com`, `hello@coastaltravelcompany.com`)
 - [ ] Update the contact form delivery address and any Resend sending addresses to use the new domain emails
 - [ ] Add DMARC reporting (`rua=mailto:...`) so you can monitor for spoofing of the domain
-
----
-
-## 26. Preprod Environment
-
-**Goal:** Create a staging environment that mirrors production so changes can be tested end-to-end before going live — particularly for Worker changes that can't be rolled back easily once deployed.
-
-- [ ] Create a `preprod` branch in the repo; configure GitHub Pages to serve it at a separate URL (e.g. a `preprod` environment under GitHub Pages settings, or a subdomain like `preprod.coastaltravelcompany.com`)
-- [ ] Deploy a second Cloudflare Worker (`coastal-gallery-proxy-preprod`) for the preprod environment — copy `worker/cloudflare-worker.js` with the CORS origin allowlist updated to the preprod domain
-- [ ] Create a separate KV namespace (`CTC_AUTH_PREPROD`) bound to the preprod Worker so rate limiting and session state are isolated from production
-- [ ] Update `worker/.worker-config.example` with a `CF_WORKER_NAME_PREPROD` entry and document the two-environment setup in `worker/README.md` (or create it)
-- [ ] Add a `--preprod` flag (or `deploy-worker-preprod.sh`) so the preprod Worker can be deployed independently from production without touching `deploy-worker.sh`
-- [ ] Update `admin/gallery-admin.html` to let the admin choose which environment to generate gallery links for (production vs. preprod Worker URL)
-- [ ] Document the preprod workflow in `CLAUDE.md`: what to test before merging to `master`, and how to promote a change from `preprod` → `master`
 
 ---
 
