@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Purchase Complete — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="/config.js"></script>
+  <style>
+    :root {
+      --black: #1C1C1C; --green: #2A5C45; --teal: #8FBFBE;
+      --cream: #F4F1EC; --linen: #E8DDD0;
+      --text: #2C2C2C; --mid: #5A5A5A; --dim: #8A8A8A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Montserrat', sans-serif; font-weight: 300; background: var(--cream); color: var(--text); min-height: 100vh; }
+
+    header {
+      background: var(--cream); border-bottom: 1px solid var(--linen);
+      padding: 20px 48px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo-main   { display: block; font-family: 'Gilda Display', serif; font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--black); }
+    .logo-script { font-family: 'Pinyon Script', cursive; font-size: 26px; color: var(--green); line-height: 1; }
+
+    main { max-width: 680px; margin: 0 auto; padding: 64px 24px 80px; }
+
+    .check-icon {
+      width: 56px; height: 56px; border-radius: 50%; background: #dcfce7;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; margin: 0 auto 20px;
+    }
+    .page-title {
+      font-family: 'Gilda Display', serif; font-size: clamp(1.5rem, 4vw, 2.2rem);
+      text-align: center; margin-bottom: 12px;
+    }
+    .page-sub { text-align: center; font-size: 14px; color: var(--mid); line-height: 1.65; margin-bottom: 40px; }
+
+    .download-card {
+      background: #fff; border: 1px solid var(--linen); border-radius: 8px;
+      padding: 24px 28px; margin-bottom: 16px;
+    }
+    .download-card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .download-card-license { font-size: 12px; color: var(--teal); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 6px; }
+    .download-card-desc { font-size: 13px; color: var(--mid); line-height: 1.6; margin-bottom: 14px; }
+    .download-card-expiry { font-size: 11px; color: var(--dim); margin-top: 8px; }
+
+    .btn-download {
+      display: inline-block; padding: 11px 24px; background: var(--green); color: #fff;
+      text-decoration: none; border-radius: 4px; font-family: 'Montserrat', sans-serif;
+      font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+      transition: opacity 0.15s;
+    }
+    .btn-download:hover { opacity: 0.85; }
+
+    .verify-note {
+      background: var(--linen); border-radius: 6px; padding: 16px 20px; margin-top: 24px;
+      font-size: 12px; color: var(--mid); line-height: 1.65;
+    }
+    .verify-note strong { color: var(--black); }
+    .verify-note a { color: var(--green); }
+
+    .back-link {
+      display: block; text-align: center; margin-top: 32px;
+      font-size: 13px; color: var(--teal); text-decoration: none;
+      letter-spacing: 0.06em;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    .spinner { width: 36px; height: 36px; border: 2px solid var(--linen); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .state-msg { text-align: center; padding: 48px 0; }
+    .state-msg p { font-size: 14px; color: var(--mid); }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" style="text-decoration:none;">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </a>
+  <a href="/shop.html" style="font-size:12px;color:var(--teal);text-decoration:none;font-family:'Montserrat',sans-serif;letter-spacing:0.06em;">← Back to Store</a>
+</header>
+
+<main>
+  <div id="loading" class="state-msg">
+    <div class="spinner"></div>
+    <p>Loading your purchase…</p>
+  </div>
+
+  <div id="content" style="display:none;">
+    <div class="check-icon">✓</div>
+    <h1 class="page-title">Purchase Complete</h1>
+    <p class="page-sub">
+      Thank you for your purchase! Your download links are below and have been sent to your email.
+      Links expire in 72 hours — please download promptly.
+    </p>
+    <div id="downloadCards"></div>
+    <div class="verify-note" id="verifyNote"></div>
+    <a href="/shop.html" class="back-link">Browse more photos →</a>
+  </div>
+
+  <div id="expired" style="display:none;" class="state-msg">
+    <p style="font-size:1.1rem;color:var(--black);margin-bottom:12px;">Download link has expired.</p>
+    <p>Links are valid for 72 hours. Please check your email or <a href="mailto:thecoastaltravelcompany@gmail.com" style="color:var(--green);">contact us</a> for assistance.</p>
+  </div>
+
+  <div id="notfound" style="display:none;" class="state-msg">
+    <p style="font-size:1.1rem;color:var(--black);margin-bottom:12px;">Purchase not found.</p>
+    <p>This link may be invalid. <a href="/shop.html" style="color:var(--green);">Return to the store →</a></p>
+  </div>
+</main>
+
+<script>
+const WORKER = CTC_CONFIG.workerUrl;
+
+const LICENSE_LABELS = {
+  personal:           'Personal Use',
+  commercial_digital: 'Commercial Digital',
+  commercial_print:   'Commercial Print',
+  exclusive:          'Exclusive Commercial',
+};
+const LICENSE_DESC = {
+  personal:           'Social media, personal prints, and non-commercial use.',
+  commercial_digital: 'Website, digital advertising, email marketing, and social campaigns.',
+  commercial_print:   'Brochures, signage, magazines, and print advertising.',
+  exclusive:          'Full exclusive commercial rights. Photo removed from store.',
+};
+
+async function init() {
+  const params = new URLSearchParams(window.location.search);
+  const token  = params.get('token');
+
+  // Single-download link from email
+  if (token) {
+    await loadSingleDownload(token);
+    return;
+  }
+
+  // Stripe success redirect — session ID in URL
+  const sessionId = params.get('session');
+  if (!sessionId) { showNotFound(); return; }
+
+  // For session-based landing, we don't have the tokens directly (they're in the
+  // webhook-processed records). Show a generic success state and tell them to check email.
+  showSessionSuccess();
+}
+
+async function loadSingleDownload(token) {
+  const verifyRes = await fetch(WORKER + '/verify/' + token);
+  // token is actually a purchase ID for verify, but download uses the token itself
+  // Show download card using the token directly
+  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // approximate if fresh
+  showDownloadCard(token, null, null, expiresAt.toISOString());
+}
+
+function showDownloadCard(token, title, licenseType, expiresAt) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = '';
+
+  const label = LICENSE_LABELS[licenseType] || 'License';
+  const desc  = LICENSE_DESC[licenseType]   || 'All rights as specified in your license certificate.';
+  const exp   = expiresAt ? new Date(expiresAt) : null;
+  const expStr = exp ? exp.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+
+  document.getElementById('downloadCards').innerHTML = `
+    <div class="download-card">
+      ${title ? `<div class="download-card-title">${esc(title)}</div>` : ''}
+      ${licenseType ? `<div class="download-card-license">${esc(label)}</div>` : ''}
+      ${desc ? `<div class="download-card-desc">${esc(desc)}</div>` : ''}
+      <a href="${WORKER}/store/download/${token}" class="btn-download" download>Download Full Resolution</a>
+      ${expStr ? `<div class="download-card-expiry">Link expires ${expStr}</div>` : ''}
+    </div>`;
+
+  document.getElementById('verifyNote').innerHTML =
+    `<strong>License Certificate</strong> — Your license ID is <code style="background:#fff;padding:1px 5px;border-radius:3px;">${esc(token)}</code>. ` +
+    `Anyone can verify this license at <a href="/verify/${token}">/verify/${token}</a>.`;
+}
+
+function showSessionSuccess() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = '';
+  document.getElementById('downloadCards').innerHTML = `
+    <div class="download-card">
+      <div class="download-card-title">Payment received</div>
+      <div class="download-card-desc">
+        Your payment is confirmed. Download links have been sent to your email address and are valid for 72 hours.
+        If you don't see the email within a few minutes, please check your spam folder.
+      </div>
+    </div>`;
+  document.getElementById('verifyNote').innerHTML =
+    `<strong>Questions?</strong> Reply to the confirmation email or contact us at <a href="mailto:thecoastaltravelcompany@gmail.com">thecoastaltravelcompany@gmail.com</a>.`;
+}
+
+function showNotFound() {
+  document.getElementById('loading').style.display  = 'none';
+  document.getElementById('notfound').style.display = '';
+}
+
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo Store — Coastal Travel Company</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/config.js"></script>
+  <style>
+    :root {
+      --black: #1C1C1C; --green: #2A5C45; --teal: #8FBFBE;
+      --cream: #F4F1EC; --linen: #E8DDD0;
+      --text: #2C2C2C; --mid: #5A5A5A; --dim: #8A8A8A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Montserrat', sans-serif; font-weight: 300; background: var(--cream); color: var(--text); min-height: 100vh; }
+
+    /* ── Shop header ── */
+    .shop-header {
+      background: var(--cream); border-bottom: 1px solid var(--linen);
+      padding: 20px 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    @media (max-width: 600px) { .shop-header { padding: 16px 20px; } }
+    .logo-block { text-decoration: none; }
+    .logo-main  { display: block; font-family: 'Gilda Display', serif; font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--black); }
+    .logo-script { font-family: 'Pinyon Script', cursive; font-size: 26px; color: var(--green); line-height: 1; }
+    .cart-btn {
+      position: relative; background: none; border: 1px solid var(--linen); border-radius: 4px;
+      padding: 8px 16px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 500;
+      letter-spacing: 0.06em; cursor: pointer; color: var(--text); transition: border-color 0.15s;
+    }
+    .cart-btn:hover { border-color: var(--teal); }
+    .cart-count {
+      display: none; position: absolute; top: -6px; right: -6px;
+      background: var(--green); color: #fff; font-size: 9px; font-weight: 700;
+      width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center;
+    }
+    .cart-count.show { display: flex; }
+
+    /* ── Hero ── */
+    .shop-hero {
+      max-width: 680px; margin: 56px auto 48px; text-align: center; padding: 0 24px;
+    }
+    .shop-hero h1 {
+      font-family: 'Gilda Display', serif; font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 400; color: var(--black); margin-bottom: 16px; line-height: 1.2;
+    }
+    .shop-hero p { font-size: 14px; color: var(--mid); line-height: 1.7; max-width: 480px; margin: 0 auto; }
+
+    /* ── Photo grid ── */
+    .shop-grid-wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px 80px; }
+    .shop-grid {
+      columns: 3; column-gap: 16px;
+    }
+    @media (max-width: 900px) { .shop-grid { columns: 2; } }
+    @media (max-width: 520px) { .shop-grid { columns: 1; } }
+    .shop-item {
+      break-inside: avoid; margin-bottom: 16px; cursor: pointer;
+      border-radius: 4px; overflow: hidden; position: relative;
+    }
+    .shop-item img { width: 100%; display: block; transition: opacity 0.2s; }
+    .shop-item:hover img { opacity: 0.88; }
+    .shop-item-overlay {
+      position: absolute; inset: 0; background: linear-gradient(to top, rgba(28,28,28,0.65) 0%, transparent 50%);
+      opacity: 0; transition: opacity 0.2s; display: flex; flex-direction: column;
+      justify-content: flex-end; padding: 16px;
+    }
+    .shop-item:hover .shop-item-overlay { opacity: 1; }
+    .shop-item-title { color: #fff; font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+    .shop-item-from  { color: rgba(255,255,255,0.75); font-size: 11px; }
+    .shop-item-featured {
+      position: absolute; top: 10px; left: 10px;
+      background: rgba(255,255,255,0.9); color: var(--green);
+      font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 3px 9px; border-radius: 10px;
+    }
+
+    .state-msg { text-align: center; padding: 64px 24px; font-size: 14px; color: var(--dim); }
+    .spinner { width: 32px; height: 32px; border: 2px solid var(--linen); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Lightbox / photo detail modal ── */
+    .overlay {
+      display: none; position: fixed; inset: 0; background: rgba(28,28,28,0.8);
+      z-index: 200; overflow-y: auto;
+    }
+    .overlay.open { display: block; }
+    .detail-modal {
+      max-width: 820px; margin: 48px auto; background: var(--cream);
+      border-radius: 10px; overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 640px) { .detail-modal { grid-template-columns: 1fr; margin: 0; border-radius: 0; min-height: 100vh; } }
+    .detail-img-wrap { background: #1c1c1c; position: relative; }
+    .detail-img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; max-height: 480px; }
+    .detail-body { padding: 32px 28px; overflow-y: auto; }
+    .detail-close {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(255,255,255,0.9); border: none; border-radius: 50%;
+      width: 32px; height: 32px; font-size: 18px; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .detail-title { font-family: 'Gilda Display', serif; font-size: 1.4rem; margin-bottom: 6px; }
+    .detail-desc  { font-size: 13px; color: var(--mid); line-height: 1.65; margin-bottom: 20px; }
+    .tier-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .tier-radio {
+      display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px;
+      border: 1.5px solid var(--linen); border-radius: 6px; cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .tier-radio:has(input:checked) { border-color: var(--teal); background: #f0f9f9; }
+    .tier-radio input[type=radio] { margin-top: 2px; accent-color: var(--teal); flex-shrink: 0; }
+    .tier-name  { font-size: 13px; font-weight: 600; color: var(--black); }
+    .tier-desc  { font-size: 11px; color: var(--mid); line-height: 1.5; margin-top: 2px; }
+    .tier-price { font-size: 14px; font-weight: 600; color: var(--green); margin-top: 4px; }
+
+    .btn-add-cart {
+      width: 100%; padding: 14px; background: var(--green); color: #fff;
+      border: none; border-radius: 4px; font-family: 'Montserrat', sans-serif;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer;
+      transition: opacity 0.15s; text-transform: uppercase;
+    }
+    .btn-add-cart:hover { opacity: 0.88; }
+    .btn-add-cart:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Cart drawer ── */
+    .cart-drawer {
+      position: fixed; top: 0; right: -400px; width: 380px; max-width: 100vw;
+      height: 100vh; background: var(--cream); z-index: 300; transition: right 0.25s;
+      display: flex; flex-direction: column; box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+    }
+    .cart-drawer.open { right: 0; }
+    .cart-drawer-header {
+      padding: 20px 24px; border-bottom: 1px solid var(--linen);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .cart-drawer-header h3 { font-family: 'Gilda Display', serif; font-size: 1.1rem; }
+    .cart-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--mid); }
+    .cart-items { flex: 1; overflow-y: auto; padding: 16px 24px; }
+    .cart-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--linen); align-items: center; }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-item-thumb { width: 56px; height: 44px; object-fit: cover; border-radius: 4px; background: #eee; flex-shrink: 0; }
+    .cart-item-info { flex: 1; }
+    .cart-item-name  { font-size: 12px; font-weight: 600; }
+    .cart-item-tier  { font-size: 11px; color: var(--dim); margin-top: 2px; }
+    .cart-item-price { font-size: 13px; font-weight: 600; }
+    .cart-item-remove { background: none; border: none; color: var(--dim); cursor: pointer; font-size: 16px; padding: 4px; }
+    .cart-footer { padding: 16px 24px; border-top: 1px solid var(--linen); }
+    .cart-total { display: flex; justify-content: space-between; font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+    .cart-empty-msg { text-align: center; color: var(--dim); font-size: 13px; padding: 32px 0; }
+
+    .btn-checkout {
+      width: 100%; padding: 14px; background: var(--green); color: #fff;
+      border: none; border-radius: 4px; font-family: 'Montserrat', sans-serif;
+      font-size: 13px; font-weight: 600; letter-spacing: 0.06em; cursor: pointer;
+      transition: opacity 0.15s; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .btn-checkout:hover { opacity: 0.88; }
+    .btn-checkout:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Checkout email modal ── */
+    .email-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(28,28,28,0.6);
+      z-index: 400; justify-content: center; align-items: center;
+    }
+    .email-overlay.open { display: flex; }
+    .email-modal { background: #fff; border-radius: 10px; padding: 32px; max-width: 420px; width: calc(100% - 32px); }
+    .email-modal h3 { font-family: 'Gilda Display', serif; font-size: 1.15rem; margin-bottom: 8px; }
+    .email-modal p  { font-size: 13px; color: var(--mid); margin-bottom: 18px; }
+    .email-modal input { width: 100%; padding: 10px 12px; border: 1px solid var(--linen); border-radius: 4px; font-family: 'Montserrat', sans-serif; font-size: 13px; margin-bottom: 10px; }
+    .email-modal-btns { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-cancel { padding: 10px 18px; border: 1px solid var(--linen); background: none; border-radius: 4px; font-family: 'Montserrat', sans-serif; font-size: 12px; cursor: pointer; }
+    .btn-pay    { padding: 10px 20px; background: var(--green); color: #fff; border: none; border-radius: 4px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; letter-spacing: 0.06em; }
+    .btn-pay:disabled { opacity: 0.5; }
+  </style>
+</head>
+<body>
+
+<header class="shop-header">
+  <a href="/" class="logo-block">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </a>
+  <button class="cart-btn" onclick="toggleCart()">
+    Cart
+    <span class="cart-count" id="cartCount">0</span>
+  </button>
+</header>
+
+<section class="shop-hero">
+  <h1>Photo Licensing Store</h1>
+  <p>Purchase digital licenses for individual photos from the Coastal Travel Company portfolio. Personal, commercial, and exclusive rights available.</p>
+</section>
+
+<div class="shop-grid-wrap">
+  <div id="loading" class="state-msg"><div class="spinner"></div>Loading photos…</div>
+  <div id="empty"   class="state-msg" style="display:none;">No photos listed yet — check back soon.</div>
+  <div class="shop-grid" id="shopGrid"></div>
+</div>
+
+<!-- Photo detail overlay -->
+<div class="overlay" id="detailOverlay" onclick="closeDetail(event)">
+  <div class="detail-modal" id="detailModal">
+    <div class="detail-img-wrap">
+      <img id="detailImg" src="" alt="" />
+      <button class="detail-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-title" id="detailTitle"></div>
+      <div class="detail-desc"  id="detailDesc"></div>
+      <div class="tier-list" id="tierList"></div>
+      <button class="btn-add-cart" id="btnAddCart" onclick="addToCart()" disabled>Select a license tier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cart drawer -->
+<div class="cart-drawer" id="cartDrawer">
+  <div class="cart-drawer-header">
+    <h3>Your Cart</h3>
+    <button class="cart-close" onclick="toggleCart()">×</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty-msg">Your cart is empty.</div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total"><span>Total</span><span id="cartTotal">$0.00</span></div>
+    <button class="btn-checkout" id="btnCheckout" onclick="openEmailModal()" disabled>Proceed to Checkout</button>
+    <p style="font-size:11px;color:var(--dim);text-align:center;">Secure payment via Stripe. Download links emailed within minutes.</p>
+  </div>
+</div>
+
+<!-- Email/name modal before checkout -->
+<div class="email-overlay" id="emailOverlay">
+  <div class="email-modal">
+    <h3>Complete Your Purchase</h3>
+    <p>Enter your details to receive your download links by email after payment.</p>
+    <input type="text"  id="buyerName"  placeholder="Your name" />
+    <input type="email" id="buyerEmail" placeholder="your@email.com" required />
+    <div class="email-modal-btns">
+      <button class="btn-cancel" onclick="closeEmailModal()">Cancel</button>
+      <button class="btn-pay" id="btnPay" onclick="startCheckout()">Pay Now →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORKER = CTC_CONFIG.workerUrl;
+
+let photos  = [];
+let cart    = [];
+let current = null;
+
+const LICENSE_LABELS = {
+  personal:           'Personal Use',
+  commercial_digital: 'Commercial Digital',
+  commercial_print:   'Commercial Print',
+  exclusive:          'Exclusive Commercial',
+};
+
+// ── Load photos ───────────────────────────────────────────────────────────────
+async function load() {
+  const res = await fetch(WORKER + '/public/store');
+  document.getElementById('loading').style.display = 'none';
+  if (!res.ok) { document.getElementById('empty').style.display = ''; return; }
+  photos = await res.json();
+  if (!photos.length) { document.getElementById('empty').style.display = ''; return; }
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('shopGrid');
+  grid.innerHTML = photos.map(p => {
+    const lowestCents = Math.min(
+      p.personal_price_cents, p.commercial_digital_price_cents,
+      p.commercial_print_price_cents, p.exclusive_price_cents
+    );
+    return `
+    <div class="shop-item" onclick="openDetail('${p.id}')">
+      <img src="${WORKER}/public/store/${p.id}/preview" alt="${esc(p.title)}" loading="lazy"
+           onerror="this.style.background='#eee'" />
+      ${p.featured ? '<span class="shop-item-featured">Featured</span>' : ''}
+      <div class="shop-item-overlay">
+        <div class="shop-item-title">${esc(p.title) || 'Untitled'}</div>
+        <div class="shop-item-from">From $${(lowestCents / 100).toFixed(0)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Detail modal ──────────────────────────────────────────────────────────────
+async function openDetail(id) {
+  const res = await fetch(WORKER + '/public/store/' + id);
+  if (!res.ok) return;
+  const photo = await res.json();
+  current = photo;
+
+  document.getElementById('detailImg').src = WORKER + '/public/store/' + id + '/preview';
+  document.getElementById('detailImg').alt = photo.title || '';
+  document.getElementById('detailTitle').textContent = photo.title || '';
+  document.getElementById('detailDesc').textContent  = photo.description || '';
+
+  const tierList = document.getElementById('tierList');
+  tierList.innerHTML = (photo.license_tiers || []).map(t => `
+    <label class="tier-radio">
+      <input type="radio" name="licTier" value="${t.key}" onchange="onTierSelect()" />
+      <div>
+        <div class="tier-name">${t.label}</div>
+        <div class="tier-desc">${t.description}</div>
+        <div class="tier-price">$${(t.price_cents / 100).toFixed(2)}</div>
+      </div>
+    </label>`
+  ).join('');
+
+  document.getElementById('btnAddCart').disabled = true;
+  document.getElementById('btnAddCart').textContent = 'Select a license tier';
+  document.getElementById('detailOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function onTierSelect() {
+  const btn = document.getElementById('btnAddCart');
+  btn.disabled = false;
+  btn.textContent = 'Add to Cart';
+}
+
+function closeDetail(e) {
+  if (e && e.target !== document.getElementById('detailOverlay')) return;
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  current = null;
+}
+
+// ── Cart ──────────────────────────────────────────────────────────────────────
+function addToCart() {
+  if (!current) return;
+  const selected = document.querySelector('input[name="licTier"]:checked');
+  if (!selected) return;
+  const tier = current.license_tiers.find(t => t.key === selected.value);
+  const existing = cart.findIndex(c => c.store_photo_id === current.id && c.license_type === tier.key);
+  if (existing < 0) {
+    cart.push({
+      store_photo_id: current.id,
+      license_type:   tier.key,
+      title:          current.title,
+      price_cents:    tier.price_cents,
+      license_label:  tier.label,
+      preview_url:    WORKER + '/public/store/' + current.id + '/preview',
+    });
+  }
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+  current = null;
+  updateCart();
+  toggleCart();
+}
+
+function removeFromCart(i) {
+  cart.splice(i, 1);
+  updateCart();
+}
+
+function updateCart() {
+  const count = cart.length;
+  const countEl = document.getElementById('cartCount');
+  countEl.textContent = count;
+  countEl.classList.toggle('show', count > 0);
+
+  const totalCents = cart.reduce((s, c) => s + c.price_cents, 0);
+  document.getElementById('cartTotal').textContent = '$' + (totalCents / 100).toFixed(2);
+  document.getElementById('btnCheckout').disabled = !count;
+
+  const el = document.getElementById('cartItems');
+  if (!count) { el.innerHTML = '<div class="cart-empty-msg">Your cart is empty.</div>'; return; }
+  el.innerHTML = cart.map((c, i) => `
+    <div class="cart-item">
+      <img class="cart-item-thumb" src="${c.preview_url}" alt="${esc(c.title)}" />
+      <div class="cart-item-info">
+        <div class="cart-item-name">${esc(c.title) || 'Photo'}</div>
+        <div class="cart-item-tier">${c.license_label}</div>
+      </div>
+      <div class="cart-item-price">$${(c.price_cents / 100).toFixed(2)}</div>
+      <button class="cart-item-remove" onclick="removeFromCart(${i})">×</button>
+    </div>`
+  ).join('');
+}
+
+function toggleCart() {
+  document.getElementById('cartDrawer').classList.toggle('open');
+}
+
+// ── Checkout ──────────────────────────────────────────────────────────────────
+function openEmailModal()  { document.getElementById('emailOverlay').classList.add('open'); }
+function closeEmailModal() { document.getElementById('emailOverlay').classList.remove('open'); }
+
+async function startCheckout() {
+  const email     = document.getElementById('buyerEmail').value.trim();
+  const buyerName = document.getElementById('buyerName').value.trim();
+  if (!email) { document.getElementById('buyerEmail').focus(); return; }
+  const btn = document.getElementById('btnPay');
+  btn.disabled = true; btn.textContent = 'Redirecting…';
+  const items = cart.map(c => ({ store_photo_id: c.store_photo_id, license_type: c.license_type }));
+  const res = await fetch(WORKER + '/public/store/checkout', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items, email, buyer_name: buyerName }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data.url) {
+    alert(data.error || 'Checkout failed. Please try again.');
+    btn.disabled = false; btn.textContent = 'Pay Now →';
+    return;
+  }
+  window.location.href = data.url;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+load();
+</script>
+</body>
+</html>
