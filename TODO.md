@@ -273,17 +273,18 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 12. Print Ordering
+## ~~12. Print Ordering~~ ✅ Done
 
 **Goal:** Clients can order prints directly from their gallery — revenue opportunity and convenience for hotel/property clients who want wall art.
 
-- [ ] Evaluate print lab integrations: WHCC and Printful both have APIs; Pixieset and Pic-Time are all-in-one solutions that include gallery + print store (worth comparing against building custom)
-- [ ] If building custom: add "Order Print" button to the lightbox and photo hover state in `client-gallery.html`
-- [ ] Build a print product selection flow — size, paper type, quantity — before handing off to the print lab
-- [ ] Handle payment via Stripe (can be same Stripe account as billing/invoices in item 7)
-- [ ] Print lab fulfills and ships directly to client — no inventory needed
-- [ ] Add print pricing to `faq.html` and `services.html`
-- [ ] Dependency: works best alongside the auth system (item 4) so order history is tied to a client account
+- [x] Evaluate print lab integrations: chose custom build — Worker + Stripe + admin email fulfillment; keeps everything in one system, no per-order platform fee; Printful API can be wired in later as a fulfillment automation
+- [x] Add "Order Print" button to the lightbox in `client-gallery.html` — visible for photos only (hidden on video items); opens a modal with size/material/quantity selectors
+- [x] Build a print product selection flow — 6 sizes (4×6 through 20×30), 3 finishes (glossy, matte, canvas), quantity stepper, live price display, shipping address form; client submits → Worker creates order + Stripe Checkout session → redirected to Stripe
+- [x] Handle payment via Stripe — `POST /print/orders` creates order in D1 and returns Stripe Checkout URL; `POST /stripe/webhook` extended to handle `print_order_id` metadata, marks order paid, emails client + admin
+- [x] Print lab fulfillment: admin receives email with full order details on payment; no inventory needed; admin fulfills manually (Printful API integration can be added as enhancement)
+- [x] Add print pricing to `services.html` — pricing table section with standard prints and large format/canvas pricing; fulfillment timeline noted
+- [x] Added `worker/migrations/012_print_orders.sql` — D1 table for order storage; `worker/src/admin/print-orders.js` — Worker handler; `site/print-order.html` — order confirmation page after Stripe redirect
+- [x] Dependency on auth system (item 4) satisfied — gallery requires login before access; gallery passphrase stored on order for admin reference
 
 ---
 
