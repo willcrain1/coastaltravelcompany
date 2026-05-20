@@ -986,3 +986,129 @@ nav.scrolled .nav-account.active {
   .form-row { grid-template-columns: 1fr; gap: 0; }
   .page-hero { padding: 36px 24px; min-height: 360px; }
 }
+
+/* ─── Before/After Slider ─────────────────────────────────── */
+
+.ba-wrap {
+  position: relative;
+  overflow: hidden;
+  cursor: col-resize;
+  user-select: none;
+  display: block;
+}
+
+.ba-before,
+.ba-after {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.ba-before img,
+.ba-after img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.ba-before img {
+  filter: saturate(0.18) contrast(0.78) brightness(1.06) sepia(0.08);
+}
+
+.ba-after {
+  clip-path: inset(0 50% 0 0);
+}
+
+.ba-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.ba-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ba-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: col-resize;
+  z-index: 10;
+  margin: 0;
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ba-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 16px;
+  pointer-events: none;
+  z-index: 6;
+}
+
+.ba-label {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: var(--white);
+  background: rgba(28, 28, 28, 0.52);
+  padding: 5px 10px;
+  backdrop-filter: blur(4px);
+}
+
+.ba-caption {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  text-align: center;
+  margin-top: 14px;
+  font-weight: 500;
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+@media (max-width: 860px) {
+  .edit-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 580px) {
+  .edit-grid { grid-template-columns: 1fr; }
+}

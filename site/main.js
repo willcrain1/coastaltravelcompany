@@ -73,6 +73,24 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
   });
 });
 
+// ── Before/After Sliders ──────────────────────────────────
+document.querySelectorAll('.ba-wrap').forEach(el => {
+  const input    = el.querySelector('.ba-input');
+  const after    = el.querySelector('.ba-after');
+  const divider  = el.querySelector('.ba-divider');
+  const handle   = el.querySelector('.ba-handle');
+
+  function update(val) {
+    const pct = Math.min(100, Math.max(0, val));
+    after.style.clipPath  = `inset(0 ${100 - pct}% 0 0)`;
+    divider.style.left    = pct + '%';
+    handle.style.left     = pct + '%';
+  }
+
+  input.addEventListener('input', () => update(+input.value));
+  update(50);
+});
+
 // ── Contact form submit ────────────────────────────────────
 const form = document.querySelector('form');
 if (form) {

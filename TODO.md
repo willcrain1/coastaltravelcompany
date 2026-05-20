@@ -440,14 +440,14 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 20. Before/After Editing Sliders
+## ~~20. Before/After Editing Sliders~~ ✅ Done
 
 **Goal:** Demonstrate editing and retouching quality to commercial clients directly on the website.
 
-- [ ] Choose 3–5 strong before/after pairs from real shoots
-- [ ] Build or use a lightweight CSS-only or JS drag slider (no heavy library needed — a simple range input over two stacked images works well)
-- [ ] Add a "The Edit" section to `services.html` or create a standalone `/editing.html` page
-- [ ] Optionally embed one slider on the homepage as a visual hook
+- [x] Choose 3–5 strong before/after pairs from real shoots
+- [x] Build or use a lightweight CSS-only or JS drag slider (no heavy library needed — a simple range input over two stacked images works well)
+- [x] Add a "The Edit" section to `services.html` or create a standalone `/editing.html` page
+- [x] Optionally embed one slider on the homepage as a visual hook
 
 ---
 
