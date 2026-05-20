@@ -4,3 +4,4 @@
 CF_ACCOUNT_ID="your-account-id-here"
 CF_API_TOKEN="your-api-token-here"
 CF_WORKER_NAME="coastal-gallery-proxy"
+CF_WORKER_NAME_PREPROD="coastal-gallery-proxy-preprod"

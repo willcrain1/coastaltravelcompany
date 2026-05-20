@@ -1,0 +1,45 @@
+name: Deploy Preprod
+
+on:
+  push:
+    branches: [preprod]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  deploy-worker-preprod:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deploy preprod Worker
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
+          CF_WORKER_NAME_PREPROD: ${{ secrets.CF_WORKER_NAME_PREPROD }}
+        run: ./worker/deploy-worker-preprod.sh
+
+  deploy-pages-preprod:
+    needs: deploy-worker-preprod
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: preprod
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: './site'
+      - uses: actions/deploy-pages@v5
+        id: deployment

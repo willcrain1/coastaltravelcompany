@@ -210,40 +210,40 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 **Goal:** Create a staging environment that mirrors production so every change — especially Worker deploys, D1 migrations, and auth flows — can be validated end-to-end before touching production. This is a forcing function for safe deployments; Worker changes can't be rolled back once live, and D1 schema migrations that fail in prod require manual intervention.
 
 ### GitHub Pages staging site
-- [ ] Create a `preprod` branch in the repo (branch off master; keep it rebased on master going forward)
+- [x] Create a `preprod` branch in the repo (branch off master; keep it rebased on master going forward)
 - [ ] Configure a GitHub Pages deployment environment named `preprod` in repo Settings → Pages → Environments; point it at the `preprod` branch so pushes to `preprod` deploy to a separate Pages URL (e.g. `willcrain1.github.io/coastaltravelcompany` on the `preprod` environment, or a custom subdomain)
 - [ ] Add a `preprod.coastaltravelcompany.com` CNAME DNS record in Cloudflare pointing to the Pages deployment URL; enable "Proxied" so it goes through Cloudflare
-- [ ] Add `preprod.coastaltravelcompany.com` as an allowed origin in the preprod Worker's CORS config (mirrors the production `ALLOWED_ORIGIN` pattern)
+- [x] Add `preprod.coastaltravelcompany.com` as an allowed origin in the preprod Worker's CORS config — Worker reads `env.ALLOWED_ORIGIN` set via `[env.preprod.vars]` in `wrangler.toml`; `initCors()` in `router.js` applies it at request time
 
 ### Cloudflare Worker — preprod instance
-- [ ] Create a second Cloudflare Worker named `coastal-gallery-proxy-preprod` in the Cloudflare dashboard (Workers → Create); deploy an initial copy of the current worker source
-- [ ] Add a `[env.preprod]` section to `worker/wrangler.toml` so `wrangler deploy --env preprod` targets the preprod Worker independently from production; update `worker/wrangler.toml.example` to show the preprod env block
-- [ ] Create a `worker/deploy-worker-preprod.sh` script (mirrors `deploy-worker.sh`) that reads `CF_WORKER_NAME_PREPROD` from `.worker-config` and deploys to the preprod Worker only
-- [ ] Add `CF_WORKER_NAME_PREPROD` to `worker/.worker-config.example` alongside the existing production fields
+- [ ] Create a second Cloudflare Worker named `coastal-gallery-proxy-preprod` in the Cloudflare dashboard (Workers → Create); initial deploy via `./worker/deploy-worker-preprod.sh`
+- [x] Add a `[env.preprod]` section to `worker/wrangler.toml` so `wrangler deploy --env preprod` targets the preprod Worker independently from production; `worker/wrangler.toml.example` updated to show the preprod env block
+- [x] Create `worker/deploy-worker-preprod.sh` — auto-provisions `CTC_AUTH_PREPROD` KV and `ctc-preprod` D1, runs all migrations, generates `wrangler.toml` with `[env.preprod]` section, deploys with `--env preprod`
+- [x] Add `CF_WORKER_NAME_PREPROD` to `worker/.worker-config.example` alongside the existing production fields
 
 ### KV namespace — isolated session state
-- [ ] Create a new KV namespace named `CTC_AUTH_PREPROD` in the Cloudflare dashboard (Workers → KV); bind it to the preprod Worker as `KV` so rate limiting and gallery session tokens are completely isolated from production
-- [ ] Verify the preprod Worker's `wrangler.toml` `[env.preprod]` section binds `CTC_AUTH_PREPROD`, not `CTC_AUTH`
+- [x] `deploy-worker-preprod.sh` auto-creates `CTC_AUTH_PREPROD` KV namespace and binds it as `KV` in `[env.preprod]` — isolated from production `CTC_AUTH`
+- [x] `wrangler.toml` `[env.preprod.kv_namespaces]` binds `CTC_AUTH_PREPROD`, not `CTC_AUTH`
 
 ### D1 database — isolated data store
-- [ ] Create a new D1 database named `ctc-preprod` in the Cloudflare dashboard (Workers → D1); bind it to the preprod Worker as `DB`
-- [ ] Run all existing migrations against `ctc-preprod`: `wrangler d1 execute ctc-preprod --env preprod --file worker/migrations/<each>.sql` in order
-- [ ] Document the migration run order and preprod DB ID in `worker/README.md` so future migrations include a preprod step before prod
+- [x] `deploy-worker-preprod.sh` auto-creates `ctc-preprod` D1 database and binds it as `DB` in `[env.preprod]`
+- [x] All existing migrations (001–011) run against `ctc-preprod` automatically by `deploy-worker-preprod.sh` on each run (idempotent — CREATE TABLE IF NOT EXISTS)
+- [x] Migration run order and preprod workflow documented in `CLAUDE.md` under "Preprod environment → Adding new D1 migrations"
 
 ### Secrets — separate values per environment
 - [ ] Set each Worker secret on the preprod Worker independently via Cloudflare dashboard → preprod Worker → Settings → Variables, or `wrangler secret put <NAME> --env preprod`: `JWT_SECRET` (different value from prod), `RESEND_API_KEY` (can reuse prod key; preprod emails will go to real inboxes), `GOOGLE_CLIENT_ID` (same value — authorized origins must include `preprod.coastaltravelcompany.com` in Google Cloud Console), `STRIPE_SECRET_KEY` (use Stripe **test mode** key for preprod), `STRIPE_WEBHOOK_SECRET` (register a separate Stripe webhook endpoint for preprod)
 - [ ] Register the preprod Stripe webhook in the Stripe dashboard pointing to `POST https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev/stripe/webhook` for `checkout.session.completed`
 
 ### GitHub Actions CI/CD
-- [ ] Add `.github/workflows/deploy-worker-preprod.yml` that triggers on push to `preprod` and runs `wrangler deploy --env preprod`; mirrors the existing `deploy-worker.yml` but targets the preprod environment
-- [ ] Add a branch protection rule on `preprod` requiring PR review before merge (prevents accidental direct pushes to preprod)
+- [x] Added `.github/workflows/deploy-worker-preprod.yml` — triggers on push to `preprod`, runs `deploy-worker-preprod.sh` then deploys Pages to the `preprod` environment
+- [ ] Add a branch protection rule on `preprod` requiring PR review before merge (GitHub Settings → Branches)
 
 ### Admin environment switcher
-- [ ] Update `admin/galleries.html` to let the admin toggle between Production and Preprod when generating gallery links — show a small env badge and swap the `proxyUrl` in the encoded config to the preprod Worker URL when Preprod is selected; store the selection in `localStorage` so it persists across sessions
+- [x] Updated `admin/galleries.html` — Production/Preprod toggle with env badge; Preprod mode shows a Worker URL input; `proxyUrl` in the generated gallery config uses the active environment's URL; selection persists in `localStorage`
 
 ### Testing checklist and promotion workflow
-- [ ] Document in `CLAUDE.md` the full preprod test checklist: auth flow (login, register, Google OAuth, password reset), gallery creation and proxy (token exchange, photo fetch, watermark), contract signing end-to-end, invoice creation + Stripe test payment, D1 migration smoke test
-- [ ] Document the promotion workflow in `CLAUDE.md`: create a PR from `preprod` → `master`, confirm all checklist items pass in preprod, merge; then run any new D1 migrations against production DB
+- [x] Preprod test checklist documented in `CLAUDE.md` (auth, gallery proxy, watermark, contract signing, invoice + Stripe test payment, D1 migration smoke test, scheduling, questionnaire)
+- [x] Promotion workflow documented in `CLAUDE.md` (PR preprod → master, CI pass, merge, run prod migrations)
 
 ---
 

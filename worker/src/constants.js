@@ -1,6 +1,7 @@
 export const NAS_SHARE_API  = 'https://nas.coastaltravelcompany.com/mo/sharing/webapi/entry.cgi';
 export const NAS_SHARE_PAGE = 'https://nas.coastaltravelcompany.com/mo/sharing/';
-export const ALLOWED_ORIGIN = 'https://coastaltravelcompany.com';
+
+export let ALLOWED_ORIGIN = 'https://coastaltravelcompany.com';
 
 export const RATE_LIMIT         = 300;
 export const CONTACT_RATE_LIMIT = 5;
@@ -15,10 +16,19 @@ export const ALLOWED_APIS = new Set([
   'SYNO.Foto.Streaming',
 ]);
 
-export const CORS = {
+export let CORS = {
   'Access-Control-Allow-Origin':   ALLOWED_ORIGIN,
   'Access-Control-Allow-Methods':  'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers':  'Content-Type, Authorization',
   'Access-Control-Expose-Headers': 'Content-Disposition',
   'Access-Control-Max-Age':        '86400',
 };
+
+// Called once per isolate startup from router.js to apply env-specific origin.
+// ES module live bindings mean all importers see the updated values immediately.
+export function initCors(envOrigin) {
+  if (envOrigin && envOrigin !== ALLOWED_ORIGIN) {
+    ALLOWED_ORIGIN = envOrigin;
+    CORS = { ...CORS, 'Access-Control-Allow-Origin': envOrigin };
+  }
+}

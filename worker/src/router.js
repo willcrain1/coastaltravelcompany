@@ -1,4 +1,4 @@
-import { ALLOWED_ORIGIN, CORS } from './constants.js';
+import { ALLOWED_ORIGIN, CORS, initCors } from './constants.js';
 import { jsonResponse } from './utils.js';
 import { getAuth } from './jwt.js';
 
@@ -63,6 +63,8 @@ import {
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 
 export async function handleRequest(request, env) {
+  initCors(env.ALLOWED_ORIGIN);
+
   if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: CORS });
   }

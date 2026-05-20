@@ -109,5 +109,77 @@ The `CTC_AUTH` KV namespace is bound as `KV` and used by both the token exchange
 ## Key constraints
 
 - `nasClientUrl` in the gallery config points to where `client-gallery.html` is hosted. Since both files are on `coastaltravelcompany.com`, this is always `https://coastaltravelcompany.com/gallery/client-gallery.html`. Changing this URL only affects newly generated links; existing links continue to use whatever URL was embedded at generation time.
-- The Worker's CORS policy is hardcoded to `https://coastaltravelcompany.com`. If the site ever moves domains, `CORS['Access-Control-Allow-Origin']` in `cloudflare-worker.js` must be updated and redeployed.
+- The Worker's CORS policy defaults to `https://coastaltravelcompany.com` (`worker/src/constants.js`). The `ALLOWED_ORIGIN` is overridden per-environment via the `ALLOWED_ORIGIN` variable in `[env.preprod.vars]` of `wrangler.toml` — `initCors(env.ALLOWED_ORIGIN)` is called at the top of every request in `router.js`.
 - Do not use QuickConnect (`coastaltravelcompany.us6.quickconnect.to`) in Worker code — it returns an HTML portal page for server-to-server requests. Use `nas.coastaltravelcompany.com` (Cloudflare Tunnel) instead.
+
+## Preprod environment
+
+A staging environment that mirrors production for safe validation before every deploy.
+
+### Infrastructure
+
+| Resource | Production | Preprod |
+|---|---|---|
+| GitHub Pages branch | `master` | `preprod` |
+| Site URL | `https://coastaltravelcompany.com` | `https://preprod.coastaltravelcompany.com` |
+| Cloudflare Worker | `coastal-gallery-proxy` | `coastal-gallery-proxy-preprod` |
+| KV namespace | `CTC_AUTH` | `CTC_AUTH_PREPROD` |
+| D1 database | `CTC_PROJECTS` | `ctc-preprod` |
+| Stripe key | live mode | test mode (`sk_test_...`) |
+
+### Deploying to preprod
+
+```bash
+# Deploy Worker to preprod (provisions KV + D1, runs all migrations, deploys)
+./worker/deploy-worker-preprod.sh
+
+# GitHub Actions deploys the Worker and Pages automatically on push to preprod branch
+git push origin preprod
+```
+
+Requires `worker/.worker-config` with `CF_WORKER_NAME_PREPROD` set (see `.worker-config.example`).
+
+### Manual setup steps (one-time, done in dashboards)
+
+1. **GitHub Pages** — Settings → Pages → add `preprod` environment pointing at the `preprod` branch
+2. **DNS** — Cloudflare dashboard: add CNAME `preprod.coastaltravelcompany.com` → GitHub Pages URL (Proxied)
+3. **Worker secrets** — Cloudflare dashboard → `coastal-gallery-proxy-preprod` → Settings → Variables:
+   - `JWT_SECRET` (different random value from prod)
+   - `RESEND_API_KEY` (can reuse prod key)
+   - `GOOGLE_CLIENT_ID` (same as prod; add `preprod.coastaltravelcompany.com` to Google Cloud Console authorized origins)
+   - `STRIPE_SECRET_KEY` (use `sk_test_...` test mode key)
+   - `STRIPE_WEBHOOK_SECRET` (register separate webhook for preprod Stripe endpoint)
+4. **Stripe webhook** — Stripe dashboard: add endpoint `POST https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev/stripe/webhook` for `checkout.session.completed`
+5. **Branch protection** — GitHub Settings → Branches: require PR review before merging to `preprod`
+
+### Preprod test checklist
+
+Run through these before promoting preprod → master:
+
+- [ ] **Auth flow** — register new account, verify email link works, log in with password, log in with Google, password reset flow end-to-end
+- [ ] **Gallery proxy** — create gallery in admin (select Preprod env), open gallery link, enter password, confirm photo grid loads and thumbnails render
+- [ ] **Watermarking** — create watermarked gallery, confirm watermark text appears on XL thumbnails, confirm downloads are disabled
+- [ ] **Contract signing** — send contract to test email, open signing URL, scroll gate works, type signature, submit; admin countersigns; both parties receive confirmation email
+- [ ] **Invoice + Stripe** — create invoice, send to test email, open payment link, pay with Stripe test card `4242 4242 4242 4242`, confirm stage advances to "Retainer Paid" via webhook
+- [ ] **D1 migration smoke test** — any new migration file runs cleanly: `wrangler d1 execute ctc-preprod --env preprod --file worker/migrations/<new>.sql`
+- [ ] **Scheduling** — set availability windows, open contact page, confirm calendar reflects the windows
+- [ ] **Questionnaire** — send questionnaire link, submit responses, confirm admin notification email arrives
+
+### Promotion workflow (preprod → master)
+
+1. Verify all checklist items above pass in preprod
+2. Create a PR from `preprod` → `master` in GitHub
+3. Wait for CI (acceptance tests) to pass on the PR
+4. Merge — GitHub Pages and the production Worker deploy automatically
+5. Run any new D1 migrations against the production database:
+   ```bash
+   wrangler d1 execute CTC_PROJECTS --file worker/migrations/<new>.sql
+   ```
+
+### Adding new D1 migrations
+
+Always run migrations against preprod **before** production:
+1. Create `worker/migrations/NNN_description.sql`
+2. Deploy to preprod: `wrangler d1 execute ctc-preprod --env preprod --file worker/migrations/NNN_description.sql`
+3. Verify the feature works end-to-end in preprod
+4. Merge to master, then run against production: `wrangler d1 execute CTC_PROJECTS --file worker/migrations/NNN_description.sql`
