@@ -62,6 +62,14 @@ import {
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 
+import {
+  handleAdminStoreList, handleAdminStoreCreate, handleAdminStoreUpdate,
+  handleAdminStoreDelete, handleAdminStoreBrowse, handleAdminStoreBrowseThumb,
+  handleAdminStorePurchases,
+  handlePublicStoreList, handlePublicStorePhoto, handlePublicStorePreview,
+  handlePublicStoreCheckout, handleStoreDownload, handleLicenseVerify,
+} from './admin/store.js';
+
 export async function handleRequest(request, env) {
   initCors(env.ALLOWED_ORIGIN);
 
@@ -228,6 +236,32 @@ export async function handleRequest(request, env) {
     return handlePublicInvoice(request, env, publicInvoiceMatch[1]);
   if (method === 'POST' && pathname === '/stripe/webhook')
     return handleStripeWebhook(request, env);
+
+  // ── Photo store — admin ───────────────────────────────────────────────────────
+  if (method === 'GET'  && pathname === '/admin/store')           return handleAdminStoreList(request, env);
+  if (method === 'POST' && pathname === '/admin/store')           return handleAdminStoreCreate(request, env);
+  if (method === 'GET'  && pathname === '/admin/store/purchases') return handleAdminStorePurchases(request, env);
+  const adminStoreIdMatch        = pathname.match(/^\/admin\/store\/([^/]+)$/);
+  const adminStoreBrowseMatch    = pathname.match(/^\/admin\/store\/browse\/([^/]+)$/);
+  const adminStoreBrowseThumbMatch = pathname.match(/^\/public\/store\/browse-thumb\/([^/]+)\/([^/]+)$/);
+  if (adminStoreBrowseMatch && method === 'GET') return handleAdminStoreBrowse(request, env, adminStoreBrowseMatch[1]);
+  if (adminStoreBrowseThumbMatch && method === 'GET') return handleAdminStoreBrowseThumb(request, env, adminStoreBrowseThumbMatch[1], adminStoreBrowseThumbMatch[2]);
+  if (adminStoreIdMatch) {
+    if (method === 'PUT')    return handleAdminStoreUpdate(request, env, adminStoreIdMatch[1]);
+    if (method === 'DELETE') return handleAdminStoreDelete(request, env, adminStoreIdMatch[1]);
+  }
+
+  // ── Photo store — public ──────────────────────────────────────────────────────
+  if (method === 'GET'  && pathname === '/public/store')    return handlePublicStoreList(request, env);
+  if (method === 'POST' && pathname === '/public/store/checkout') return handlePublicStoreCheckout(request, env);
+  const publicStoreIdMatch      = pathname.match(/^\/public\/store\/([^/]+)$/);
+  const publicStorePreviewMatch = pathname.match(/^\/public\/store\/([^/]+)\/preview$/);
+  const storeDownloadMatch      = pathname.match(/^\/store\/download\/([^/]+)$/);
+  const licenseVerifyMatch      = pathname.match(/^\/verify\/([^/]+)$/);
+  if (publicStorePreviewMatch && method === 'GET') return handlePublicStorePreview(request, env, publicStorePreviewMatch[1]);
+  if (publicStoreIdMatch && method === 'GET')      return handlePublicStorePhoto(request, env, publicStoreIdMatch[1]);
+  if (storeDownloadMatch && method === 'GET')      return handleStoreDownload(request, env, storeDownloadMatch[1]);
+  if (licenseVerifyMatch && method === 'GET')      return handleLicenseVerify(request, env, licenseVerifyMatch[1]);
 
   // ── Token exchange + contact form ────────────────────────────────────────────
   if (method === 'POST' && pathname === '/token')   return handleTokenExchange(request, env);

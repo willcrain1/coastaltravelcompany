@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photo Store — Coastal Travel Company Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css" />
+  <script src="/config.js"></script>
+  <style>
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .photo-tile {
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--bg, #f4f1ec);
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      aspect-ratio: 4/3;
+    }
+    .photo-tile:hover { border-color: var(--teal, #8fbfbe); }
+    .photo-tile.listed { border-color: var(--green, #2a5c45); }
+    .photo-tile img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .photo-tile .tile-badge {
+      position: absolute; top: 6px; right: 6px;
+      background: var(--green, #2a5c45); color: #fff;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 2px 7px; border-radius: 10px;
+    }
+    .store-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .store-card {
+      background: #fff; border: 1px solid var(--border, #ddd); border-radius: 8px;
+      overflow: hidden;
+    }
+    .store-card-img {
+      width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block;
+      background: #f4f1ec;
+    }
+    .store-card-body { padding: 12px; }
+    .store-card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--text, #2c2c2c); }
+    .store-card-prices { font-size: 11px; color: var(--dim, #8a8a8a); line-height: 1.7; }
+    .store-card-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .store-card-status {
+      display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px;
+    }
+    .status-active   { background: #dcfce7; color: #166534; }
+    .status-unlisted { background: #f3f4f6; color: #6b7280; }
+    .status-sold-exclusive { background: #fef3c7; color: #92400e; }
+
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(28,28,28,0.55); z-index: 100;
+      justify-content: center; align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 10px; padding: 32px;
+      max-width: 520px; width: calc(100% - 32px); max-height: 90vh; overflow-y: auto;
+    }
+    .modal h3 { font-family: 'Gilda Display', serif; font-size: 1.15rem; margin-bottom: 20px; }
+    .price-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tab-bar { display: flex; gap: 0; border-bottom: 2px solid var(--border, #ddd); margin-bottom: 20px; }
+    .tab-btn {
+      padding: 8px 18px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+      text-transform: uppercase; background: none; border: none; border-bottom: 2px solid transparent;
+      margin-bottom: -2px; cursor: pointer; color: var(--dim, #8a8a8a); font-family: 'Montserrat', sans-serif;
+    }
+    .tab-btn.active { color: var(--green, #2a5c45); border-bottom-color: var(--green, #2a5c45); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .purchase-row {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border, #ddd); gap: 12px;
+      flex-wrap: wrap;
+    }
+    .purchase-row:last-child { border-bottom: none; }
+    .purchase-info { font-size: 13px; }
+    .purchase-meta { font-size: 11px; color: var(--dim, #8a8a8a); margin-top: 2px; }
+    .purchase-amount { font-size: 13px; font-weight: 600; white-space: nowrap; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </div>
+  <div class="header-right">
+    <span class="admin-email" id="adminEmail"></span>
+    <nav class="admin-nav">
+      <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
+      <a href="galleries.html" class="admin-nav-link">Galleries</a>
+      <a href="clients.html" class="admin-nav-link">Clients</a>
+      <a href="services.html" class="admin-nav-link">Services</a>
+      <a href="store.html" class="admin-nav-link active">Store</a>
+    </nav>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+</header>
+
+<main class="main">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;">
+    <h2 class="sh" style="margin:0;">Photo Store</h2>
+    <a href="/shop.html" target="_blank" class="btn btn-secondary" style="font-size:12px;">View Public Shop →</a>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('listings')">Listings</button>
+    <button class="tab-btn" onclick="switchTab('add')">Add Photos</button>
+    <button class="tab-btn" onclick="switchTab('purchases')">Purchases</button>
+  </div>
+
+  <!-- Listings tab -->
+  <div class="tab-panel active" id="tab-listings">
+    <div id="listingsEmpty" style="display:none;text-align:center;padding:40px 0;color:var(--dim,#8a8a8a);font-size:13px;">
+      No photos listed yet. Use the "Add Photos" tab to add photos from a gallery.
+    </div>
+    <div class="store-grid" id="storeGrid"></div>
+  </div>
+
+  <!-- Add Photos tab -->
+  <div class="tab-panel" id="tab-add">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="fg">
+        <label>Select Gallery</label>
+        <select id="gallerySelect" onchange="browseGallery(this.value)">
+          <option value="">— choose a gallery —</option>
+        </select>
+      </div>
+    </div>
+    <div id="browsePlaceholder" style="text-align:center;padding:32px;color:var(--dim,#8a8a8a);font-size:13px;">
+      Select a gallery to browse its photos.
+    </div>
+    <div id="browseLoading" style="display:none;text-align:center;padding:32px;color:var(--dim,#8a8a8a);font-size:13px;">Loading photos…</div>
+    <div class="photo-grid" id="photoGrid"></div>
+  </div>
+
+  <!-- Purchases tab -->
+  <div class="tab-panel" id="tab-purchases">
+    <div class="card">
+      <div id="purchasesEmpty" style="display:none;text-align:center;padding:24px;color:var(--dim,#8a8a8a);font-size:13px;">No purchases yet.</div>
+      <div id="purchasesList"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Edit / Create listing modal -->
+<div class="modal-overlay" id="listingModal">
+  <div class="modal">
+    <h3 id="modalTitle">List Photo for Sale</h3>
+    <input type="hidden" id="editId" />
+    <input type="hidden" id="editGalleryId" />
+    <input type="hidden" id="editNasPhotoId" />
+
+    <div class="fg" style="margin-bottom:14px;">
+      <label>Title</label>
+      <input type="text" id="editTitle" placeholder="e.g. Beachfront Suite at Sunset" />
+    </div>
+    <div class="fg" style="margin-bottom:14px;">
+      <label>Description <span style="font-weight:400;color:var(--dim)">(optional — location, context)</span></label>
+      <textarea id="editDescription" rows="2" placeholder="Palm Beach, Florida — The Editorial Stay collection." style="resize:vertical;"></textarea>
+    </div>
+
+    <p style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;color:var(--dim);margin:0 0 10px;font-family:'Montserrat',sans-serif;">License Pricing (USD)</p>
+    <div class="price-row" style="margin-bottom:14px;">
+      <div class="fg">
+        <label>Personal Use</label>
+        <input type="number" id="editPersonal" min="0" step="0.01" placeholder="49.00" />
+      </div>
+      <div class="fg">
+        <label>Commercial Digital</label>
+        <input type="number" id="editCommDigital" min="0" step="0.01" placeholder="199.00" />
+      </div>
+      <div class="fg">
+        <label>Commercial Print</label>
+        <input type="number" id="editCommPrint" min="0" step="0.01" placeholder="499.00" />
+      </div>
+      <div class="fg">
+        <label>Exclusive Commercial</label>
+        <input type="number" id="editExclusive" min="0" step="0.01" placeholder="1999.00" />
+      </div>
+    </div>
+
+    <div class="fg full" style="flex-direction:row;align-items:center;gap:10px;margin-bottom:18px;">
+      <input type="checkbox" id="editFeatured" style="width:auto;accent-color:var(--teal);cursor:pointer;flex-shrink:0;" />
+      <label for="editFeatured" style="font-size:11px;text-transform:none;color:var(--dim);cursor:pointer;font-weight:400;">Feature this photo on the shop homepage</label>
+    </div>
+
+    <div id="editStatusRow" style="display:none;margin-bottom:18px;">
+      <div class="fg">
+        <label>Status</label>
+        <select id="editStatus">
+          <option value="active">Active</option>
+          <option value="unlisted">Unlisted</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveListing()">Save Listing</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORKER = CTC_CONFIG.workerUrl;
+const jwt = () => localStorage.getItem('ctc_jwt');
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(WORKER + path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + jwt(), ...(opts.headers || {}) },
+  });
+  return res;
+}
+
+function signOut() {
+  localStorage.removeItem('ctc_jwt');
+  window.location.href = '/login.html';
+}
+
+async function init() {
+  const res = await apiFetch('/auth/me');
+  if (!res.ok) { window.location.href = '/login.html'; return; }
+  const me = await res.json();
+  if (me.role !== 'admin') { window.location.href = '/portal.html'; return; }
+  document.getElementById('adminEmail').textContent = me.sub || me.email || '';
+  loadListings();
+  loadGalleries();
+}
+
+// ── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    const tabs = ['listings', 'add', 'purchases'];
+    b.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'purchases') loadPurchases();
+}
+
+// ── Listings ──────────────────────────────────────────────────────────────────
+let listedPhotoIds = new Set();
+
+async function loadListings() {
+  const res = await apiFetch('/admin/store');
+  if (!res.ok) return;
+  const listings = await res.json();
+  listedPhotoIds = new Set(listings.map(l => l.gallery_id + ':' + l.nas_photo_id));
+  renderListings(listings);
+}
+
+function renderListings(listings) {
+  const grid = document.getElementById('storeGrid');
+  const empty = document.getElementById('listingsEmpty');
+  if (!listings.length) { empty.style.display = ''; grid.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = listings.map(l => {
+    const statusClass = { active: 'status-active', unlisted: 'status-unlisted', 'sold-exclusive': 'status-sold-exclusive' }[l.status] || 'status-active';
+    const previewUrl  = WORKER + '/public/store/' + l.id + '/preview';
+    return `
+    <div class="store-card">
+      <img class="store-card-img" src="${previewUrl}" alt="${esc(l.title)}" loading="lazy" onerror="this.style.background='#eee'" />
+      <div class="store-card-body">
+        <span class="store-card-status ${statusClass}">${l.status}</span>
+        <div class="store-card-title">${esc(l.title) || '(untitled)'}</div>
+        <div class="store-card-prices">
+          Personal $${cents(l.personal_price_cents)} · Comm. $${cents(l.commercial_digital_price_cents)}<br>
+          Print $${cents(l.commercial_print_price_cents)} · Exclusive $${cents(l.exclusive_price_cents)}
+          ${l.featured ? '<br><span style="color:var(--teal);">★ Featured</span>' : ''}
+        </div>
+        <div class="store-card-actions">
+          <button class="btn btn-secondary" style="font-size:11px;padding:5px 10px;" onclick="openEditModal(${JSON.stringify(l)})">Edit</button>
+          <button class="btn" style="font-size:11px;padding:5px 10px;background:#fee2e2;color:#991b1b;border:none;" onclick="deleteListing('${l.id}')">Remove</button>
+          <a href="/verify/${l.id}" target="_blank" style="font-size:11px;padding:5px 10px;display:inline-block;color:var(--dim);">Verify →</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function deleteListing(id) {
+  if (!confirm('Remove this photo from the store?')) return;
+  await apiFetch('/admin/store/' + id, { method: 'DELETE' });
+  loadListings();
+}
+
+// ── Gallery Browser ────────────────────────────────────────────────────────────
+async function loadGalleries() {
+  const res = await apiFetch('/admin/galleries');
+  if (!res.ok) return;
+  const galleries = await res.json();
+  const sel = document.getElementById('gallerySelect');
+  galleries.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.id;
+    opt.textContent = g.eventName || g.id;
+    sel.appendChild(opt);
+  });
+}
+
+async function browseGallery(galleryId) {
+  const grid    = document.getElementById('photoGrid');
+  const loading = document.getElementById('browseLoading');
+  const ph      = document.getElementById('browsePlaceholder');
+  grid.innerHTML = '';
+  if (!galleryId) { ph.style.display = ''; loading.style.display = 'none'; return; }
+  ph.style.display = 'none';
+  loading.style.display = '';
+  const res = await apiFetch('/admin/store/browse/' + galleryId);
+  loading.style.display = 'none';
+  if (!res.ok) { ph.textContent = 'Failed to load photos.'; ph.style.display = ''; return; }
+  const data = await res.json();
+  const photos = data?.data?.list || [];
+  if (!photos.length) { ph.textContent = 'No photos found in this gallery.'; ph.style.display = ''; return; }
+  grid.innerHTML = photos.map(p => {
+    const key     = galleryId + ':' + p.id;
+    const isListed = listedPhotoIds.has(key);
+    const thumbUrl = WORKER + '/public/store/browse-thumb/' + galleryId + '/' + p.id;
+    return `
+    <div class="photo-tile ${isListed ? 'listed' : ''}" onclick="openCreateModal('${galleryId}', ${p.id}, this)" data-key="${key}">
+      <img src="${thumbUrl}" alt="Photo ${p.id}" loading="lazy" onerror="this.style.background='#eee'" />
+      ${isListed ? '<span class="tile-badge">Listed</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Listing Modal ──────────────────────────────────────────────────────────────
+function openCreateModal(galleryId, nasPhotoId, tileEl) {
+  const key = galleryId + ':' + nasPhotoId;
+  if (listedPhotoIds.has(key)) return; // already listed — use edit
+  document.getElementById('editId').value = '';
+  document.getElementById('editGalleryId').value = galleryId;
+  document.getElementById('editNasPhotoId').value = nasPhotoId;
+  document.getElementById('modalTitle').textContent = 'List Photo for Sale';
+  document.getElementById('editTitle').value = '';
+  document.getElementById('editDescription').value = '';
+  document.getElementById('editPersonal').value = '';
+  document.getElementById('editCommDigital').value = '';
+  document.getElementById('editCommPrint').value = '';
+  document.getElementById('editExclusive').value = '';
+  document.getElementById('editFeatured').checked = false;
+  document.getElementById('editStatusRow').style.display = 'none';
+  document.getElementById('listingModal').classList.add('open');
+}
+
+function openEditModal(listing) {
+  document.getElementById('editId').value = listing.id;
+  document.getElementById('editGalleryId').value = listing.gallery_id;
+  document.getElementById('editNasPhotoId').value = listing.nas_photo_id;
+  document.getElementById('modalTitle').textContent = 'Edit Listing';
+  document.getElementById('editTitle').value = listing.title || '';
+  document.getElementById('editDescription').value = listing.description || '';
+  document.getElementById('editPersonal').value    = listing.personal_price_cents / 100 || '';
+  document.getElementById('editCommDigital').value = listing.commercial_digital_price_cents / 100 || '';
+  document.getElementById('editCommPrint').value   = listing.commercial_print_price_cents / 100 || '';
+  document.getElementById('editExclusive').value   = listing.exclusive_price_cents / 100 || '';
+  document.getElementById('editFeatured').checked  = !!listing.featured;
+  document.getElementById('editStatus').value = listing.status || 'active';
+  document.getElementById('editStatusRow').style.display = '';
+  document.getElementById('listingModal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('listingModal').classList.remove('open'); }
+
+async function saveListing() {
+  const id     = document.getElementById('editId').value;
+  const body = {
+    gallery_id:                      document.getElementById('editGalleryId').value,
+    nas_photo_id:                    Number(document.getElementById('editNasPhotoId').value),
+    title:                           document.getElementById('editTitle').value,
+    description:                     document.getElementById('editDescription').value,
+    personal_price_cents:            Math.round(parseFloat(document.getElementById('editPersonal').value || 0) * 100),
+    commercial_digital_price_cents:  Math.round(parseFloat(document.getElementById('editCommDigital').value || 0) * 100),
+    commercial_print_price_cents:    Math.round(parseFloat(document.getElementById('editCommPrint').value || 0) * 100),
+    exclusive_price_cents:           Math.round(parseFloat(document.getElementById('editExclusive').value || 0) * 100),
+    featured:                        document.getElementById('editFeatured').checked,
+  };
+  if (id) body.status = document.getElementById('editStatus').value;
+  const res = await apiFetch(id ? '/admin/store/' + id : '/admin/store', {
+    method: id ? 'PUT' : 'POST', body: JSON.stringify(body),
+  });
+  if (!res.ok) { alert('Save failed. Please try again.'); return; }
+  closeModal();
+  await loadListings();
+  if (document.getElementById('gallerySelect').value) {
+    browseGallery(document.getElementById('gallerySelect').value);
+  }
+}
+
+// ── Purchases ──────────────────────────────────────────────────────────────────
+async function loadPurchases() {
+  const res = await apiFetch('/admin/store/purchases');
+  if (!res.ok) return;
+  const purchases = await res.json();
+  const list  = document.getElementById('purchasesList');
+  const empty = document.getElementById('purchasesEmpty');
+  if (!purchases.length) { empty.style.display = ''; list.innerHTML = ''; return; }
+  empty.style.display = 'none';
+  const LICENSE = { personal: 'Personal', commercial_digital: 'Commercial Digital', commercial_print: 'Commercial Print', exclusive: 'Exclusive' };
+  list.innerHTML = purchases.map(p => `
+    <div class="purchase-row">
+      <div>
+        <div class="purchase-info">${esc(p.title || 'Photo')} — ${LICENSE[p.license_type] || p.license_type}</div>
+        <div class="purchase-meta">${esc(p.buyer_name || '')} ${esc(p.email)} · ${p.purchased_at ? new Date(p.purchased_at).toLocaleDateString() : ''}</div>
+      </div>
+      <div class="purchase-amount">$${(p.price_cents / 100).toFixed(2)}</div>
+    </div>`
+  ).join('');
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cents(c) { return ((Number(c) || 0) / 100).toFixed(0); }
+
+init();
+</script>
+</body>
+</html>
