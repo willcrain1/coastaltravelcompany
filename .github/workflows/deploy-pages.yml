@@ -1,7 +1,9 @@
 name: Deploy Pages
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Deploy Worker"]
+    types: [completed]
     branches: [master]
   workflow_dispatch:
 
@@ -10,9 +12,12 @@ env:
 
 jobs:
   deploy-site:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -36,6 +41,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -48,6 +55,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run acceptance tests
+        env:
+          BASE_URL: https://coastaltravelcompany.com
+          WORKER_URL: https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev
         run: npm test
 
       - name: Upload test report on failure
