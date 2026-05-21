@@ -49,3 +49,36 @@ jobs:
             --project-name coastaltravelcompany-preprod \
             --branch preprod \
             --commit-dirty=true
+
+  acceptance-tests:
+    needs: deploy-site-preprod
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run acceptance tests
+        env:
+          BASE_URL: https://preprod.coastaltravelcompany.com
+          WORKER_URL: https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev
+        run: npm test
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

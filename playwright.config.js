@@ -13,7 +13,7 @@ export default defineConfig({
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
   ],
-  webServer: {
+  webServer: process.env.BASE_URL ? undefined : {
     command: 'npx http-server ./site -p 9876 --cors -s',
     url: 'http://localhost:9876',
     reuseExistingServer: !process.env.CI,

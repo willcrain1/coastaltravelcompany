@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const WORKER_URL = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-const STATIC_BASE = 'http://localhost:9876';
+const WORKER_URL = process.env.WORKER_URL || 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+const STATIC_BASE = process.env.BASE_URL  || 'http://localhost:9876';
 
 const CORS = {
   'access-control-allow-origin':  '*',
@@ -35,7 +35,7 @@ async function useMockProposalWorker(context, calls) {
               expires_at: '2026-06-01',
               package_ids: JSON.stringify(['pkg1', 'pkg2']),
               status: 'sent',
-              public_url: 'https://coastaltravelcompany.com/proposal.html#prop1',
+              public_url: `${STATIC_BASE}/proposal.html#prop1`,
               opened_at: new Date().toISOString(),
               view_count: 1,
               time_spent_seconds: 0,
