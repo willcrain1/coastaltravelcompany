@@ -1,4 +1,4 @@
-name: Deploy Preprod
+name: Deploy Worker Preprod
 
 on:
   push:
@@ -27,21 +27,3 @@ jobs:
         run: |
           chmod +x ./worker/deploy-worker-preprod.sh
           ./worker/deploy-worker-preprod.sh
-
-  deploy-pages-preprod:
-    needs: deploy-worker-preprod
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: preprod
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
-        with:
-          path: './site'
-      - uses: actions/deploy-pages@v5
-        id: deployment

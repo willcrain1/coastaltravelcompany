@@ -1,10 +1,10 @@
-name: Create Cloudflare Pages Preprod
+name: Create Cloudflare Pages Production
 
 on:
   workflow_dispatch:
 
 jobs:
-  create-pages-preprod:
+  create-pages-prod:
     runs-on: ubuntu-latest
     steps:
       - name: Create Cloudflare Pages project
@@ -15,8 +15,8 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d '{
-              "name": "coastaltravelcompany-preprod",
-              "production_branch": "preprod",
+              "name": "coastaltravelcompany-prod",
+              "production_branch": "master",
               "build_config": {
                 "build_command": "",
                 "destination_dir": "site"
@@ -32,14 +32,32 @@ jobs:
               sys.exit(1)
           "
 
-      - name: Add custom domain
+      - name: Add custom domain coastaltravelcompany.com
         run: |
-          echo "Adding custom domain preprod.coastaltravelcompany.com..."
+          echo "Adding custom domain coastaltravelcompany.com..."
           RESPONSE=$(curl -s -X POST \
-            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CF_ACCOUNT_ID }}/pages/projects/coastaltravelcompany-preprod/domains" \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CF_ACCOUNT_ID }}/pages/projects/coastaltravelcompany-prod/domains" \
             -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"name": "preprod.coastaltravelcompany.com"}')
+            -d '{"name": "coastaltravelcompany.com"}')
+          echo "$RESPONSE" | python3 -c "
+          import json, sys
+          r = json.load(sys.stdin)
+          if r.get('success'):
+              print('Custom domain added:', r['result']['name'])
+          else:
+              print('Error:', json.dumps(r.get('errors'), indent=2))
+              sys.exit(1)
+          "
+
+      - name: Add custom domain www.coastaltravelcompany.com
+        run: |
+          echo "Adding custom domain www.coastaltravelcompany.com..."
+          RESPONSE=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CF_ACCOUNT_ID }}/pages/projects/coastaltravelcompany-prod/domains" \
+            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"name": "www.coastaltravelcompany.com"}')
           echo "$RESPONSE" | python3 -c "
           import json, sys
           r = json.load(sys.stdin)
