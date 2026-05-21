@@ -24,7 +24,9 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
           CF_WORKER_NAME_PREPROD: ${{ secrets.CF_WORKER_NAME_PREPROD }}
-        run: ./worker/deploy-worker-preprod.sh
+        run: |
+          chmod +x ./worker/deploy-worker-preprod.sh
+          ./worker/deploy-worker-preprod.sh
 
   deploy-pages-preprod:
     needs: deploy-worker-preprod
