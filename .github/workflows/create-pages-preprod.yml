@@ -20,15 +20,6 @@ jobs:
               "build_config": {
                 "build_command": "",
                 "destination_dir": "site"
-              },
-              "source": {
-                "type": "github",
-                "config": {
-                  "owner": "willcrain1",
-                  "repo_name": "coastaltravelcompany",
-                  "production_branch": "preprod",
-                  "pr_comments_enabled": false
-                }
               }
             }')
           echo "$RESPONSE" | python3 -c "
