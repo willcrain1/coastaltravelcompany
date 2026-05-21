@@ -28,5 +28,24 @@ jobs:
           chmod +x ./worker/deploy-worker-preprod.sh
           ./worker/deploy-worker-preprod.sh
 
-  # Preprod static site is served by Cloudflare Pages, connected directly to
-  # the preprod branch in the Cloudflare dashboard — no GitHub Pages step needed.
+  deploy-site-preprod:
+    needs: deploy-worker-preprod
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Deploy site to Cloudflare Pages
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          cd worker
+          npm install
+          npx wrangler pages deploy ../site \
+            --project-name coastaltravelcompany-preprod \
+            --branch preprod \
+            --commit-dirty=true
