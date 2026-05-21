@@ -904,49 +904,6 @@ footer {
 .mb-32 { margin-bottom: 32px; }
 .mb-48 { margin-bottom: 48px; }
 
-/* ─── Nav Account Link ────────────────────────────────────── */
-
-.nav-account {
-  text-decoration: none;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.88);
-  transition: color 0.3s;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.nav-account::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 0;
-  height: 1px;
-  background: var(--sage-teal);
-  transition: width 0.35s ease;
-}
-
-.nav-account:hover,
-.nav-account.active {
-  color: var(--white);
-}
-
-.nav-account:hover::after,
-.nav-account.active::after {
-  width: 100%;
-}
-
-nav.scrolled .nav-account {
-  color: var(--text-mid);
-}
-
-nav.scrolled .nav-account:hover,
-nav.scrolled .nav-account.active {
-  color: var(--forest-green);
-}
 
 /* ─── Responsive ──────────────────────────────────────────── */
 
