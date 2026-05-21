@@ -34,6 +34,7 @@ header {
   gap: 16px;
 }
 .logo-wrap { line-height: 1; flex-shrink: 0; }
+a.logo-wrap { text-decoration: none; }
 .logo-main {
   font-family: 'Gilda Display', serif;
   font-size: 13px;
