@@ -1,0 +1,60 @@
+name: Create Cloudflare Pages Preprod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create-pages-preprod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Cloudflare Pages project
+        run: |
+          echo "Creating Pages project..."
+          RESPONSE=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CF_ACCOUNT_ID }}/pages/projects" \
+            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name": "coastaltravelcompany-preprod",
+              "production_branch": "preprod",
+              "build_config": {
+                "build_command": "",
+                "destination_dir": "site"
+              },
+              "source": {
+                "type": "github",
+                "config": {
+                  "owner": "willcrain1",
+                  "repo_name": "coastaltravelcompany",
+                  "production_branch": "preprod",
+                  "pr_comments_enabled": false
+                }
+              }
+            }')
+          echo "$RESPONSE" | python3 -c "
+          import json, sys
+          r = json.load(sys.stdin)
+          if r.get('success'):
+              print('Project created:', r['result']['subdomain'])
+          else:
+              print('Error:', json.dumps(r.get('errors'), indent=2))
+              sys.exit(1)
+          "
+
+      - name: Add custom domain
+        run: |
+          echo "Adding custom domain preprod.coastaltravelcompany.com..."
+          RESPONSE=$(curl -s -X POST \
+            "https://api.cloudflare.com/client/v4/accounts/${{ secrets.CF_ACCOUNT_ID }}/pages/projects/coastaltravelcompany-preprod/domains" \
+            -H "Authorization: Bearer ${{ secrets.CF_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"name": "preprod.coastaltravelcompany.com"}')
+          echo "$RESPONSE" | python3 -c "
+          import json, sys
+          r = json.load(sys.stdin)
+          if r.get('success'):
+              print('Custom domain added:', r['result']['name'])
+          else:
+              print('Error:', json.dumps(r.get('errors'), indent=2))
+              sys.exit(1)
+          "
