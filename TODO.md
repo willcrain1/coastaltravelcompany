@@ -821,3 +821,18 @@ Booking funnel tracking — if a booking flow is added later
  UTM link generated for business card QR code
  Privacy Policy page published
  Baseline report captured (first 30 days of data)
+
+---
+
+## 34. Migrate Production Hosting from GitHub Pages to Cloudflare Pages
+
+**Goal:** Move the production static site from GitHub Pages to Cloudflare Pages to match the preprod setup — single hosting platform, faster global CDN, unified deployment pipeline, and no single-custom-domain limitation.
+
+- [ ] Create a Cloudflare Pages project for production (connected to the `master` branch, output dir: `site`) via the `create-pages-preprod.yml` workflow pattern or Cloudflare dashboard
+- [ ] Add `coastaltravelcompany.com` and `www.coastaltravelcompany.com` as custom domains on the Cloudflare Pages project
+- [ ] Verify DNS: update or confirm the `coastaltravelcompany.com` CNAME/A record in Cloudflare points to the Pages project URL instead of GitHub Pages
+- [ ] Remove the `CNAME` file from `site/` — Cloudflare Pages uses its own domain config; the file is only needed for GitHub Pages
+- [ ] Remove the `deploy-pages` job from `.github/workflows/deploy.yml` and the `acceptance-tests` job's `needs: deploy-pages` dependency — Cloudflare Pages auto-deploys on push to `master`
+- [ ] Confirm acceptance tests still run after the deploy job is restructured (may need to trigger them via a separate webhook or delay)
+- [ ] Verify the production site loads correctly at `coastaltravelcompany.com` after cutover
+- [ ] Monitor for any caching or redirect issues (www → apex, HTTP → HTTPS) — Cloudflare Pages handles these automatically when the domain is proxied
