@@ -55,6 +55,9 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run acceptance tests
+        env:
+          BASE_URL: https://preprod.coastaltravelcompany.com
+          WORKER_URL: https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev
         run: npm test
 
       - name: Upload test report on failure

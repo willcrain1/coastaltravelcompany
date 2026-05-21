@@ -13,8 +13,8 @@
 
 import { test, expect } from '@playwright/test';
 
-const WORKER_URL  = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-const STATIC_BASE = 'http://localhost:9876';
+const WORKER_URL  = process.env.WORKER_URL || 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 
 const CORS = {
   'access-control-allow-origin':  '*',

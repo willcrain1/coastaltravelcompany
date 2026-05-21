@@ -13,8 +13,8 @@
 
 import { test, expect } from '@playwright/test';
 
-const WORKER_URL  = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-const STATIC_BASE = 'http://localhost:9876';
+const WORKER_URL  = process.env.WORKER_URL || 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 
 const CORS = {
   'access-control-allow-origin':  '*',
@@ -298,7 +298,7 @@ async function useMockAdminWorker(context, projects = []) {
                 ...body,
                 package_ids: JSON.stringify(body.package_ids || []),
                 status: 'sent',
-                public_url: 'https://coastaltravelcompany.com/proposal.html#proposal-new',
+                public_url: `${STATIC_BASE}/proposal.html#proposal-new`,
                 opened_at: '',
                 view_count: 0,
                 created_at: new Date().toISOString(),
