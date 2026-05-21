@@ -821,3 +821,17 @@ Booking funnel tracking — if a booking flow is added later
  UTM link generated for business card QR code
  Privacy Policy page published
  Baseline report captured (first 30 days of data)
+
+---
+
+## ~~33. Admin User Role Management~~ ✅ Done
+
+**Goal:** Allow admins to promote a client account to admin or demote an admin account back to client directly from the admin panel — no manual database edits or Worker redeploys required.
+
+- [x] Add a "Role" column to the user list in `admin/galleries.html` — shows each account's current role (`client` or `admin`) as a badge
+- [x] Add a role toggle control per user row — a dropdown or toggle button that lets an admin switch a user between `client` and `admin`; the control is disabled for the currently logged-in admin to prevent self-demotion
+- [x] Add a Worker endpoint `PATCH /admin/users/:userId/role` — accepts `{ role: "client" | "admin" }`, validates that the requesting user is an admin, rejects attempts to change one's own role, updates the user record in KV, returns the updated user object
+- [x] Confirm the role change with a brief in-UI prompt ("Promote [name] to admin? They will gain full admin access.") before submitting — prevents accidental promotions
+- [x] Reflect the new role immediately in the UI after a successful response — no page reload required
+- [x] Emit an activity log entry in the pipeline for the role change: timestamp, acting admin, affected user, old role, new role — stored in D1 for audit purposes (`worker/migrations/012_user_role_audit.sql`)
+- [x] Send an email notification to the affected user via Resend when their role changes ("Your account has been updated to [role] by an administrator")

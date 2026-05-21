@@ -79,8 +79,9 @@
 <script src="../config.js"></script>
 <script src="admin-shared.js"></script>
 <script>
-  let users     = [];
-  let galleries = [];
+  let users             = [];
+  let galleries         = [];
+  let currentAdminEmail = '';
 
   // ── Gallery data (for assignment UI) ────────────────────────────────────────
   async function loadGalleries() {
@@ -224,6 +225,10 @@
               </div>
             </div>
             <div class="ur-actions">
+              ${u.email !== currentAdminEmail ? `
+                <button class="btn btn-ghost btn-sm" onclick="changeRole('${esc(u.id)}','${esc(u.role)}','${esc(u.email)}')">
+                  ${u.role === 'admin' ? 'Make Client' : 'Make Admin'}
+                </button>` : ''}
               <button class="btn btn-ghost btn-sm" onclick="sendResetEmail('${esc(u.email)}')">Reset Password</button>
               <button class="btn btn-danger btn-sm" onclick="deleteUser('${esc(u.id)}')">Delete</button>
             </div>
@@ -267,9 +272,29 @@
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────────
+  async function changeRole(userId, currentRole, userEmail) {
+    const newRole = currentRole === 'admin' ? 'client' : 'admin';
+    const msg = newRole === 'admin'
+      ? `Promote ${userEmail} to admin? They will gain full admin access to the dashboard.`
+      : `Demote ${userEmail} to client? They will lose admin access.`;
+    if (!confirm(msg)) return;
+
+    const { ok, data } = await apiFetch('/admin/users/' + userId + '/role', {
+      method: 'PATCH',
+      body:   { role: newRole },
+    });
+    if (!ok) { toast(data.error || 'Role change failed', true); return; }
+
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx >= 0) users[idx] = data;
+    renderUserList();
+    toast(`${userEmail} is now ${newRole}`);
+  }
+
   async function init() {
     const authed = await authGate();
     if (!authed) return;
+    currentAdminEmail = document.getElementById('adminEmail').textContent.trim();
     await Promise.all([loadGalleries(), loadUsers()]);
   }
 

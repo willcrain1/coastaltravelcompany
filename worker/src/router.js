@@ -24,6 +24,7 @@ import {
 import {
   handleAdminListUsers, handleAdminCreateUser,
   handleAdminUpdateUser, handleAdminDeleteUser,
+  handleAdminUpdateUserRole,
 } from './admin/users.js';
 
 import {
@@ -109,7 +110,9 @@ export async function handleRequest(request, env) {
   }
   if (method === 'GET'  && pathname === '/admin/users') return handleAdminListUsers(request, env);
   if (method === 'POST' && pathname === '/admin/users') return handleAdminCreateUser(request, env);
-  const userIdMatch = pathname.match(/^\/admin\/users\/([^/]+)$/);
+  const userIdMatch   = pathname.match(/^\/admin\/users\/([^/]+)$/);
+  const userRoleMatch = pathname.match(/^\/admin\/users\/([^/]+)\/role$/);
+  if (userRoleMatch && method === 'PATCH') return handleAdminUpdateUserRole(request, env, userRoleMatch[1]);
   if (userIdMatch) {
     if (method === 'PUT')    return handleAdminUpdateUser(request, env, userIdMatch[1]);
     if (method === 'DELETE') return handleAdminDeleteUser(request, env, userIdMatch[1]);
