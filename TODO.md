@@ -836,3 +836,14 @@ Booking funnel tracking — if a booking flow is added later
 - [x] Confirm acceptance tests still run after the deploy job is restructured — `acceptance-tests` runs after `deploy-site` in `deploy.yml`; also runs on PRs via `acceptance-tests.yml`
 - [x] Verify the production site loads correctly at `coastaltravelcompany.com` after cutover
 - [x] Monitor for any caching or redirect issues (www → apex, HTTP → HTTPS) — Cloudflare Pages handles these automatically when the domain is proxied
+
+---
+
+## 35. Resolve npm Dependency Vulnerabilities in Worker
+
+**Goal:** Eliminate the 5 known vulnerabilities in `worker/package.json` (4 moderate, 1 high).
+
+- [ ] **undici — CRLF Injection (high):** [GHSA-4992-7rv2-5pvq](https://github.com/advisories/GHSA-4992-7rv2-5pvq) — present via `miniflare` → `undici`
+- [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
+- [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
+- [ ] Verify worker deploys and acceptance tests pass after the upgrade
