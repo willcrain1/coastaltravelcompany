@@ -824,6 +824,7 @@ Booking funnel tracking — if a booking flow is added later
 
 ---
 
+
 ## ~~33. Admin User Role Management~~ ✅ Done
 
 **Goal:** Allow admins to promote a client account to admin or demote an admin account back to client directly from the admin panel — no manual database edits or Worker redeploys required.
@@ -835,3 +836,27 @@ Booking funnel tracking — if a booking flow is added later
 - [x] Reflect the new role immediately in the UI after a successful response — no page reload required
 - [x] Emit an activity log entry in the pipeline for the role change: timestamp, acting admin, affected user, old role, new role — stored in D1 for audit purposes (`worker/migrations/012_user_role_audit.sql`)
 - [x] Send an email notification to the affected user via Resend when their role changes ("Your account has been updated to [role] by an administrator")
+=======
+## ~~34. Migrate Production Hosting from GitHub Pages to Cloudflare Pages~~ ✅ Done
+
+**Goal:** Move the production static site from GitHub Pages to Cloudflare Pages to match the preprod setup — single hosting platform, faster global CDN, unified deployment pipeline, and no single-custom-domain limitation.
+
+- [x] Create a Cloudflare Pages project for production (connected to the `master` branch, output dir: `site`) via the `create-pages-preprod.yml` workflow pattern or Cloudflare dashboard
+- [x] Add `coastaltravelcompany.com` and `www.coastaltravelcompany.com` as custom domains on the Cloudflare Pages project
+- [x] Verify DNS: update or confirm the `coastaltravelcompany.com` CNAME/A record in Cloudflare points to the Pages project URL instead of GitHub Pages
+- [x] Remove the `CNAME` file from `site/` — Cloudflare Pages uses its own domain config; the file is only needed for GitHub Pages
+- [x] Remove the `deploy-pages` job from `.github/workflows/deploy.yml` and replace with `deploy-site` using `wrangler pages deploy`; `acceptance-tests` depends on `deploy-site`
+- [x] Confirm acceptance tests still run after the deploy job is restructured — `acceptance-tests` runs after `deploy-site` in `deploy.yml`; also runs on PRs via `acceptance-tests.yml`
+- [x] Verify the production site loads correctly at `coastaltravelcompany.com` after cutover
+- [x] Monitor for any caching or redirect issues (www → apex, HTTP → HTTPS) — Cloudflare Pages handles these automatically when the domain is proxied
+
+---
+
+## 35. Resolve npm Dependency Vulnerabilities in Worker
+
+**Goal:** Eliminate the 5 known vulnerabilities in `worker/package.json` (4 moderate, 1 high).
+
+- [ ] **undici — CRLF Injection (high):** [GHSA-4992-7rv2-5pvq](https://github.com/advisories/GHSA-4992-7rv2-5pvq) — present via `miniflare` → `undici`
+- [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
+- [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
+- [ ] Verify worker deploys and acceptance tests pass after the upgrade

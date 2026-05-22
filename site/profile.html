@@ -30,29 +30,50 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 20px;
+      padding: 120px 20px 40px;
       -webkit-font-smoothing: antialiased;
     }
 
-    .brand {
-      text-align: center;
-      margin-bottom: 36px;
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--cream);
+      border-bottom: 1px solid var(--linen);
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .brand a { text-decoration: none; color: inherit; }
-    .brand-main {
+    .logo-wrap { line-height: 1; text-decoration: none; }
+    .logo-main {
       display: block;
       font-family: 'Gilda Display', serif;
-      font-size: 12px;
-      letter-spacing: 0.32em;
+      font-size: 11px;
+      letter-spacing: 0.28em;
       text-transform: uppercase;
       color: var(--black);
     }
-    .brand-script {
+    .logo-script {
       font-family: 'Pinyon Script', cursive;
-      font-size: 38px;
+      font-size: 26px;
       color: var(--green);
-      line-height: 1.1;
+      line-height: 1;
     }
+    .nav-right { display: flex; align-items: center; gap: 20px; }
+    .user-email { font-size: 11px; color: var(--mid); letter-spacing: 0.04em; }
+    .sign-out-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--linen);
+      color: var(--mid);
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sign-out-btn:hover { border-color: var(--teal); color: var(--green); }
 
     .card {
       background: #fff;
@@ -154,12 +175,18 @@
 </head>
 <body>
 
-<div class="brand">
-  <a href="index.html">
-    <span class="brand-main">Coastal</span>
-    <span class="brand-script">Travel Company</span>
+<nav>
+  <a href="/" style="text-decoration:none">
+    <div class="logo-wrap">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </div>
   </a>
-</div>
+  <div class="nav-right">
+    <span class="user-email" id="userEmail"></span>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+</nav>
 
 <!-- ── Loading ── -->
 <div class="card" id="loadingCard">
@@ -229,6 +256,7 @@
     btn.textContent = isAdmin ? 'Admin Panel' : 'My Galleries';
     btn.href        = isAdmin ? '/admin/pipeline.html' : '/portal.html';
 
+    document.getElementById('userEmail').textContent = user.email;
     show('loggedInCard');
   }
 

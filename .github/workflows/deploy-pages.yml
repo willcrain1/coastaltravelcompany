@@ -1,38 +1,23 @@
-name: Deploy Preprod
+name: Deploy Pages
 
 on:
-  push:
-    branches: [preprod]
+  workflow_run:
+    workflows: ["Deploy Worker"]
+    types: [completed]
+    branches: [master]
   workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy-worker-preprod:
+  deploy-site:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Deploy preprod Worker
-        env:
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
-          CF_WORKER_NAME_PREPROD: ${{ secrets.CF_WORKER_NAME_PREPROD }}
-        run: |
-          chmod +x ./worker/deploy-worker-preprod.sh
-          ./worker/deploy-worker-preprod.sh
-
-  deploy-site-preprod:
-    needs: deploy-worker-preprod
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -46,16 +31,18 @@ jobs:
           cd worker
           npm install
           npx wrangler pages deploy ../site \
-            --project-name coastaltravelcompany-preprod \
-            --branch preprod \
+            --project-name coastaltravelcompany-prod \
+            --branch master \
             --commit-dirty=true
 
   acceptance-tests:
-    needs: deploy-site-preprod
+    needs: deploy-site
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -69,8 +56,8 @@ jobs:
 
       - name: Run acceptance tests
         env:
-          BASE_URL: https://preprod.coastaltravelcompany.com
-          WORKER_URL: https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev
+          BASE_URL: https://coastaltravelcompany.com
+          WORKER_URL: https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev
         run: npm test
 
       - name: Upload test report on failure
