@@ -878,6 +878,6 @@ Booking funnel tracking — if a booking flow is added later
 
 **Goal:** The mobile nav menu should always display all header links when opened, regardless of scroll position. Currently, if the user scrolls down the page first and then opens the menu, only half the headers are visible — the menu is offset by the scroll position and clipped by the viewport.
 
-- [ ] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
-- [ ] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — an `absolute` positioned menu would scroll with the page and appear partially off-screen when the user has scrolled down; fix by ensuring `position: fixed` and `top: 0` so the menu always covers the viewport from the top
-- [ ] Verify the body scroll-lock behavior when the nav is open — if the page is not locked, the user can scroll while the menu is open, which may expose or hide nav items unexpectedly
+- [x] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
+- [x] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — root cause was `backdrop-filter: blur(8px)` on `nav.scrolled` making `nav` the containing block for `position:fixed` children, clipping the overlay to the nav bar height; fixed by setting `nav.style.backdropFilter = 'none'` on open and clearing it on close
+- [x] Verify the body scroll-lock behavior when the nav is open — scroll-lock (`document.body.style.overflow = 'hidden'`) was already in place and working correctly
