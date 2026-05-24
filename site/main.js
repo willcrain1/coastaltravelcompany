@@ -29,35 +29,49 @@ fadeEls.forEach(el => observer.observe(el));
 const toggle = document.querySelector('.nav-toggle');
 const navLinks = document.querySelector('.nav-links');
 
+function openMobileMenu() {
+  navLinks.style.display = 'flex';
+  navLinks.style.flexDirection = 'column';
+  navLinks.style.position = 'fixed';
+  navLinks.style.top = '0';
+  navLinks.style.left = '0';
+  navLinks.style.right = '0';
+  navLinks.style.bottom = '0';
+  navLinks.style.background = 'var(--cream)';
+  navLinks.style.alignItems = 'center';
+  navLinks.style.justifyContent = 'center';
+  navLinks.style.gap = '36px';
+  navLinks.style.zIndex = '150';
+  navLinks.querySelectorAll('a').forEach(a => {
+    a.style.color = 'var(--black)';
+    a.style.fontSize = '13px';
+    a.style.letterSpacing = '0.3em';
+  });
+  toggle.classList.add('open');
+  // Prevent the page from scrolling behind the overlay, which would shift
+  // the mobile browser toolbar and push menu items off-screen.
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileMenu() {
+  navLinks.style.display = 'none';
+  toggle.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
 if (toggle && navLinks) {
   toggle.addEventListener('click', () => {
-    const open = navLinks.style.display === 'flex';
-    navLinks.style.display = open ? 'none' : 'flex';
-    navLinks.style.flexDirection = 'column';
-    navLinks.style.position = 'fixed';
-    navLinks.style.top = '0';
-    navLinks.style.left = '0';
-    navLinks.style.right = '0';
-    navLinks.style.bottom = '0';
-    navLinks.style.background = 'var(--cream)';
-    navLinks.style.alignItems = 'center';
-    navLinks.style.justifyContent = 'center';
-    navLinks.style.gap = '36px';
-    navLinks.style.zIndex = '150';
-
-    if (!open) {
-      navLinks.querySelectorAll('a').forEach(a => {
-        a.style.color = 'var(--black)';
-        a.style.fontSize = '13px';
-        a.style.letterSpacing = '0.3em';
-      });
+    if (navLinks.style.display === 'flex') {
+      closeMobileMenu();
+    } else {
+      openMobileMenu();
     }
   });
 
   // Close menu when a link is clicked
   navLinks.querySelectorAll('a').forEach(a => {
     a.addEventListener('click', () => {
-      navLinks.style.display = 'none';
+      closeMobileMenu();
     });
   });
 }

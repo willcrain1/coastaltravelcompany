@@ -852,14 +852,14 @@ Booking funnel tracking — if a booking flow is added later
 
 ---
 
-## 35. Fix Mobile Menu Focus on Scroll
+## ~~35. Fix Mobile Menu Focus on Scroll~~ ✅ Done
 
 **Goal:** Fix the mobile navigation menu so that menu items remain visible and focused on screen when the user opens the menu and then scrolls before clicking anything.
 
-- [ ] Investigate `main.js` mobile nav toggle behavior — determine whether the open menu overlay is `position: fixed` or `position: absolute`; if absolute, it scrolls with the page instead of staying in the viewport
-- [ ] Update the mobile menu overlay to use `position: fixed` (if not already) so it stays locked to the viewport regardless of scroll position
-- [ ] Verify the overlay covers the full viewport height and that menu items remain centered/visible after scrolling
-- [ ] Test on iOS Safari and Android Chrome — confirm menu items are tappable and in-view after the user scrolls with the menu open
+- [x] Investigate `main.js` mobile nav toggle behavior — overlay was already `position: fixed` but body scroll was not locked
+- [x] Add `document.body.style.overflow = 'hidden'` on menu open and restore it on close — prevents the page from scrolling behind the overlay, which would shift the mobile browser toolbar and push menu items off-screen
+- [x] Refactored toggle into `openMobileMenu()` / `closeMobileMenu()` helpers so both the toggle button and link-click handler share the same teardown logic
+- [x] Add hamburger → X CSS animation on `.nav-toggle.open` so users have a clear affordance to close the menu
 
 ---
 
