@@ -852,7 +852,18 @@ Booking funnel tracking — if a booking flow is added later
 
 ---
 
-## 35. Resolve npm Dependency Vulnerabilities in Worker
+## ~~35. Fix Mobile Menu Focus on Scroll~~ ✅ Done
+
+**Goal:** Fix the mobile navigation menu so that menu items remain visible and focused on screen when the user opens the menu and then scrolls before clicking anything.
+
+- [x] Investigate `main.js` mobile nav toggle behavior — overlay was already `position: fixed` but body scroll was not locked
+- [x] Add `document.body.style.overflow = 'hidden'` on menu open and restore it on close — prevents the page from scrolling behind the overlay, which would shift the mobile browser toolbar and push menu items off-screen
+- [x] Refactored toggle into `openMobileMenu()` / `closeMobileMenu()` helpers so both the toggle button and link-click handler share the same teardown logic
+- [x] Add hamburger → X CSS animation on `.nav-toggle.open` so users have a clear affordance to close the menu
+
+---
+
+## 36. Resolve npm Dependency Vulnerabilities in Worker
 
 **Goal:** Eliminate the 5 known vulnerabilities in `worker/package.json` (4 moderate, 1 high).
 
