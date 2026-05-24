@@ -871,3 +871,13 @@ Booking funnel tracking — if a booking flow is added later
 - [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
 - [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
 - [ ] Verify worker deploys and acceptance tests pass after the upgrade
+
+---
+
+## 36. Fix Mobile Nav Menu Scroll Bug
+
+**Goal:** When the user scrolls down the page on mobile and then opens the nav menu, the menu opens fully expanded and all header links are visible. It should only show the top portion of the menu (half the headers cut off), not the full list.
+
+- [ ] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
+- [ ] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — an `absolute` positioned menu would scroll with the page and appear partially off-screen when the user has scrolled down; fix by ensuring `position: fixed` and `top: 0` so the menu always covers the viewport from the top
+- [ ] Verify the body scroll-lock behavior when the nav is open — if the page is not locked, the user can scroll while the menu is open, which may expose or hide nav items unexpectedly
