@@ -30,6 +30,10 @@ const toggle = document.querySelector('.nav-toggle');
 const navLinks = document.querySelector('.nav-links');
 
 function openMobileMenu() {
+  // backdrop-filter on nav.scrolled makes nav a containing block for
+  // position:fixed children, clipping the overlay to the nav bar height.
+  // Overriding it to none restores the viewport as the containing block.
+  nav.style.backdropFilter = 'none';
   navLinks.style.display = 'flex';
   navLinks.style.flexDirection = 'column';
   navLinks.style.position = 'fixed';
@@ -48,12 +52,11 @@ function openMobileMenu() {
     a.style.letterSpacing = '0.3em';
   });
   toggle.classList.add('open');
-  // Prevent the page from scrolling behind the overlay, which would shift
-  // the mobile browser toolbar and push menu items off-screen.
   document.body.style.overflow = 'hidden';
 }
 
 function closeMobileMenu() {
+  nav.style.backdropFilter = '';
   navLinks.style.display = 'none';
   toggle.classList.remove('open');
   document.body.style.overflow = '';
