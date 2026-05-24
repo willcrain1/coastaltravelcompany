@@ -871,3 +871,13 @@ Booking funnel tracking — if a booking flow is added later
 - [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
 - [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
 - [ ] Verify worker deploys and acceptance tests pass after the upgrade
+
+---
+
+## 36. Fix Mobile Nav Menu Scroll Bug
+
+**Goal:** The mobile nav menu should always display all header links when opened, regardless of scroll position. Currently, if the user scrolls down the page first and then opens the menu, only half the headers are visible — the menu is offset by the scroll position and clipped by the viewport.
+
+- [x] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
+- [x] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — root cause was `backdrop-filter: blur(8px)` on `nav.scrolled` making `nav` the containing block for `position:fixed` children, clipping the overlay to the nav bar height; fixed by setting `nav.style.backdropFilter = 'none'` on open and clearing it on close
+- [x] Verify the body scroll-lock behavior when the nav is open — scroll-lock (`document.body.style.overflow = 'hidden'`) was already in place and working correctly
