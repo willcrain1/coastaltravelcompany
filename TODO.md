@@ -876,7 +876,7 @@ Booking funnel tracking — if a booking flow is added later
 
 ## 36. Fix Mobile Nav Menu Scroll Bug
 
-**Goal:** When the user scrolls down the page on mobile and then opens the nav menu, the menu opens fully expanded and all header links are visible. It should only show the top portion of the menu (half the headers cut off), not the full list.
+**Goal:** The mobile nav menu should always display all header links when opened, regardless of scroll position. Currently, if the user scrolls down the page first and then opens the menu, only half the headers are visible — the menu is offset by the scroll position and clipped by the viewport.
 
 - [ ] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
 - [ ] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — an `absolute` positioned menu would scroll with the page and appear partially off-screen when the user has scrolled down; fix by ensuring `position: fixed` and `top: 0` so the menu always covers the viewport from the top
