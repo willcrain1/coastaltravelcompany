@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="config.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
   <style>
     :root {
       --black:  #1C1C1C;
@@ -127,16 +127,27 @@
     }
     .btn-ghost:hover { border-color: var(--teal); color: var(--green); }
 
-    .divider {
-      display: flex; align-items: center; gap: 12px;
+    #googleSection { width: 100%; }
+    .or-divider {
+      position: relative;
+      text-align: center;
       margin: 20px 0;
+    }
+    .or-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 1px;
+      background: var(--linen);
+    }
+    .or-divider span {
+      position: relative;
+      background: #fff;
+      padding: 0 10px;
       font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--light);
     }
-    .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--linen);
-    }
 
-    #googleBtnWrap { display: flex; justify-content: center; }
+    #googleBtnWrap { width: 100%; overflow: hidden; }
 
     .link-row {
       text-align: center;
@@ -241,7 +252,7 @@
     <div class="success-msg" id="resendSuccess"></div>
   </div>
   <div id="googleSection">
-    <div class="divider">or</div>
+    <div class="or-divider"><span>or</span></div>
     <div id="googleBtnWrap"></div>
   </div>
   <div class="link-row">
@@ -446,17 +457,20 @@
 
   // ── Google Sign-In ────────────────────────────────────────────────────────
   function initGoogle() {
-    if (!GOOGLE_CLIENT_ID || typeof google === 'undefined') {
+    if (!GOOGLE_CLIENT_ID) {
       document.getElementById('googleSection').classList.add('hidden');
       return;
     }
+    // GSI script not yet loaded — the onload callback will call us again.
+    if (typeof google === 'undefined') return;
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback:  handleGoogleCredential,
     });
+    const wrap = document.getElementById('googleBtnWrap');
     google.accounts.id.renderButton(
-      document.getElementById('googleBtnWrap'),
-      { theme: 'outline', size: 'large', width: 328, text: 'signin_with' }
+      wrap,
+      { theme: 'outline', size: 'large', width: wrap.offsetWidth, text: 'signin_with' }
     );
   }
 
