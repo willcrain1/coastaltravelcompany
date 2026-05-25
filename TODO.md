@@ -901,3 +901,10 @@ Booking funnel tracking — if a booking flow is added later
 
 - [] current client capabilities will become standard client capabilities.
 - [] real estate clients will have the ability to make individual property pages where they can select photos from their galleries to go to the pages, link walkthrough splatting, embed zillow/redfin information, and safely link to their own real estate site.
+- [] real estate clients should have access to analytics on their postings and have access to viewer data.
+
+## 39. Create privacy policy
+
+**Goal: create a privacy policy that describes how data is handled**
+
+
