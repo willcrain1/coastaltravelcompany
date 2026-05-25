@@ -264,39 +264,43 @@ coastaltravelcompany/
 ```
 1. Admin creates a Synology Photos share link
    └─► Synology Photos → album → share → copy link
-       e.g. https://coastaltravelcompany.us6.quickconnect.to/mo/sharing/vCsa5XjJH
-                                                                          └── passphrase
+       e.g. https://nas.coastaltravelcompany.com/mo/sharing/vCsa5XjJH
+                                                              └── passphrase
 
-2. Admin opens gallery-admin.html, pastes share link
-   └─► Admin sets event name, client name, password
-   └─► Admin clicks Generate Gallery Link
+2. Admin opens gallery-admin.html, creates the gallery
+   └─► Admin sets event name, client name, password, and pastes the share link
    └─► Admin tool creates a config object:
        {
          passphrase: "vCsa5XjJH",
-         nasUrl: "https://coastaltravelcompany.us6.quickconnect.to",
+         nasUrl: "https://nas.coastaltravelcompany.com",
          nasClientUrl: "https://coastaltravelcompany.com/gallery/client-gallery.html",
          proxyUrl: "https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev",
          eventName: "...", clientName: "...", pwHash: "sha256...", ...
        }
-   └─► Config is base64-encoded and appended as a URL hash
-   └─► Result: https://coastaltravelcompany.com/gallery/gallery.html#eyJ...
+   └─► Config is base64-encoded and stored as the gallery's URL hash
 
-3. Admin sends the link + password to the client (separately)
+3. Admin assigns the gallery to a client account
+   └─► Admin → Clients page → find the client → expand → check the gallery checkbox
+   └─► The gallery now appears in the client's portal automatically — no link to send
 
-4. Client opens the link in their browser
-   └─► gallery.html loads
+4. Client logs in to their portal
+   └─► coastaltravelcompany.com/portal → sign in with Google or password
+   └─► Portal fetches assigned galleries from the Worker (/portal/galleries)
+   └─► Client clicks a gallery card to open it
+
+5. gallery.html loads
    └─► JavaScript decodes the hash → config object
    └─► gallery.html embeds client-gallery.html in a full-screen iframe,
        passing the same hash: client-gallery.html#eyJ...
 
-5. client-gallery.html loads inside the iframe
+6. client-gallery.html loads inside the iframe
    └─► Decodes the hash → config
    └─► Shows a branded lock screen with event name
-   └─► Client enters the password
+   └─► Client enters the gallery password
    └─► SHA-256 hash of password is compared to pwHash in config
    └─► If correct: lock screen fades out, gallery loads
 
-6. Gallery fetches photos via the Worker
+7. Gallery fetches photos via the Worker
    └─► POST to Worker: api=SYNO.Foto.Browse.Item, passphrase="vCsa5XjJH"
    └─► Worker loads nas.coastaltravelcompany.com/mo/sharing/vCsa5XjJH
        → gets sharing_sid cookie
@@ -306,7 +310,7 @@ coastaltravelcompany/
    └─► NAS returns photo list JSON
    └─► Worker returns JSON to gallery with CORS headers
 
-7. Gallery renders photos
+8. Gallery renders photos
    └─► Masonry grid with lazy-loaded thumbnails
    └─► Each thumbnail: GET request to Worker with passphrase in query string
    └─► Worker proxies thumbnail image from NAS → browser
@@ -327,7 +331,7 @@ The URL hash contains a base64-encoded JSON object. It is decoded client-side by
 JSON.parse(decodeURIComponent(escape(atob(hash))))
 ```
 
-The config includes `proxyUrl` (the Worker URL) and `nasClientUrl` (where client-gallery.html lives). These are set from Gallery Admin settings at the time the link is generated, so changing settings only affects newly generated links.
+The config includes `proxyUrl` (the Worker URL), `nasUrl` (`https://nas.coastaltravelcompany.com`), and `nasClientUrl` (where client-gallery.html lives). These are set from Gallery Admin settings at the time the gallery is created, so changing settings only affects newly created galleries.
 
 ---
 
@@ -348,20 +352,18 @@ The config includes `proxyUrl` (the Worker URL) and `nasClientUrl` (where client
    - Set Worker URL: `https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev`
    - Click Save Settings
 
-### Creating a gallery link
+### Creating a gallery and assigning it to a client
 
-1. In Synology Photos, open the album → ··· → Share → Enable sharing → copy the link
-2. Open `https://coastaltravelcompany.com/admin/gallery-admin.html`
-3. Paste the share link, fill in event name, client name, and set a password
-4. Click **Generate Gallery Link**
-5. Copy the link — send it to the client
-6. Send the password separately (different email, text message, etc.)
-
-### Sharing the link with clients
-
-- Send the gallery link via email
-- Send the password via a separate channel (text message recommended)
-- The link does not expire unless you delete the Synology Photos share
+1. In Synology Photos, open the album → ··· → Share → Enable sharing → copy the share link
+   - The share link contains a passphrase (e.g. `vCsa5XjJH`) — this is what the Worker uses
+   - The NAS share URL will be under `nas.coastaltravelcompany.com`
+2. Open `https://coastaltravelcompany.com/admin/galleries.html`
+3. Paste the share link, fill in event name, client name, and set a gallery password
+4. Save the gallery
+5. Go to `https://coastaltravelcompany.com/admin/clients.html`
+6. Find the client, expand their row, and check the gallery checkbox under **Gallery Access**
+7. Click **Save Gallery Access** — the gallery now appears in the client's portal immediately
+8. Send the gallery password to the client separately (email or text)
 
 ---
 
