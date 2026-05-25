@@ -49,6 +49,6 @@ jobs:
 
           for f in migrations/*.sql; do
             echo "Applying $f..."
-            npx wrangler d1 execute CTC_PROJECTS --file "$f"
+            npx wrangler d1 execute CTC_PROJECTS --remote --file "$f"
           done
           echo "All migrations applied."
