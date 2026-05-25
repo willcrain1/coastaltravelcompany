@@ -333,12 +333,18 @@
 <script>
   // ── Mobile nav toggle ─────────────────────────────────────────────────────
   (function () {
+    const nav      = document.getElementById('main-nav');
     const toggle   = document.querySelector('.nav-toggle');
     const navLinks = document.querySelector('.nav-links');
     if (!toggle || !navLinks) return;
-    toggle.addEventListener('click', () => {
-      const open = navLinks.style.display === 'flex';
-      navLinks.style.display        = open ? 'none' : 'flex';
+
+    function openMenu() {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      // nav always has class="scrolled" on this page, so backdrop-filter is
+      // always active. Override it so position:fixed children use the viewport
+      // as their containing block, not the nav bar.
+      nav.style.backdropFilter  = 'none';
+      navLinks.style.display        = 'flex';
       navLinks.style.flexDirection  = 'column';
       navLinks.style.position       = 'fixed';
       navLinks.style.top            = '0';
@@ -350,16 +356,33 @@
       navLinks.style.justifyContent = 'center';
       navLinks.style.gap            = '36px';
       navLinks.style.zIndex         = '150';
-      if (!open) {
-        navLinks.querySelectorAll('a').forEach(a => {
-          a.style.color         = 'var(--black)';
-          a.style.fontSize      = '13px';
-          a.style.letterSpacing = '0.3em';
-        });
-      }
+      navLinks.querySelectorAll('a').forEach(a => {
+        a.style.color         = 'var(--black)';
+        a.style.fontSize      = '13px';
+        a.style.letterSpacing = '0.3em';
+      });
+      toggle.classList.add('open');
+      // iOS Safari ignores overflow:hidden on body; position:fixed is the
+      // reliable scroll lock that prevents scrolling behind the overlay.
+      document.body.style.position = 'fixed';
+      document.body.style.width    = '100%';
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenu() {
+      nav.style.backdropFilter     = '';
+      document.body.style.position = '';
+      document.body.style.width    = '';
+      document.body.style.overflow = '';
+      navLinks.style.display = 'none';
+      toggle.classList.remove('open');
+    }
+
+    toggle.addEventListener('click', () => {
+      navLinks.style.display === 'flex' ? closeMenu() : openMenu();
     });
     navLinks.querySelectorAll('a').forEach(a => {
-      a.addEventListener('click', () => { navLinks.style.display = 'none'; });
+      a.addEventListener('click', closeMenu);
     });
   })();
 
