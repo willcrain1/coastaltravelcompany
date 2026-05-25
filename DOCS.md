@@ -145,16 +145,22 @@ The Worker (`coastal-gallery-proxy`) acts as a CORS proxy between the gallery pa
 **What the Worker does on each request:**
 
 1. **OPTIONS preflight** → returns CORS headers immediately (no NAS call)
-2. **POST (JSON API calls — photo list):**
-   - Extracts `passphrase` from the POST body
-   - Loads `https://nas.coastaltravelcompany.com/mo/sharing/{passphrase}` to get a `sharing_sid` session cookie (cached per isolate)
+2. **POST `/token` (token exchange — called once per gallery session):**
+   - Receives `galleryId` from the browser
+   - Looks up the gallery record in D1 to retrieve the passphrase
+   - Validates the request originates from `coastaltravelcompany.com`
+   - Issues a short-lived `sid` (UUID stored in KV with 4-hour TTL) and returns it to the browser
+3. **POST (JSON API calls — photo list):**
+   - Receives `sid` from the browser (never the passphrase)
+   - Resolves `sid` → passphrase from KV
+   - Loads `https://nas.coastaltravelcompany.com/mo/sharing/{passphrase}` to get a `sharing_sid` session cookie (cached per isolate for 2 hours)
    - Forwards the POST to `/mo/sharing/webapi/entry.cgi` with:
      - `Cookie: sharing_sid=...`
      - `X-SYNO-SHARING: {passphrase}` ← required by Synology to activate the session
    - Returns the JSON response with CORS headers
-3. **GET (thumbnails, downloads):**
-   - Extracts `passphrase` from URL query string
-   - Same session establishment as above
+4. **GET (thumbnails, downloads):**
+   - Receives `sid` from URL query string
+   - Same passphrase resolution and session establishment as above
    - Forwards the GET to `/mo/sharing/webapi/entry.cgi?{original query string}`
    - Returns image data or file with CORS headers
 
@@ -167,8 +173,13 @@ The Worker caches `sharing_sid` per passphrase in memory for 2 hours per Worker 
 **CORS configuration:**
 The Worker only accepts requests from `https://coastaltravelcompany.com`. Requests from other origins are blocked.
 
-**Worker source:** `worker/cloudflare-worker.js`
-**No secrets or environment variables required.**
+**Worker source:** `worker/cloudflare-worker.js` (entry point); logic lives in `worker/src/`
+**Required secrets** (set in Cloudflare dashboard → Worker → Settings → Variables):
+- `JWT_SECRET` — signs auth tokens
+- `RESEND_API_KEY` — transactional email
+- `GOOGLE_CLIENT_ID` — OAuth login
+- `STRIPE_SECRET_KEY` — invoicing
+- `STRIPE_WEBHOOK_SECRET` — Stripe webhook validation
 
 ---
 
@@ -226,33 +237,56 @@ coastaltravelcompany/
 ├── .gitignore
 ├── DOCS.md                        This file
 │
-├── index.html                     Main website — home page
-├── about.html                     Main website — about
-├── services.html                  Main website — services
-├── collections.html               Main website — collections
-├── contact.html                   Main website — contact
-├── styles.css                     Main website styles (shared)
-├── main.js                        Main website JavaScript
-│
-├── gallery/
-│   ├── gallery.html               Client-facing gallery entry point
-│   │                              Decodes URL hash, shows loading screen,
-│   │                              renders client-gallery.html in an iframe
-│   └── client-gallery.html        Full gallery UI
-│                                  Password lock screen + masonry photo grid +
-│                                  lightbox + download — fetches photos via Worker
-│
-├── admin/
-│   └── gallery-admin.html         Admin tool (not linked from public site)
-│                                  Create gallery links, manage settings,
-│                                  view active galleries — runs entirely in
-│                                  the browser, stores data in localStorage
-│
-└── worker/
-    ├── cloudflare-worker.js       Worker source — deploy this to Cloudflare
-    ├── deploy-worker.sh           Deployment script (uses Cloudflare REST API)
-    └── .worker-config.example     Template for deploy credentials
-        (.worker-config is gitignored — copy and fill in locally)
+└── site/
+    ├── index.html                 Main website — home page
+    ├── about.html                 Main website — about
+    ├── services.html              Main website — services
+    ├── collections.html           Main website — collections
+    ├── contact.html               Main website — contact
+    ├── styles.css                 Main website styles (shared)
+    ├── main.js                    Main website JavaScript
+    ├── config.js                  Shared config (Worker URL, site URLs)
+    │
+    ├── login.html                 Client login (Google OAuth + password)
+    ├── register.html              New client registration
+    ├── portal.html                Client portal — galleries, invoices, projects
+    ├── profile.html               Client profile / account settings
+    │
+    ├── contract.html              Contract signing page (client-facing)
+    ├── invoice.html               Invoice payment page (client-facing)
+    ├── proposal.html              Proposal view page (client-facing)
+    ├── questionnaire.html         Questionnaire submission page (client-facing)
+    ├── schedule.html              Availability / booking page (client-facing)
+    ├── portal-project.html        Project detail page in client portal
+    │
+    ├── gallery/
+    │   ├── gallery.html           Client-facing gallery entry point
+    │   │                          Decodes URL hash, renders client-gallery.html
+    │   │                          in a sandboxed iframe
+    │   └── client-gallery.html    Full gallery UI — masonry photo grid,
+    │                              lightbox, download — fetches photos via Worker
+    │
+    ├── admin/
+    │   ├── admin.css              Admin shared styles
+    │   ├── admin-shared.js        Admin shared JS (auth, nav)
+    │   ├── clients.html           Manage client accounts, assign galleries
+    │   ├── galleries.html         Create and manage galleries
+    │   ├── pipeline.html          Project pipeline / CRM
+    │   └── services.html          Manage service packages
+    │
+    └── worker/
+        ├── cloudflare-worker.js   Worker entry point — deploy this to Cloudflare
+        ├── src/                   Worker source modules
+        │   ├── router.js          Request routing
+        │   ├── auth.js            JWT auth middleware
+        │   ├── gallery-proxy.js   Synology Photos CORS proxy + token exchange
+        │   ├── portal.js          Client portal API endpoints
+        │   ├── kv.js              KV helpers (sessions, rate limiting)
+        │   └── admin/             Admin API endpoints
+        ├── migrations/            D1 SQL migration files
+        ├── deploy-worker.sh       Deploy to production
+        ├── deploy-worker-preprod.sh Deploy to preprod
+        └── .worker-config.example Template for deploy credentials
 ```
 
 ---
@@ -267,17 +301,16 @@ coastaltravelcompany/
        e.g. https://nas.coastaltravelcompany.com/mo/sharing/vCsa5XjJH
                                                               └── passphrase
 
-2. Admin opens gallery-admin.html, creates the gallery
-   └─► Admin sets event name, client name, password, and pastes the share link
-   └─► Admin tool creates a config object:
+2. Admin opens galleries.html, creates the gallery
+   └─► Admin sets event name, client name, and pastes the share link
+   └─► Gallery record is saved to D1 (passphrase stored server-side)
+   └─► A config object is base64-encoded as the gallery's URL hash:
        {
-         passphrase: "vCsa5XjJH",
-         nasUrl: "https://nas.coastaltravelcompany.com",
+         id: "<gallery-uuid>",
          nasClientUrl: "https://coastaltravelcompany.com/gallery/client-gallery.html",
          proxyUrl: "https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev",
-         eventName: "...", clientName: "...", pwHash: "sha256...", ...
+         eventName: "...", clientName: "...", watermark: false
        }
-   └─► Config is base64-encoded and stored as the gallery's URL hash
 
 3. Admin assigns the gallery to a client account
    └─► Admin → Clients page → find the client → expand → check the gallery checkbox
@@ -298,18 +331,20 @@ coastaltravelcompany/
    └─► Gallery loads automatically — no password prompt
 
 7. Gallery fetches photos via the Worker
-   └─► POST to Worker: api=SYNO.Foto.Browse.Item, passphrase="vCsa5XjJH"
-   └─► Worker loads nas.coastaltravelcompany.com/mo/sharing/vCsa5XjJH
+   └─► POST /token with galleryId → Worker returns short-lived sid
+   └─► POST to Worker: api=SYNO.Foto.Browse.Item, sid=<uuid>
+   └─► Worker resolves sid → passphrase from KV
+   └─► Worker loads nas.coastaltravelcompany.com/mo/sharing/{passphrase}
        → gets sharing_sid cookie
    └─► Worker POSTs to /mo/sharing/webapi/entry.cgi with:
        Cookie: sharing_sid=...
-       X-SYNO-SHARING: vCsa5XjJH
+       X-SYNO-SHARING: {passphrase}
    └─► NAS returns photo list JSON
    └─► Worker returns JSON to gallery with CORS headers
 
 8. Gallery renders photos
    └─► Masonry grid with lazy-loaded thumbnails
-   └─► Each thumbnail: GET request to Worker with passphrase in query string
+   └─► Each thumbnail: GET request to Worker with sid in query string
    └─► Worker proxies thumbnail image from NAS → browser
    └─► Client can click photos to open lightbox, download individually,
        or use Download All (up to 20 at once)
@@ -355,12 +390,8 @@ The passphrase and any credential material stay server-side. The URL hash is eff
    - Run `./worker/deploy-worker.sh`
    - Note the worker URL: `https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev`
 
-2. **Configure Gallery Admin settings**
-   - Open `https://coastaltravelcompany.com/admin/gallery-admin.html`
-   - Set Main Site Gallery URL: `https://coastaltravelcompany.com/gallery/gallery.html`
-   - Set Client Gallery URL: `https://coastaltravelcompany.com/gallery/client-gallery.html`
-   - Set Worker URL: `https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev`
-   - Click Save Settings
+2. **Add required Worker secrets** in the Cloudflare dashboard → Worker → Settings → Variables:
+   - `JWT_SECRET`, `RESEND_API_KEY`, `GOOGLE_CLIENT_ID`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 
 ### Creating a gallery and assigning it to a client
 
@@ -400,15 +431,16 @@ git push
 
 1. **Check the Cloudflare Tunnel** — Cloudflare Zero Trust → Networks → Tunnels. If it shows as unhealthy, restart the `cloudflared` package in DSM → Package Center.
 
-2. **Check the Synology Photos share** — the passphrase in old gallery links becomes invalid if the share is deleted or disabled in Synology Photos. Recreate the share and generate a new gallery link.
+2. **Check the Synology Photos share** — the passphrase becomes invalid if the share is deleted or disabled in Synology Photos. Recreate the share, update the gallery record in the admin, and reassign it to the client.
 
-3. **Test the Worker directly:**
+3. **Test the token exchange:**
    ```bash
-   curl -s -X POST https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev \
+   curl -s -X POST https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev/token \
      -H "Content-Type: application/x-www-form-urlencoded" \
-     -d 'api=SYNO.Foto.Browse.Item&method=list&version=4&offset=0&limit=1&additional=%5B%22thumbnail%22%5D&passphrase=%22YOUR_PASSPHRASE%22'
+     -H "Origin: https://coastaltravelcompany.com" \
+     -d 'galleryId=YOUR_GALLERY_ID'
    ```
-   Should return `{"success":true,"data":{"list":[...]}}`.
+   Should return `{"sid":"..."}`. Use the returned sid to test photo fetching.
 
 4. **Test the Tunnel directly:**
    ```bash
