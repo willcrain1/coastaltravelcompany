@@ -129,12 +129,23 @@
 
     #googleSection { width: 100%; }
     .divider {
-      display: flex; align-items: center; gap: 12px;
-      width: 100%;
+      position: relative;
+      text-align: center;
       margin: 20px 0;
+    }
+    .divider::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 1px;
+      background: var(--linen);
+    }
+    .divider span {
+      position: relative;
+      background: #fff;
+      padding: 0 10px;
       font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--light);
     }
-    .divider-line { flex: 1; height: 1px; background: var(--linen); }
 
     #googleBtnWrap { width: 100%; overflow: hidden; }
 
@@ -241,7 +252,7 @@
     <div class="success-msg" id="resendSuccess"></div>
   </div>
   <div id="googleSection">
-    <div class="divider"><span class="divider-line"></span><span>or</span><span class="divider-line"></span></div>
+    <div class="divider"><span>or</span></div>
     <div id="googleBtnWrap"></div>
   </div>
   <div class="link-row">
