@@ -138,9 +138,19 @@ export async function handleAuthGoogle(request, env) {
   if (info.aud !== env.GOOGLE_CLIENT_ID) return jsonResponse({ error: 'Token audience mismatch' }, 401);
   if (info.email_verified !== 'true')    return jsonResponse({ error: 'Email not verified' }, 401);
   const email = info.email.toLowerCase();
-  const user  = await getUser(email, env.KV);
-  if (!user) return jsonResponse({ error: 'No account found. Contact your administrator.' }, 403);
-  if (user.verified === false) {
+  let user    = await getUser(email, env.KV);
+  if (!user) {
+    user = {
+      id: crypto.randomUUID(),
+      email,
+      passwordHash: null,
+      role: 'client',
+      created: Date.now(),
+      galleries: [],
+      verified: true,
+    };
+    await putUser(user, env.KV);
+  } else if (user.verified === false) {
     user.verified = true;
     await putUser(user, env.KV);
   }
