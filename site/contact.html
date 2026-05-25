@@ -223,7 +223,7 @@
 
   <script>
   (function () {
-    const WORKER = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+    const WORKER = CTC_CONFIG.workerUrl;
     const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -380,6 +380,7 @@
     </div>
   </footer>
 
+  <script src="config.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
