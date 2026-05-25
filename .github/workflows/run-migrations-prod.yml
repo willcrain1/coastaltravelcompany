@@ -1,0 +1,54 @@
+name: Run D1 Migrations (Prod)
+
+on:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run all D1 migrations against CTC_PROJECTS
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          cd worker
+          npm install
+
+          # Look up D1 database ID by name via Cloudflare API
+          D1_ID=$(curl -s "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database?per_page=100" \
+            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | \
+            python3 -c "import json,sys; [print(db['uuid']) for db in json.load(sys.stdin).get('result',[]) if db.get('name')=='CTC_PROJECTS']")
+
+          if [ -z "$D1_ID" ]; then
+            echo "ERROR: CTC_PROJECTS D1 database not found in Cloudflare account"
+            exit 1
+          fi
+          echo "Found CTC_PROJECTS database: $D1_ID"
+
+          # Generate minimal wrangler.toml so wrangler can resolve the database
+          {
+            echo 'name = "placeholder"'
+            echo 'main = "cloudflare-worker.js"'
+            echo 'compatibility_date = "2024-09-23"'
+            echo ''
+            echo '[[d1_databases]]'
+            echo 'binding = "DB"'
+            echo 'database_name = "CTC_PROJECTS"'
+            echo "database_id = \"$D1_ID\""
+          } > wrangler.toml
+
+          for f in migrations/*.sql; do
+            echo "Applying $f..."
+            npx wrangler d1 execute CTC_PROJECTS --remote --file "$f"
+          done
+          echo "All migrations applied."
