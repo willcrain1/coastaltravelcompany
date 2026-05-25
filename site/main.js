@@ -30,6 +30,23 @@ fadeEls.forEach(el => observer.observe(el));
 const toggle = document.querySelector('.nav-toggle');
 const navLinks = document.querySelector('.nav-links');
 
+// Close button injected into the overlay — created once, reused on each open.
+let menuCloseBtn = null;
+function getMenuCloseBtn() {
+  if (menuCloseBtn) return menuCloseBtn;
+  menuCloseBtn = document.createElement('button');
+  menuCloseBtn.setAttribute('aria-label', 'Close menu');
+  menuCloseBtn.style.cssText = [
+    'position:absolute', 'top:20px', 'right:20px',
+    'background:none', 'border:none', 'cursor:pointer',
+    'padding:10px', 'line-height:0', 'color:var(--black)',
+  ].join(';');
+  menuCloseBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="3" y1="3" x2="19" y2="19"/><line x1="19" y1="3" x2="3" y2="19"/></svg>';
+  menuCloseBtn.addEventListener('click', closeMobileMenu);
+  navLinks.appendChild(menuCloseBtn);
+  return menuCloseBtn;
+}
+
 function openMobileMenu() {
   // Scroll to top instantly so the full-screen overlay always appears at
   // the top of the viewport and all nav links are visible.
@@ -55,6 +72,7 @@ function openMobileMenu() {
     a.style.fontSize = '13px';
     a.style.letterSpacing = '0.3em';
   });
+  getMenuCloseBtn();
   toggle.classList.add('open');
   // iOS Safari ignores overflow:hidden on body and allows the page to scroll
   // behind the overlay. position:fixed is the reliable cross-browser scroll lock.
