@@ -1,15 +1,16 @@
-const WORKER_URL = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+// Use config.js value when available (e.g. login.html loads config.js for preprod support).
+const WORKER_URL = (typeof CTC_CONFIG !== 'undefined' && CTC_CONFIG.workerUrl)
+  || 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
 
 // ── Nav scroll behavior ────────────────────────────────────
 const nav = document.getElementById('main-nav');
 
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 60) {
-    nav.classList.add('scrolled');
-  } else {
-    nav.classList.remove('scrolled');
-  }
-}, { passive: true });
+// Pages with data-nav-pinned keep the scrolled style at all scroll positions.
+if (!nav.dataset.navPinned) {
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  }, { passive: true });
+}
 
 // ── Fade-up scroll animations ──────────────────────────────
 const fadeEls = document.querySelectorAll('.fade-up');
@@ -100,7 +101,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 });
 
 // ── Contact form submit ────────────────────────────────────
-const form = document.querySelector('form');
+const form = document.getElementById('contact-form');
 if (form) {
   form.addEventListener('submit', async e => {
     e.preventDefault();
