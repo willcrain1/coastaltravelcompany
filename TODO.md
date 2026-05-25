@@ -886,3 +886,18 @@ Booking funnel tracking — if a booking flow is added later
 - [x] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
 - [x] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — root cause was `backdrop-filter: blur(8px)` on `nav.scrolled` making `nav` the containing block for `position:fixed` children, clipping the overlay to the nav bar height; fixed by setting `nav.style.backdropFilter = 'none'` on open and clearing it on close
 - [x] Verify the body scroll-lock behavior when the nav is open — scroll-lock (`document.body.style.overflow = 'hidden'`) was already in place and working correctly
+
+
+## 37. Hybrid data load approach
+
+**Goal: use nas for backup of all files. for active galleries, site assets, and splat files store information in R2.**
+
+- [] create workflow to push data into R2 from the nas.
+- [] update the site so all site assets are pulled from R2 storage.
+
+## 38. Add Real Estate client type
+
+**Goal: expand client capabilities to have multiple clients with real estate client as the first expanded capability client**
+
+- [] current client capabilities will become standard client capabilities.
+- [] real estate clients will have the ability to make individual property pages where they can select photos from their galleries to go to the pages, link walkthrough splatting, embed zillow/redfin information, and safely link to their own real estate site.
