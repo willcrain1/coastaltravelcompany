@@ -1,8 +1,7 @@
--- Migration 012: 3D Walkthroughs
--- Adds splat_url to galleries (for client delivery) and creates walkthroughs
--- table for the public showcase page (/walkthroughs.html).
-
-ALTER TABLE galleries ADD COLUMN splat_url TEXT;
+-- Migration 013: 3D Walkthroughs
+-- Creates walkthroughs table for the public showcase page (/walkthroughs.html).
+-- Note: splat_url for gallery delivery is stored in KV alongside other gallery
+-- data, not in D1, so no ALTER TABLE is needed here.
 
 CREATE TABLE IF NOT EXISTS walkthroughs (
   id           TEXT    PRIMARY KEY,
