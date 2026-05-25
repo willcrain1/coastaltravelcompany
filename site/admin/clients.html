@@ -271,6 +271,25 @@
     }).join('');
   }
 
+  async function changeRole(userId, currentRole, userEmail) {
+    const newRole = currentRole === 'admin' ? 'client' : 'admin';
+    const msg = newRole === 'admin'
+      ? `Promote ${userEmail} to admin? They will gain full admin access to the dashboard.`
+      : `Demote ${userEmail} to client? They will lose admin access.`;
+    if (!confirm(msg)) return;
+
+    const { ok, data } = await apiFetch('/admin/users/' + userId + '/role', {
+      method: 'PATCH',
+      body:   { role: newRole },
+    });
+    if (!ok) { toast(data.error || 'Role change failed', true); return; }
+
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx >= 0) users[idx] = data;
+    renderUserList();
+    toast(`${userEmail} is now ${newRole}`);
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function changeRole(userId, currentRole, userEmail) {
     const newRole = currentRole === 'admin' ? 'client' : 'admin';
