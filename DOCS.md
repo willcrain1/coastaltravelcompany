@@ -295,10 +295,7 @@ coastaltravelcompany/
 
 6. client-gallery.html loads inside the iframe
    └─► Decodes the hash → config
-   └─► Shows a branded lock screen with event name
-   └─► Client enters the gallery password
-   └─► SHA-256 hash of password is compared to pwHash in config
-   └─► If correct: lock screen fades out, gallery loads
+   └─► Gallery loads automatically — no password prompt
 
 7. Gallery fetches photos via the Worker
    └─► POST to Worker: api=SYNO.Foto.Browse.Item, passphrase="vCsa5XjJH"
