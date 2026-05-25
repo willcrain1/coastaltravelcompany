@@ -1,0 +1,30 @@
+name: Run D1 Migrations (Prod)
+
+on:
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run all D1 migrations against CTC_PROJECTS
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          cd worker
+          npm install
+          for f in migrations/*.sql; do
+            echo "Applying $f..."
+            npx wrangler d1 execute CTC_PROJECTS --file "$f"
+          done
+          echo "All migrations applied."
