@@ -136,7 +136,7 @@
       content: ''; flex: 1; height: 1px; background: var(--linen);
     }
 
-    #googleBtnWrap { display: flex; justify-content: center; }
+    #googleBtnWrap { width: 100%; overflow: hidden; }
 
     .link-row {
       text-align: center;
@@ -454,9 +454,10 @@
       client_id: GOOGLE_CLIENT_ID,
       callback:  handleGoogleCredential,
     });
+    const wrap = document.getElementById('googleBtnWrap');
     google.accounts.id.renderButton(
-      document.getElementById('googleBtnWrap'),
-      { theme: 'outline', size: 'large', width: 328, text: 'signin_with' }
+      wrap,
+      { theme: 'outline', size: 'large', width: wrap.offsetWidth, text: 'signin_with' }
     );
   }
 
