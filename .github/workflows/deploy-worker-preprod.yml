@@ -28,6 +28,19 @@ jobs:
           chmod +x ./worker/deploy-worker-preprod.sh
           ./worker/deploy-worker-preprod.sh
 
+      - name: Run D1 migrations (preprod)
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          cd worker
+          export CLOUDFLARE_ACCOUNT_ID="$CF_ACCOUNT_ID"
+          export CLOUDFLARE_API_TOKEN="$CF_API_TOKEN"
+          for f in migrations/*.sql; do
+            echo "Applying $f..."
+            npx wrangler d1 execute ctc-preprod --env preprod --file "$f"
+          done
+
   deploy-site-preprod:
     needs: deploy-worker-preprod
     runs-on: ubuntu-latest
