@@ -902,9 +902,58 @@ Booking funnel tracking — if a booking flow is added later
 - [] current client capabilities will become standard client capabilities.
 - [] real estate clients will have the ability to make individual property pages where they can select photos from their galleries to go to the pages, link walkthrough splatting, embed zillow/redfin information, and safely link to their own real estate site.
 - [] real estate clients should have access to analytics on their postings and have access to viewer data.
+- [] Dwell Time by "Zone": Instead of just total time, track how long users spend in the Kitchen, Primary Suite, or Backyard. If a user spends 45 seconds staring at the kitchen, that is a hot lead.
+- [] "Interest" Heatmaps: Track where users click or "linger" their camera. If everyone stops to look at the fireplace, tell the agent: "Highlight the fireplace in your follow-up emails; it's the #1 point of interest in the tour."
+- [] Navigation Flow: See how people enter the home. If users keep trying to go into a room that isn't included in the splat, the agent knows the space might feel disconnected or confusing.
+- [] Conversion Attribution: If a user clicks a "Schedule a Showing" button, you can link that lead directly to the engagement data. "This lead spent 6 minutes in the tour and focused heavily on the home office." This gives the agent a "talking point" when they call the lead.
+- [] Aggregated, Anonymized Data: You can safely report: "150 unique users viewed this tour last week. The average session was 3 minutes." This is perfectly legal and high-value.
+- [] Grouped Trends: "Visitors are spending 40% more time in the backyard than the living room."
+What you MUST be careful with (or avoid):
+- [] Personally Identifiable Information (PII): Do not track the user’s IP address, device ID, or unique fingerprint and share it with the agent unless you have a robust, explicit consent mechanism.
+- [] Surveillance/Tracking without Consent: You must have a Privacy Policy and a Cookie/Tracking Consent Banner (e.g., a "Manage Cookies" popup).
+- [] The "Do Not Sell/Share" Requirement: If you are "sharing" behavioral profiles with the agent, CCPA considers this a "sale/share" of data. You must provide a link (usually in the footer) that says "Do Not Sell or Share My Personal Information."
+- [] Keep it Anonymous by Default: Use an analytics tool that is privacy-first (like Cloudflare Web Analytics, or a self-hosted instance of Plausible). These do not track individual users across the web.
+- [] Explicit Consent: If you add a "Contact Agent" form inside the tour, clearly state: "By submitting this form, you agree to share your contact information and tour viewing history with the listing agent."
+- [] Transparency: Your Privacy Policy should explicitly state: "We collect aggregate viewing behavior to provide market feedback to property owners and listing agents."
 
 ## 39. Create privacy policy
 
 **Goal: create a privacy policy that describes how data is handled**
+
+## 40. Create full real estate portal
+
+**Goal: create a fully managed real estate portal with analytics**
+
+1. Dashboard Architecture
+ The "Agent Portal": A landing page listing all the agent's active and archived properties.
+ Property Detail View: A dedicated dashboard for each specific property address.
+2. Feature Requirements
+A. The "Pulse" (High-Level Summary)
+ Total Views: Metric of total unique visitors.
+ Average Dwell Time: Total time spent in the 3D space.
+ Engagement Rate: Percentage of users who interacted with "Hotspots" or moved through at least 3 rooms.
+ Device Breakdown: Mobile vs. Desktop (crucial for them to know if they need to optimize their mobile social media ads).
+B. The "Interest Heatmap" (The "Killer" Feature)
+
+Room Engagement Table:
+location   views.  avg time spent
+kitchen.    450.   1m15s
+master suite 320.   45s
+
+Actionable Insight: A small automated text box that says: "Backyard engagement is 20% higher than average for this neighborhood. Use the outdoor photos in your next Instagram post!"
+
+The "Hotspot" Control Panel
+ Hotspot Manager: A UI to add/edit information points in the splat (e.g., clicking a light fixture to show "Renovated 2025").
+ Lead Capture Gate: An optional toggle to require an email address after 30 seconds of browsing to "View the full property specs." (Agents love this for lead gen).
+D. The "Performance & Delivery" Tab
+ Embed Link Generator: Copy/Paste code for MLS/Zillow/Personal sites.
+ QR Code Generator: A high-res QR code for "Open House" signs so prospective buyers can scan and walk through the property on their phone while standing in the room.
+
+ Professional "Next Level" Idea
+The "Report Generator" Button:
+Add a button that generates a PDF "Listing Performance Report."
+ It should pull the property photo, the stats, and the "Actionable Insights" into a clean, professional template with your Coastal Travel Co. branding.
+ The Agent Value: They can print this and hand it to their seller during the weekly listing update meeting. It makes them look like a data-driven expert, and they will attribute that success to your service.
+
 
 
