@@ -1,9 +1,7 @@
-name: Deploy Pages
+name: Deploy Prod
 
 on:
-  workflow_run:
-    workflows: ["Deploy Worker"]
-    types: [completed]
+  push:
     branches: [master]
   workflow_dispatch:
 
@@ -11,13 +9,29 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy-site:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  deploy-worker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          node-version: '20'
+
+      - name: Deploy prod Worker
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
+        run: |
+          chmod +x ./worker/deploy-worker.sh
+          ./worker/deploy-worker.sh
+
+  deploy-site:
+    needs: deploy-worker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-node@v4
         with:
@@ -41,8 +55,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: actions/setup-node@v4
         with:
