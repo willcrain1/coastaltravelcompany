@@ -18,7 +18,7 @@ export const ALLOWED_APIS = new Set([
 
 export let CORS = {
   'Access-Control-Allow-Origin':   ALLOWED_ORIGIN,
-  'Access-Control-Allow-Methods':  'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods':  'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers':  'Content-Type, Authorization',
   'Access-Control-Expose-Headers': 'Content-Disposition',
   'Access-Control-Max-Age':        '86400',
