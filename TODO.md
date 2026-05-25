@@ -824,6 +824,19 @@ Booking funnel tracking — if a booking flow is added later
 
 ---
 
+
+## ~~33. Admin User Role Management~~ ✅ Done
+
+**Goal:** Allow admins to promote a client account to admin or demote an admin account back to client directly from the admin panel — no manual database edits or Worker redeploys required.
+
+- [x] Add a "Role" column to the user list in `admin/galleries.html` — shows each account's current role (`client` or `admin`) as a badge
+- [x] Add a role toggle control per user row — a dropdown or toggle button that lets an admin switch a user between `client` and `admin`; the control is disabled for the currently logged-in admin to prevent self-demotion
+- [x] Add a Worker endpoint `PATCH /admin/users/:userId/role` — accepts `{ role: "client" | "admin" }`, validates that the requesting user is an admin, rejects attempts to change one's own role, updates the user record in KV, returns the updated user object
+- [x] Confirm the role change with a brief in-UI prompt ("Promote [name] to admin? They will gain full admin access.") before submitting — prevents accidental promotions
+- [x] Reflect the new role immediately in the UI after a successful response — no page reload required
+- [x] Emit an activity log entry in the pipeline for the role change: timestamp, acting admin, affected user, old role, new role — stored in D1 for audit purposes (`worker/migrations/012_user_role_audit.sql`)
+- [x] Send an email notification to the affected user via Resend when their role changes ("Your account has been updated to [role] by an administrator")
+=======
 ## ~~34. Migrate Production Hosting from GitHub Pages to Cloudflare Pages~~ ✅ Done
 
 **Goal:** Move the production static site from GitHub Pages to Cloudflare Pages to match the preprod setup — single hosting platform, faster global CDN, unified deployment pipeline, and no single-custom-domain limitation.
@@ -839,7 +852,18 @@ Booking funnel tracking — if a booking flow is added later
 
 ---
 
-## 35. Resolve npm Dependency Vulnerabilities in Worker
+## ~~35. Fix Mobile Menu Focus on Scroll~~ ✅ Done
+
+**Goal:** Fix the mobile navigation menu so that menu items remain visible and focused on screen when the user opens the menu and then scrolls before clicking anything.
+
+- [x] Investigate `main.js` mobile nav toggle behavior — overlay was already `position: fixed` but body scroll was not locked
+- [x] Add `document.body.style.overflow = 'hidden'` on menu open and restore it on close — prevents the page from scrolling behind the overlay, which would shift the mobile browser toolbar and push menu items off-screen
+- [x] Refactored toggle into `openMobileMenu()` / `closeMobileMenu()` helpers so both the toggle button and link-click handler share the same teardown logic
+- [x] Add hamburger → X CSS animation on `.nav-toggle.open` so users have a clear affordance to close the menu
+
+---
+
+## 36. Resolve npm Dependency Vulnerabilities in Worker
 
 **Goal:** Eliminate the 5 known vulnerabilities in `worker/package.json` (4 moderate, 1 high).
 
@@ -847,3 +871,13 @@ Booking funnel tracking — if a booking flow is added later
 - [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
 - [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
 - [ ] Verify worker deploys and acceptance tests pass after the upgrade
+
+---
+
+## 36. Fix Mobile Nav Menu Scroll Bug
+
+**Goal:** The mobile nav menu should always display all header links when opened, regardless of scroll position. Currently, if the user scrolls down the page first and then opens the menu, only half the headers are visible — the menu is offset by the scroll position and clipped by the viewport.
+
+- [x] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
+- [x] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — root cause was `backdrop-filter: blur(8px)` on `nav.scrolled` making `nav` the containing block for `position:fixed` children, clipping the overlay to the nav bar height; fixed by setting `nav.style.backdropFilter = 'none'` on open and clearing it on close
+- [x] Verify the body scroll-lock behavior when the nav is open — scroll-lock (`document.body.style.overflow = 'hidden'`) was already in place and working correctly
