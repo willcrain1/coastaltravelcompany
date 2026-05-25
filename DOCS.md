@@ -318,11 +318,11 @@ coastaltravelcompany/
        or use Download All (up to 20 at once)
 ```
 
-### Password security
+### Authentication
 
-The client password never leaves the browser. The admin tool hashes it with SHA-256 before embedding in the URL. When the client enters their password, it is hashed in the browser and compared locally — no server involved, no password transmitted.
+Gallery access requires a valid JWT (the client must be logged in). If no JWT is present in `localStorage`, the gallery page immediately redirects to `/login.html`. There is no client-side password lock screen — authentication is handled entirely by the OAuth/login flow.
 
-The URL hash (after `#`) is never sent to the server in HTTP requests, so the config (including pwHash) is not logged by GitHub Pages or Cloudflare.
+After the client logs in, the portal calls `GET /portal/galleries` (authenticated) to retrieve only the galleries assigned to that account. The gallery page then calls `POST /token` with the gallery ID; the Worker looks up the passphrase server-side and validates the user's access before issuing a short-lived `sid`. The passphrase never appears in the browser or URL.
 
 ### Config encoded in URL
 
@@ -331,7 +331,18 @@ The URL hash contains a base64-encoded JSON object. It is decoded client-side by
 JSON.parse(decodeURIComponent(escape(atob(hash))))
 ```
 
-The config includes `proxyUrl` (the Worker URL), `nasUrl` (`https://nas.coastaltravelcompany.com`), and `nasClientUrl` (where client-gallery.html lives). These are set from Gallery Admin settings at the time the gallery is created, so changing settings only affects newly created galleries.
+The config now contains only non-sensitive routing and display fields:
+```js
+{
+  id,           // gallery ID — used by the Worker to look up the passphrase server-side
+  proxyUrl,     // Cloudflare Worker URL
+  nasClientUrl, // URL of client-gallery.html
+  eventName, clientName,
+  watermark,    // bool — disables downloads and shows CSS watermark overlay
+}
+```
+
+The passphrase and any credential material stay server-side. The URL hash is effectively a bookmark — it carries just enough info to render the page and identify which gallery to request a token for.
 
 ---
 
