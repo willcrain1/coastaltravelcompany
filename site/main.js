@@ -55,14 +55,20 @@ function openMobileMenu() {
     a.style.letterSpacing = '0.3em';
   });
   toggle.classList.add('open');
+  // iOS Safari ignores overflow:hidden on body and allows the page to scroll
+  // behind the overlay. position:fixed is the reliable cross-browser scroll lock.
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
   document.body.style.overflow = 'hidden';
 }
 
 function closeMobileMenu() {
   nav.style.backdropFilter = '';
+  document.body.style.position = '';
+  document.body.style.width = '';
+  document.body.style.overflow = '';
   navLinks.style.display = 'none';
   toggle.classList.remove('open');
-  document.body.style.overflow = '';
 }
 
 if (toggle && navLinks) {
