@@ -23,7 +23,9 @@ import {
 
 import {
   handleAdminListUsers, handleAdminCreateUser,
-  handleAdminUpdateUser, handleAdminUpdateUserRole, handleAdminDeleteUser,
+  handleAdminUpdateUser, handleAdminDeleteUser,
+  handleAdminUpdateUserRole,
+
 } from './admin/users.js';
 
 import {
