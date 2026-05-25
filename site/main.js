@@ -30,6 +30,9 @@ const toggle = document.querySelector('.nav-toggle');
 const navLinks = document.querySelector('.nav-links');
 
 function openMobileMenu() {
+  // Scroll to top instantly so the full-screen overlay always appears at
+  // the top of the viewport and all nav links are visible.
+  window.scrollTo({ top: 0, behavior: 'instant' });
   // backdrop-filter on nav.scrolled makes nav a containing block for
   // position:fixed children, clipping the overlay to the nav bar height.
   // Overriding it to none restores the viewport as the containing block.
