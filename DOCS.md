@@ -368,12 +368,11 @@ The passphrase and any credential material stay server-side. The URL hash is eff
    - The share link contains a passphrase (e.g. `vCsa5XjJH`) — this is what the Worker uses
    - The NAS share URL will be under `nas.coastaltravelcompany.com`
 2. Open `https://coastaltravelcompany.com/admin/galleries.html`
-3. Paste the share link, fill in event name, client name, and set a gallery password
+3. Paste the share link, fill in event name and client name
 4. Save the gallery
 5. Go to `https://coastaltravelcompany.com/admin/clients.html`
 6. Find the client, expand their row, and check the gallery checkbox under **Gallery Access**
 7. Click **Save Gallery Access** — the gallery now appears in the client's portal immediately
-8. Send the gallery password to the client separately (email or text)
 
 ---
 
