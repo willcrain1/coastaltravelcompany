@@ -852,7 +852,18 @@ Booking funnel tracking — if a booking flow is added later
 
 ---
 
-## 35. Resolve npm Dependency Vulnerabilities in Worker
+## ~~35. Fix Mobile Menu Focus on Scroll~~ ✅ Done
+
+**Goal:** Fix the mobile navigation menu so that menu items remain visible and focused on screen when the user opens the menu and then scrolls before clicking anything.
+
+- [x] Investigate `main.js` mobile nav toggle behavior — overlay was already `position: fixed` but body scroll was not locked
+- [x] Add `document.body.style.overflow = 'hidden'` on menu open and restore it on close — prevents the page from scrolling behind the overlay, which would shift the mobile browser toolbar and push menu items off-screen
+- [x] Refactored toggle into `openMobileMenu()` / `closeMobileMenu()` helpers so both the toggle button and link-click handler share the same teardown logic
+- [x] Add hamburger → X CSS animation on `.nav-toggle.open` so users have a clear affordance to close the menu
+
+---
+
+## 36. Resolve npm Dependency Vulnerabilities in Worker
 
 **Goal:** Eliminate the 5 known vulnerabilities in `worker/package.json` (4 moderate, 1 high).
 
@@ -860,3 +871,13 @@ Booking funnel tracking — if a booking flow is added later
 - [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
 - [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
 - [ ] Verify worker deploys and acceptance tests pass after the upgrade
+
+---
+
+## 36. Fix Mobile Nav Menu Scroll Bug
+
+**Goal:** The mobile nav menu should always display all header links when opened, regardless of scroll position. Currently, if the user scrolls down the page first and then opens the menu, only half the headers are visible — the menu is offset by the scroll position and clipped by the viewport.
+
+- [x] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
+- [x] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — root cause was `backdrop-filter: blur(8px)` on `nav.scrolled` making `nav` the containing block for `position:fixed` children, clipping the overlay to the nav bar height; fixed by setting `nav.style.backdropFilter = 'none'` on open and clearing it on close
+- [x] Verify the body scroll-lock behavior when the nav is open — scroll-lock (`document.body.style.overflow = 'hidden'`) was already in place and working correctly

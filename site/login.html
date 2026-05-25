@@ -190,7 +190,7 @@
 <body>
 
   <!-- ── Navigation ─────────────────────────────────────── -->
-  <nav id="main-nav" class="scrolled">
+  <nav id="main-nav" class="scrolled" data-nav-pinned>
     <a href="index.html" class="nav-logo">
       <span class="logo-main">Coastal</span>
       <span class="logo-script">Travel Company</span>
@@ -330,39 +330,8 @@
 
 </div><!-- /.login-wrap -->
 
+<script src="main.js"></script>
 <script>
-  // ── Mobile nav toggle ─────────────────────────────────────────────────────
-  (function () {
-    const toggle   = document.querySelector('.nav-toggle');
-    const navLinks = document.querySelector('.nav-links');
-    if (!toggle || !navLinks) return;
-    toggle.addEventListener('click', () => {
-      const open = navLinks.style.display === 'flex';
-      navLinks.style.display        = open ? 'none' : 'flex';
-      navLinks.style.flexDirection  = 'column';
-      navLinks.style.position       = 'fixed';
-      navLinks.style.top            = '0';
-      navLinks.style.left           = '0';
-      navLinks.style.right          = '0';
-      navLinks.style.bottom         = '0';
-      navLinks.style.background     = 'var(--cream)';
-      navLinks.style.alignItems     = 'center';
-      navLinks.style.justifyContent = 'center';
-      navLinks.style.gap            = '36px';
-      navLinks.style.zIndex         = '150';
-      if (!open) {
-        navLinks.querySelectorAll('a').forEach(a => {
-          a.style.color         = 'var(--black)';
-          a.style.fontSize      = '13px';
-          a.style.letterSpacing = '0.3em';
-        });
-      }
-    });
-    navLinks.querySelectorAll('a').forEach(a => {
-      a.addEventListener('click', () => { navLinks.style.display = 'none'; });
-    });
-  })();
-
   // ── Config ────────────────────────────────────────────────────────────────
   // Set your Google OAuth Client ID here (from Google Cloud Console).
   // Get one at: https://console.cloud.google.com/apis/credentials
@@ -370,7 +339,7 @@
   // Leave empty to hide the Google Sign-In button.
   const GOOGLE_CLIENT_ID = '777870441164-5tgs1r551epm58c6p7bg3hapr492q83v.apps.googleusercontent.com';
 
-  const WORKER_URL = CTC_CONFIG.workerUrl;
+  // WORKER_URL is declared by main.js (using CTC_CONFIG.workerUrl when available).
 
   const JWT_KEY  = 'ctc_jwt';
   const USER_KEY = 'ctc_user';
