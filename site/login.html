@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="config.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
   <style>
     :root {
       --black:  #1C1C1C;
@@ -457,10 +457,12 @@
 
   // ── Google Sign-In ────────────────────────────────────────────────────────
   function initGoogle() {
-    if (!GOOGLE_CLIENT_ID || typeof google === 'undefined') {
+    if (!GOOGLE_CLIENT_ID) {
       document.getElementById('googleSection').classList.add('hidden');
       return;
     }
+    // GSI script not yet loaded — the onload callback will call us again.
+    if (typeof google === 'undefined') return;
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback:  handleGoogleCredential,
