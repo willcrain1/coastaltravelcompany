@@ -168,7 +168,7 @@ test.describe('automation settings panel', () => {
         if (key === 'GET /auth/me')               return json(route, { id: 'a1', email: 'admin@test.com', role: 'admin' });
         if (key === 'GET /admin/automations')      return json(route, currentAutomations);
         if (key === 'PUT /admin/automations') {
-          const body = await req.json();
+          const body = req.postDataJSON();
           if (Array.isArray(body)) currentAutomations = body;
           return json(route, { ok: true });
         }

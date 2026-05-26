@@ -74,8 +74,8 @@ function adminSetup(context, walkthroughs = [MOCK_WALKTHROUGH]) {
     'GET /auth/me':            (r) => json(r, { id: 'a1', email: 'admin@test.com', role: 'admin' }),
     'GET /admin/galleries':    (r) => json(r, []),
     'GET /admin/walkthroughs': (r) => json(r, wts),
-    'POST /admin/walkthroughs': async (route) => {
-      const body = await route.request().json();
+    'POST /admin/walkthroughs': (route) => {
+      const body = route.request().postDataJSON();
       const newWt = { ...MOCK_WALKTHROUGH, ...body, id: 'wt-new', created_at: new Date().toISOString() };
       wts = [newWt, ...wts];
       return json(route, newWt, 201);
@@ -122,7 +122,7 @@ test.describe('admin walkthroughs panel', () => {
       async (route) => {
         if (route.request().method() === 'POST') {
           postCalled = true;
-          const body = await route.request().json();
+          const body = route.request().postDataJSON();
           return json(route, { ...MOCK_WALKTHROUGH, ...body, id: 'wt-new', property_name: body.property_name }, 201);
         }
         return json(route, []);
@@ -175,8 +175,12 @@ test.describe('public walkthroughs page', () => {
     await mockWorker(context, {
       'GET /public/walkthroughs': (r) => json(r, [MOCK_WALKTHROUGH]),
     });
-    await page.goto(`${STATIC_BASE}/walkthroughs.html`);
-    await expect(page.locator('#wtGrid')).toContainText('Grand Palms Resort', { timeout: 10_000 });
+    // Await the mock response before asserting DOM — avoids races in headless CI
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/public/walkthroughs')),
+      page.goto(`${STATIC_BASE}/walkthroughs.html`),
+    ]);
+    await expect(page.locator('#wtGrid')).toContainText('Grand Palms Resort', { timeout: 5_000 });
     // Cards show property_name, collection badge, and location — title is shown in the modal subtitle
     await expect(page.locator('#wtGrid')).toContainText('The Editorial Stay');
   });
@@ -185,15 +189,21 @@ test.describe('public walkthroughs page', () => {
     await mockWorker(context, {
       'GET /public/walkthroughs': (r) => json(r, []),
     });
-    await page.goto(`${STATIC_BASE}/walkthroughs.html`);
-    await expect(page.locator('#wtGrid')).toContainText('No walkthroughs published yet', { timeout: 10_000 });
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/public/walkthroughs')),
+      page.goto(`${STATIC_BASE}/walkthroughs.html`),
+    ]);
+    await expect(page.locator('#wtGrid')).toContainText('No walkthroughs published yet', { timeout: 5_000 });
   });
 
   test('clicking a card opens the modal with the embed iframe', async ({ page, context }) => {
     await mockWorker(context, {
       'GET /public/walkthroughs': (r) => json(r, [MOCK_WALKTHROUGH]),
     });
-    await page.goto(`${STATIC_BASE}/walkthroughs.html`);
+    await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/public/walkthroughs')),
+      page.goto(`${STATIC_BASE}/walkthroughs.html`),
+    ]);
     await page.locator('#wtGrid .wt-card').first().click();
     await expect(page.locator('#wtModal')).toBeVisible({ timeout: 5_000 });
     // openModal sets #wtModalTitle to property_name and #wtModalSub to "location · title"
