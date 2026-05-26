@@ -1,0 +1,38 @@
+name: D1 Migration Smoke Tests
+
+on:
+  pull_request:
+    paths:
+      - 'worker/migrations/**'
+      - 'worker/tests/migration-smoke.test.js'
+  push:
+    branches: [preprod, master]
+    paths:
+      - 'worker/migrations/**'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  migration-smoke:
+    name: Migration smoke tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run migration smoke tests
+        run: npx vitest run tests/migration-smoke.test.js

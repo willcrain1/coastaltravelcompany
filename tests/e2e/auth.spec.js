@@ -91,6 +91,29 @@ test.describe('Login Page', () => {
     await expect(page.locator('#forgotLink')).toBeVisible();
   });
 
+  test('successful login stores JWT and redirects to portal', async ({ page, context }) => {
+    await mockWorker(context, {
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
+      'POST /auth/login': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ token: 'mock-login-jwt', user: { id: 'u1', email: 'admin@test.com', role: 'admin' } }),
+      }),
+      'GET /auth/me': (route) => adminResponse(route),
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+    await page.fill('#loginEmail',    'admin@test.com');
+    await page.fill('#loginPassword', 'password123');
+    await page.click('#loginBtn');
+
+    await page.waitForURL(/\/(admin\/pipeline|portal)(\.html)?/, { timeout: 10_000 });
+    const jwt = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
+    expect(jwt).toBe('mock-login-jwt');
+  });
+
   test('shows first-time setup card when no admin account exists yet', async ({ page, context }) => {
     await mockWorker(context, {
       'GET /auth/setup-status': (route) => route.fulfill({
@@ -215,5 +238,80 @@ test.describe('Admin Panel Auth', () => {
     await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
     await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
     expect(page.url()).toMatch(/\/portal(\.html)?/);
+  });
+});
+
+// ── Google OAuth (stubbed via page.route) ─────────────────────────────────────
+// These tests verify the frontend wiring — that a successful /auth/google
+// response stores the JWT and redirects to /portal.html. They do NOT test
+// Cloudflare ↔ Google token verification (that requires a real Google account).
+
+test.describe('Google OAuth login (stubbed)', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('successful Google credential stores JWT and redirects to portal', async ({ page, context }) => {
+    await mockWorker(context, {
+      'POST /auth/google': (route) => route.fulfill({
+        status:  200,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({
+          token: 'mock-google-jwt',
+          user:  { id: 'gu1', email: 'google@example.com', role: 'client' },
+        }),
+      }),
+      'GET /auth/me':       (route) => clientResponse(route),
+      'GET /portal/galleries': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: '[]',
+      }),
+      'GET /portal/invoices': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: '[]',
+      }),
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+
+    // Directly invoke handleGoogleCredential with a fake credential — bypasses
+    // the Google GSI button which requires a real Google account in the browser.
+    await page.evaluate((workerUrl) => {
+      // Stub the Google GSI script so initGoogle() doesn't error
+      window.google = {
+        accounts: {
+          id: {
+            initialize: () => {},
+            renderButton: () => {},
+          },
+        },
+      };
+      // Call the handler as the GSI callback would
+      window.handleGoogleCredential({ credential: 'fake-google-id-token' });
+    }, WORKER_URL);
+
+    await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/portal(\.html)?/);
+
+    const jwt = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
+    expect(jwt).toBe('mock-google-jwt');
+  });
+
+  test('failed Google credential shows error message', async ({ page, context }) => {
+    await mockWorker(context, {
+      'POST /auth/google': (route) => route.fulfill({
+        status:  401,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ error: 'Invalid Google token' }),
+      }),
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+
+    await page.evaluate(() => {
+      window.google = { accounts: { id: { initialize: () => {}, renderButton: () => {} } } };
+      window.handleGoogleCredential({ credential: 'bad-token' });
+    });
+
+    await expect(page.locator('#loginError')).toContainText(/Google sign-in failed|Invalid/i, { timeout: 5_000 });
+    expect(page.url()).not.toMatch(/\/portal(\.html)?/);
   });
 });

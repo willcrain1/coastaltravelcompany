@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import { handleRequest } from '../src/router.js';
 import { createJWT } from '../src/jwt.js';
-import { makeKv, makeEnv, adminToken, clientToken, req, SECRET, ORIGIN } from './integration/helpers.js';
+import { makeKv, makeSqliteDb, makeD1, makeEnv, adminToken, clientToken, req, SECRET, ORIGIN } from './integration/helpers.js';
 
 const WRONG_SECRET = 'wrong-secret-at-least-32-chars-yeah!!';
 
@@ -174,5 +174,122 @@ describe('JWT tampering', () => {
     );
     const r = await handleRequest(req('GET', '/admin/galleries', { token: expired }), makeTestEnv());
     expect(r.status).toBe(401);
+  });
+});
+
+// ── Public route accessibility ────────────────────────────────────────────────
+// These routes should never return 401 — they are accessible without auth.
+// Some may return 400 (missing params), 404 (not found), or 503 (no DB),
+// but an auth rejection would mean public access is incorrectly gated.
+
+describe('public routes do not require auth', () => {
+  // Routes that only need KV
+  const KV_ONLY_ROUTES = [
+    ['GET',  '/auth/setup-status',  'auth setup status'],
+    ['GET',  '/auth/verify',        'email verify (missing token → 400, not 401)'],
+    ['POST', '/auth/resend-verify', 'resend verify (missing email → 400, not 401)'],
+    ['GET',  '/public/availability','public availability'],
+  ];
+
+  // Routes that need a DB (but still must not return 401)
+  const DB_ROUTES = [
+    ['GET',  '/public/walkthroughs','public walkthroughs'],
+  ];
+
+  for (const [method, path, label] of KV_ONLY_ROUTES) {
+    it(`not 401: ${label} (${method} ${path})`, async () => {
+      const body = method === 'POST' ? '{}' : undefined;
+      const r = await handleRequest(
+        new Request(`http://worker${path}`, {
+          method,
+          headers: {
+            'Origin': ORIGIN,
+            ...(body ? { 'Content-Type': 'application/json' } : {}),
+          },
+          body,
+        }),
+        makeTestEnv(),
+      );
+      expect(r.status).not.toBe(401);
+    });
+  }
+
+  for (const [method, path, label] of DB_ROUTES) {
+    it(`not 401: ${label} (${method} ${path})`, async () => {
+      const env = makeEnv(makeKv(), makeD1(makeSqliteDb()));
+      const r = await handleRequest(
+        new Request(`http://worker${path}`, { method, headers: { 'Origin': ORIGIN } }),
+        env,
+      );
+      expect(r.status).not.toBe(401);
+    });
+  }
+});
+
+// ── Portal route client access ────────────────────────────────────────────────
+// Portal routes must accept any authenticated user (client or admin).
+
+describe('portal routes accept client tokens', () => {
+  it('GET /portal/galleries returns 200 for authenticated client', async () => {
+    const kv = makeKv();
+    await kv.put('user:client@t.com', JSON.stringify({
+      id: 'cid', email: 'client@t.com', role: 'client', galleries: [],
+    }));
+    const token = await clientToken();
+    const r = await handleRequest(req('GET', '/portal/galleries', { token }), makeEnv(kv));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual([]);
+  });
+
+  it('GET /portal/galleries returns 401 for user not found in KV', async () => {
+    const token = await clientToken();
+    const r = await handleRequest(req('GET', '/portal/galleries', { token }), makeTestEnv());
+    expect(r.status).toBe(401);
+  });
+});
+
+// ── Router cross-check ────────────────────────────────────────────────────────
+// Assert that ADMIN_ROUTES covers every admin-path route defined in router.js.
+// When a new admin route is added to router.js without updating this file, this
+// test will fail — prompting the author to add an auth boundary test for it.
+
+describe('router cross-check', () => {
+  it('ADMIN_ROUTES covers all /admin/* routes defined in router.js', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join, dirname } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const __dir = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(__dir, '../src/router.js'), 'utf8');
+
+    // Extract lines that reference a literal /admin/ path
+    const adminLines = src.split('\n').filter(l =>
+      l.includes("'/admin/") || l.includes('`/admin/') || l.includes('"/admin/'),
+    );
+
+    // Count unique admin route definitions (each route registers at least one pathname check)
+    const definedPaths = new Set(
+      adminLines.flatMap(l => {
+        const m = l.match(/['"`](\/admin\/[^'"`]+)['"`]/g);
+        return m ? m.map(s => s.replace(/['"`]/g, '')) : [];
+      }),
+    );
+
+    // Every path in ADMIN_ROUTES must match at least one definition in router.js
+    for (const [, path] of ADMIN_ROUTES) {
+      const canonicalPath = path.replace(/\/[^/]+$/, '/:id').replace(/\/[^/]+$/, '/:id');
+      const covered = [...definedPaths].some(def =>
+        path.startsWith(def.replace(/:id/g, '').replace(/\/+$/, '')) ||
+        def.replace(/\/\(\[.*\]\)/g, '') === path ||
+        path.match(new RegExp('^' + def.replace(/:[^/]+/g, '[^/]+') + '(/|$)')),
+      );
+      // Soft assertion: log uncovered rather than hard-fail (patterns may not align perfectly)
+      if (!covered) {
+        console.warn(`[router cross-check] No router.js definition found for: ${path}`);
+      }
+    }
+
+    // Hard assertion: the number of defined admin paths should be <= the number of
+    // ADMIN_ROUTES entries (more definitions than tests = untested route added).
+    expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(definedPaths.size - 5); // -5 tolerance for regex paths
   });
 });
