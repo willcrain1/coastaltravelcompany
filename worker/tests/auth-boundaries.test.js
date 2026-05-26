@@ -146,10 +146,14 @@ describe('origin enforcement', () => {
 describe('JWT tampering', () => {
   it('401 when JWT algorithm is tampered (alg:none style)', async () => {
     const token = await adminToken();
-    // Flip a character in the signature segment to invalidate it.
+    // Corrupt the signature by flipping the first character.
+    // The last character of a 32-byte HMAC-SHA256 base64url signature encodes
+    // only 4 real bits + 2 padding zeros, so flipping it may leave decoded bytes
+    // unchanged (padding bits are discarded). The first character encodes 6 real
+    // bits and is always safe to corrupt.
     const parts = token.split('.');
     const sig   = parts[2];
-    parts[2]    = sig.slice(0, -1) + (sig.at(-1) === 'A' ? 'B' : 'A');
+    parts[2]    = (sig[0] === 'A' ? 'B' : 'A') + sig.slice(1);
     const tampered = parts.join('.');
     const r = await handleRequest(req('GET', '/admin/galleries', { token: tampered }), makeTestEnv());
     expect(r.status).toBe(401);

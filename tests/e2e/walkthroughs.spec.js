@@ -74,8 +74,8 @@ function adminSetup(context, walkthroughs = [MOCK_WALKTHROUGH]) {
     'GET /auth/me':            (r) => json(r, { id: 'a1', email: 'admin@test.com', role: 'admin' }),
     'GET /admin/galleries':    (r) => json(r, []),
     'GET /admin/walkthroughs': (r) => json(r, wts),
-    'POST /admin/walkthroughs': async (route) => {
-      const body = await route.request().json();
+    'POST /admin/walkthroughs': (route) => {
+      const body = route.request().postDataJSON();
       const newWt = { ...MOCK_WALKTHROUGH, ...body, id: 'wt-new', created_at: new Date().toISOString() };
       wts = [newWt, ...wts];
       return json(route, newWt, 201);
@@ -86,7 +86,7 @@ function adminSetup(context, walkthroughs = [MOCK_WALKTHROUGH]) {
 }
 
 async function gotoGalleriesAdmin(page) {
-  await page.evaluate((jwt) => localStorage.setItem('ctc_jwt', jwt), ADMIN_JWT);
+  await page.addInitScript((jwt) => localStorage.setItem('ctc_jwt', jwt), ADMIN_JWT);
   await page.goto(`${STATIC_BASE}/admin/galleries.html`);
   // Wait for walkthroughs list to load
   await page.waitForFunction(() => {
@@ -122,14 +122,14 @@ test.describe('admin walkthroughs panel', () => {
       async (route) => {
         if (route.request().method() === 'POST') {
           postCalled = true;
-          const body = await route.request().json();
+          const body = route.request().postDataJSON();
           return json(route, { ...MOCK_WALKTHROUGH, ...body, id: 'wt-new', property_name: body.property_name }, 201);
         }
         return json(route, []);
       },
     );
 
-    await page.click('button[onclick="saveWalkthrough()"]');
+    await page.click('#wtCreateForm button[type="submit"]');
     await expect(page.locator('#wtList')).toContainText('Ocean View Hotel', { timeout: 5_000 });
     expect(postCalled).toBe(true);
   });
@@ -146,9 +146,9 @@ test.describe('admin walkthroughs panel', () => {
     );
 
     await gotoGalleriesAdmin(page);
-    // Toggle the published checkbox for wt1
-    const checkbox = page.locator(`input[onchange*="wt1"]`).first();
-    await checkbox.click();
+    // The Unpublish button calls toggleWtPublished('wt1', 0) — mock walkthrough starts as published
+    const toggleBtn = page.getByRole('button', { name: 'Unpublish' }).first();
+    await toggleBtn.click();
     await page.waitForTimeout(300);
     expect(putCalled).toBe(true);
   });
@@ -166,6 +166,21 @@ test.describe('admin walkthroughs panel', () => {
 
 // ── Public walkthroughs page ──────────────────────────────────────────────────
 
+// Wait until #wtGrid is visible and its textContent contains the expected string.
+// We use textContent (not innerText) because cards are rendered with class="wt-card
+// fade-up" which starts at opacity:0 — innerText skips opacity-0 subtrees in some
+// Chromium builds, whereas textContent always returns all descendant text.
+async function waitForWtGrid(page, substring, timeout = 10_000) {
+  await page.waitForFunction(
+    ([id, sub]) => {
+      const el = document.getElementById(id);
+      return el && el.style.display !== 'none' && el.textContent.includes(sub);
+    },
+    ['wtGrid', substring],
+    { timeout },
+  );
+}
+
 test.describe('public walkthroughs page', () => {
   test.afterEach(async ({ context }) => {
     await context.unrouteAll({ behavior: 'ignoreErrors' });
@@ -176,8 +191,9 @@ test.describe('public walkthroughs page', () => {
       'GET /public/walkthroughs': (r) => json(r, [MOCK_WALKTHROUGH]),
     });
     await page.goto(`${STATIC_BASE}/walkthroughs.html`);
-    await expect(page.locator('#wtGrid')).toContainText('Grand Palms Resort', { timeout: 10_000 });
-    await expect(page.locator('#wtGrid')).toContainText('Grand Suite Walkthrough');
+    // Cards show property_name, collection badge, and location — title is shown in the modal subtitle
+    await waitForWtGrid(page, 'Grand Palms Resort');
+    await waitForWtGrid(page, 'The Editorial Stay');
   });
 
   test('empty state renders when no walkthroughs exist', async ({ page, context }) => {
@@ -185,7 +201,7 @@ test.describe('public walkthroughs page', () => {
       'GET /public/walkthroughs': (r) => json(r, []),
     });
     await page.goto(`${STATIC_BASE}/walkthroughs.html`);
-    await expect(page.locator('#wtGrid')).toContainText('No walkthroughs published yet', { timeout: 10_000 });
+    await waitForWtGrid(page, 'No walkthroughs published yet');
   });
 
   test('clicking a card opens the modal with the embed iframe', async ({ page, context }) => {
@@ -193,8 +209,10 @@ test.describe('public walkthroughs page', () => {
       'GET /public/walkthroughs': (r) => json(r, [MOCK_WALKTHROUGH]),
     });
     await page.goto(`${STATIC_BASE}/walkthroughs.html`);
+    await waitForWtGrid(page, 'Grand Palms Resort');
     await page.locator('#wtGrid .wt-card').first().click();
     await expect(page.locator('#wtModal')).toBeVisible({ timeout: 5_000 });
-    await expect(page.locator('#wtModalTitle')).toContainText('Grand Suite Walkthrough');
+    // openModal sets #wtModalTitle to property_name and #wtModalSub to "location · title"
+    await expect(page.locator('#wtModalTitle')).toContainText('Grand Palms Resort');
   });
 });
