@@ -1060,3 +1060,30 @@ This item tracks the integration, polish, and acceptance testing work that goes 
 - [ ] Lead capture: trigger gate, submit email, confirm `POST /re/properties/:id/leads` returns 200 and agent receives Resend email (mock Resend in preprod using test API key with delivery verification)
 - [ ] Agent dashboard: navigate to property analytics tab, confirm Room Engagement Table renders with at least the seeded event data
 - [ ] Embed & Share tab: confirm QR code canvas renders and Download PNG button produces a non-empty file
+
+---
+
+## 41. Expand Automated Test Coverage
+
+**Goal:** Complement the existing Vitest unit tests (586 tests, 98.52% branch coverage) and Playwright acceptance tests with deeper integration, migration, and security testing layers that catch issues the mocked unit tests cannot.
+
+### Wrangler integration tests
+- [ ] Set up a Vitest test suite that boots the Worker via `wrangler dev --local` (Miniflare) against real local D1 and KV bindings — no mocks
+- [ ] Cover the full auth flow end-to-end: register → verify email token → login → access protected route → logout
+- [ ] Cover the gallery proxy flow: `POST /token` with a passphrase → receive `sid` → use `sid` on a downstream request → verify KV TTL behaviour
+- [ ] Cover D1-backed CRUD paths for projects, invoices, contracts, and questionnaires against a real schema (not a mock `prepare()` chain)
+- [ ] Add to CI: run integration tests on every push to `preprod` and on PRs targeting `preprod`
+
+### D1 migration smoke tests
+- [ ] Write a CI job that applies all migrations in `worker/migrations/` in order against a fresh in-memory SQLite database (via `wrangler d1 execute --local`) and asserts the resulting schema matches expected table/column definitions
+- [ ] Detect migration conflicts early: the job fails if any migration breaks, leaving the schema in an unknown state
+- [ ] Verify idempotency: run all migrations twice and assert no errors (all statements use `IF NOT EXISTS` / `IF NOT EXISTS` guards)
+- [ ] Add the smoke test job to `.github/workflows/` so it runs on every PR that touches any file under `worker/migrations/`
+
+### Security / auth boundary tests
+- [ ] Add a dedicated Vitest suite (`tests/auth-boundaries.test.js`) that exhaustively verifies every Worker route returns the correct auth rejection status
+- [ ] For every admin route: assert 401 with no token, 403 with a valid client token, and 200/201/etc. with a valid admin token
+- [ ] For every public route: assert the route is accessible without any token
+- [ ] For every portal route: assert 401 with no token and 200 with a valid client token
+- [ ] Cross-check the route list against `router.js` programmatically so new routes can't be added without a corresponding auth boundary test
+- [ ] Add JWT tampering tests: expired token → 401, wrong secret → 401, role field removed from payload → appropriate rejection
