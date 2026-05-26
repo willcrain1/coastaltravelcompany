@@ -118,7 +118,6 @@ jobs:
     name: Playwright acceptance tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.base_ref == 'master'
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
