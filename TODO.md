@@ -1060,3 +1060,142 @@ This item tracks the integration, polish, and acceptance testing work that goes 
 - [ ] Lead capture: trigger gate, submit email, confirm `POST /re/properties/:id/leads` returns 200 and agent receives Resend email (mock Resend in preprod using test API key with delivery verification)
 - [ ] Agent dashboard: navigate to property analytics tab, confirm Room Engagement Table renders with at least the seeded event data
 - [ ] Embed & Share tab: confirm QR code canvas renders and Download PNG button produces a non-empty file
+
+---
+
+## 41. Expand Automated Test Coverage
+
+**Goal:** Complement the existing Vitest unit tests (586 tests, 98.52% branch coverage) and Playwright acceptance tests with deeper integration, migration, and security testing layers that catch issues the mocked unit tests cannot.
+
+### Wrangler integration tests
+- [ ] Set up a Vitest test suite that boots the Worker via `wrangler dev --local` (Miniflare) against real local D1 and KV bindings — no mocks
+- [ ] Cover the full auth flow end-to-end: register → verify email token → login → access protected route → logout
+- [ ] Cover the gallery proxy flow: `POST /token` with a passphrase → receive `sid` → use `sid` on a downstream request → verify KV TTL behaviour
+- [ ] Cover D1-backed CRUD paths for projects, invoices, contracts, and questionnaires against a real schema (not a mock `prepare()` chain)
+- [ ] Add to CI: run integration tests on every push to `preprod` and on PRs targeting `preprod`
+
+### D1 migration smoke tests
+- [ ] Write a CI job that applies all migrations in `worker/migrations/` in order against a fresh in-memory SQLite database (via `wrangler d1 execute --local`) and asserts the resulting schema matches expected table/column definitions
+- [ ] Detect migration conflicts early: the job fails if any migration breaks, leaving the schema in an unknown state
+- [ ] Verify idempotency: run all migrations twice and assert no errors (all statements use `IF NOT EXISTS` / `IF NOT EXISTS` guards)
+- [ ] Add the smoke test job to `.github/workflows/` so it runs on every PR that touches any file under `worker/migrations/`
+
+### Security / auth boundary tests
+- [ ] Add a dedicated Vitest suite (`tests/auth-boundaries.test.js`) that exhaustively verifies every Worker route returns the correct auth rejection status
+- [ ] For every admin route: assert 401 with no token, 403 with a valid client token, and 200/201/etc. with a valid admin token
+- [ ] For every public route: assert the route is accessible without any token
+- [ ] For every portal route: assert 401 with no token and 200 with a valid client token
+- [ ] Cross-check the route list against `router.js` programmatically so new routes can't be added without a corresponding auth boundary test
+- [ ] Add JWT tampering tests: expired token → 401, wrong secret → 401, role field removed from payload → appropriate rejection
+
+---
+
+## 42. End-to-end email testing via mailbox capture service
+
+**Goal:** Verify that every Resend email (verification, password reset, invoice send, contract send, contact form) is actually delivered with the correct content — something unit tests cannot do because they stub `fetch`. Use a mailbox capture service so real SMTP delivery is exercised in the preprod Playwright suite without relying on real inboxes.
+
+### Why this matters
+
+Unit tests assert that the Worker calls `fetch('https://api.resend.com/emails', ...)` with the right shape. They do not verify that Resend accepts the request, that the API key is valid, that the `from` domain is verified, or that the rendered HTML is well-formed. A misconfigured Resend account or a broken email template would pass all unit tests and only be caught by a human during manual preprod testing.
+
+### Recommended approach: Mailosaur
+
+[Mailosaur](https://mailosaur.com) provides dedicated SMTP/API inboxes per test run. Each inbox has a deterministic address (`<anything>@<server-id>.mailosaur.net`) that can be polled via their REST API immediately after sending. It integrates cleanly with Playwright and has a Node.js SDK.
+
+Alternative options in rough priority order:
+1. **Mailtrap** — similar inbox-capture model, generous free tier, good Node SDK
+2. **Resend test mode** — Resend itself supports a test API key that records sends without delivering; no external service needed but you can only assert the API accepted the request, not inspect the rendered HTML
+3. **Ethereal Email** — free, nodemailer-based, good for one-off smoke tests but no persistent inboxes
+
+### Setup steps
+
+- [ ] **Choose and configure the service** — sign up for Mailosaur (or Mailtrap) and create a preprod server/inbox; store the API key as a GitHub Actions secret (`MAILOSAUR_API_KEY`) and as a Cloudflare Worker secret on `coastal-gallery-proxy-preprod`
+- [ ] **Route preprod emails to the capture inbox** — in the Worker, check `env.EMAIL_CAPTURE_DOMAIN`; if set, rewrite all `to` addresses to `<original-local-part>@<EMAIL_CAPTURE_DOMAIN>` before calling Resend. This ensures no real email is sent from preprod while still exercising the full Resend code path
+- [ ] **Add `EMAIL_CAPTURE_DOMAIN` to preprod Worker secrets** — set to the Mailosaur server inbox domain (e.g. `abc123.mailosaur.net`)
+- [ ] **Install Mailosaur Node SDK** — `npm install --save-dev mailosaur` in the `tests/e2e` package; add to the Playwright project
+
+### Playwright test coverage
+
+- [ ] **Verification email** — register a new account using a `@<server>.mailosaur.net` address; poll Mailosaur API until the verification email arrives (timeout 10 s); assert subject line, presence of the verify link, and that clicking the link marks the account verified
+- [ ] **Password reset email** — trigger reset for an existing preprod account; poll for reset email; assert the reset link is present and functional
+- [ ] **Invoice send** — admin creates and sends an invoice to a capture address; poll for email; assert it contains the invoice total and payment link URL
+- [ ] **Contract send** — admin sends a contract to a capture address; poll for email; assert it contains the signing link URL
+- [ ] **Contact form** — submit the contact form; poll for the notification email sent to `thecoastaltravelcompany@gmail.com` (rewritten to capture inbox in preprod); assert subject and sender name appear in the body
+
+### CI integration
+
+- [ ] Pass `MAILOSAUR_API_KEY` and `EMAIL_CAPTURE_DOMAIN` to the `acceptance-tests` GitHub Actions job via `env:` (sourced from repository secrets)
+- [ ] Gate the email assertions on `!!process.env.MAILOSAUR_API_KEY` so local runs without the secret skip gracefully rather than failing
+- [ ] Add a note to the preprod test checklist in `CLAUDE.md` confirming that email capture tests run automatically — remove the manual "verify email link works" steps that are now automated
+
+---
+
+## 43. Close Playwright e2e coverage gaps
+
+**Goal:** Eliminate the remaining test gaps where a silent production failure would only be caught by a human during manual preprod testing. Ranked by risk — highest-impact items first.
+
+### Stripe webhook completion
+
+Currently `invoice.spec.js` tests the Stripe checkout redirect but stops there. The webhook handler (`POST /stripe/webhook`) is what marks the invoice paid and advances the project stage; if it breaks, Stripe payments succeed but the app never updates.
+
+- [ ] Use the [Stripe CLI](https://stripe.com/docs/stripe-cli) (`stripe trigger checkout.session.completed`) in CI to fire a realistic webhook event against the preprod Worker
+- [ ] Assert the invoice status changes from `sent` → `paid` in the D1 `invoices` table after the webhook fires
+- [ ] Assert the corresponding project stage advances to `Retainer Paid` in the pipeline view
+- [ ] Add `STRIPE_CLI_API_KEY` to GitHub Actions secrets and install `stripe` CLI in the acceptance-tests job
+
+### Admin countersigning
+
+`contract.spec.js` ends at `client_signed` with the "waiting for admin" banner. The admin countersign step and the resulting `fully_executed` state are not exercised end-to-end.
+
+- [ ] Extend `contract.spec.js`: after client signs, log in as admin, navigate to the project contracts tab, click countersign
+- [ ] Assert the contract status advances to `fully_executed`
+- [ ] Assert both signatures and the full audit trail render on the public contract view
+- [ ] Assert both parties receive confirmation emails (gate behind `MAILOSAUR_API_KEY` per item 42)
+
+### Password reset full flow
+
+`register.spec.js` confirms the registration success message but never follows the `/auth/verify?token=...` link. The reset flow has zero Playwright coverage.
+
+- [ ] Add a test that registers, intercepts (or reads from KV via Worker test helper) the verify token, navigates to the verify URL, and asserts the account becomes loginable
+- [ ] Add a test for the full reset path: trigger reset → receive email → follow reset link → set new password → log in with new password (gate email delivery step behind `MAILOSAUR_API_KEY` per item 42)
+
+### Google OAuth login
+
+No e2e test exercises the Google Sign-In button. A broken `GOOGLE_CLIENT_ID` secret or a changed authorized-origin list would be invisible to CI.
+
+- [ ] Add a Playwright test that stubs `POST /auth/google` at the network layer (Playwright `route()`) to return a fixture JWT — avoids needing real Google credentials in CI
+- [ ] Assert the stub response stores a JWT in `localStorage` and redirects to `/portal.html`
+- [ ] Add a separate note in the preprod checklist that a human should verify real Google login quarterly (the stub test only covers the frontend wiring, not Cloudflare ↔ Google token verification)
+
+### Walkthrough CRUD
+
+The walkthroughs feature (`GET/POST/PUT/DELETE /admin/walkthroughs`, `GET /public/walkthroughs`) has zero Playwright coverage.
+
+- [ ] Add `tests/e2e/walkthroughs.spec.js` covering: admin creates a walkthrough, it appears in the public list, admin updates it, admin deletes it
+- [ ] Assert the public `/public/walkthroughs` endpoint returns the walkthrough without auth
+
+### Admin user management and gallery assignment
+
+No e2e test exercises the Users tab in the admin panel.
+
+- [ ] Add a test that creates a new client user via the admin UI, assigns a gallery to them
+- [ ] Log in as the new client and assert the assigned gallery appears in their portal
+- [ ] Assert a gallery removed from the user no longer appears in their portal
+
+### Automation settings
+
+The automations page has no Playwright test.
+
+- [ ] Add `tests/e2e/automations.spec.js`: admin toggles an automation on, confirms the enabled state persists after page reload, toggles it off
+- [ ] Assert `GET /admin/automation-logs` renders the log table (can be empty — just confirm the page doesn't error)
+
+### Router-based e2e coverage enforcement
+
+Add a CI script that derives the required test surface from `router.js` directly, so new endpoints cannot be shipped without either a spec reference or an explicit exemption — no manually maintained manifest required.
+
+- [ ] Write a Node script (`tests/e2e/scripts/check-route-coverage.js`) that parses all route patterns out of `worker/src/router.js` (regex over the `pathname.match(...)` and `pathname ===` lines) and builds a list of canonical route signatures (e.g. `GET /admin/walkthroughs`, `POST /admin/projects/:id/invoices`)
+- [ ] For each route signature, search all `tests/e2e/**/*.spec.js` files for a reference — either a literal path string, a path-building expression that matches the pattern, or an explicit coverage annotation comment (`// covers: GET /admin/walkthroughs`) for routes tested indirectly
+- [ ] Any route with zero references fails the script with a non-zero exit code and prints the uncovered routes
+- [ ] Maintain a small allowlist in the script for routes that are intentionally excluded from e2e testing (e.g. `POST /stripe/webhook` — covered by Stripe CLI test separately; `POST /auth/google` — stubbed via `page.route()`)
+- [ ] Add the script as a step in the `acceptance-tests` GitHub Actions job: run it after the Playwright suite so failures are reported alongside test output
+- [ ] Use pattern matching (not string equality) when comparing route signatures to spec references — a spec hitting `/admin/projects/proj-123` should satisfy the `GET /admin/projects/:id` route

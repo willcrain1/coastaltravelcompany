@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^2.0.0",
+    "better-sqlite3": "^12.10.0",
     "vitest": "^2.0.0",
     "wrangler": "^3.75.0"
   }
