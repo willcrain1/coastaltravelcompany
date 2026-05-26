@@ -186,6 +186,91 @@ describe('project notes', () => {
   });
 });
 
+// ─── Gallery token exchange ───────────────────────────────────────────────────
+
+describe('gallery token exchange (POST /token)', () => {
+  it('returns sid and stores tok:* in KV after successful session', async () => {
+    // Set up gallery with a passphrase in KV
+    const kv = makeKv();
+    await kv.put('gallery:g1', JSON.stringify({ id: 'g1', passphrase: 'share-abc123' }));
+    await kv.put('galleries_list', JSON.stringify(['g1']));
+    const testEnv = makeEnv(kv); // no DB needed for token exchange
+
+    // Stub getSharingSid's outbound fetch calls — NAS is not reachable in tests
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = async (url) => {
+      const u = typeof url === 'string' ? url : url.toString();
+      if (u.includes('sharing_id=')) {
+        // Synology login API response
+        return new Response(JSON.stringify({ success: true, data: { sid: 'nas-sid-xyz' } }), {
+          headers: { 'set-cookie': 'sharing_sid=nas-sid-xyz; Path=/' },
+        });
+      }
+      return new Response('', { headers: { 'set-cookie': 'sharing_sid=fallback-sid; Path=/' } });
+    };
+
+    try {
+      const r = await handleRequest(
+        new Request('http://worker/token', {
+          method: 'POST',
+          headers: {
+            'Origin': 'https://coastaltravelcompany.com',
+            'Authorization': `Bearer ${tok}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'galleryId=g1',
+        }),
+        testEnv,
+      );
+      expect(r.status).toBe(200);
+      const body = await r.json();
+      expect(body.sid).toBeTruthy();
+
+      // KV should have a tok:<sid> entry
+      const stored = await kv.get(`tok:${body.sid}`);
+      expect(stored).not.toBeNull();
+      const parsed = JSON.parse(stored);
+      expect(parsed.passphrase).toBe('share-abc123');
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
+
+  it('404 when gallery does not exist in KV', async () => {
+    const kv = makeKv();
+    const testEnv = makeEnv(kv);
+    const r = await handleRequest(
+      new Request('http://worker/token', {
+        method: 'POST',
+        headers: {
+          'Origin': 'https://coastaltravelcompany.com',
+          'Authorization': `Bearer ${tok}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'galleryId=missing',
+      }),
+      testEnv,
+    );
+    expect(r.status).toBe(404);
+  });
+
+  it('400 when galleryId is missing from body', async () => {
+    const r = await handleRequest(
+      new Request('http://worker/token', {
+        method: 'POST',
+        headers: {
+          'Origin': 'https://coastaltravelcompany.com',
+          'Authorization': `Bearer ${tok}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: '',
+      }),
+      makeEnv(makeKv()),
+    );
+    expect(r.status).toBe(400);
+  });
+});
+
 // ─── Auth enforcement on DB routes ───────────────────────────────────────────
 
 describe('DB route auth enforcement', () => {
