@@ -433,7 +433,7 @@
       const collectionBadge = wt.collection ? esc(wt.collection) : '3D Walkthrough';
 
       return `
-        <div class="wt-card fade-up" onclick="openModal(${JSON.stringify(JSON.stringify(wt))})">
+        <div class="wt-card fade-up" data-wt="${esc(JSON.stringify(wt))}" onclick="openModal(this.dataset.wt)">
           ${thumbContent}
           <div class="wt-card-overlay">
             <div class="wt-card-eyebrow">${collectionBadge}</div>
