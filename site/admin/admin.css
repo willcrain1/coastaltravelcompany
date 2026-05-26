@@ -279,7 +279,12 @@ select option { background: #2a2a2a; }
 }
 .ur-chevron.open { transform: rotate(180deg); }
 .ur-meta { font-size: 11px; color: var(--dim); }
-.ur-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+.ur-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; flex-wrap: wrap; }
+
+@media (max-width: 500px) {
+  .user-header { grid-template-columns: 1fr; }
+  .ur-actions { flex-shrink: 1; }
+}
 .user-detail-panel {
   display: none;
   margin-top: 16px;

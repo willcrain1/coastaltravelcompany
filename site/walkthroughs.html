@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Property Walkthroughs — Coastal Travel Company</title>
+  <meta name="description" content="Immersive 3D walkthroughs of luxury hotels and properties. Captured via Gaussian Splatting — explore every room before you arrive." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* ── Walkthrough grid ─────────────────────────────── */
+    .wt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 2px;
+    }
+
+    .wt-card {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--black);
+    }
+
+    .wt-card-thumb {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.6s ease, opacity 0.4s ease;
+      opacity: 0.85;
+    }
+
+    .wt-card:hover .wt-card-thumb { transform: scale(1.04); opacity: 0.65; }
+
+    .wt-card-placeholder {
+      width: 100%; height: 100%;
+      background: linear-gradient(135deg, #1a2f25 0%, #0d1a13 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .wt-card-placeholder svg { opacity: 0.2; }
+
+    .wt-card-overlay {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 28px 24px;
+      background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 55%);
+      transition: background 0.3s ease;
+    }
+
+    .wt-card:hover .wt-card-overlay {
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 65%);
+    }
+
+    .wt-card-eyebrow {
+      font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--sage-teal); font-family: 'Montserrat', sans-serif;
+      font-weight: 500; margin-bottom: 6px;
+    }
+
+    .wt-card-title {
+      font-family: 'Gilda Display', serif;
+      font-size: clamp(18px, 2.2vw, 24px);
+      color: #fff; line-height: 1.25; margin-bottom: 4px;
+    }
+
+    .wt-card-location {
+      font-size: 11px; letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.55);
+      font-family: 'Montserrat', sans-serif; font-weight: 400;
+    }
+
+    .wt-card-play {
+      position: absolute; top: 20px; right: 20px;
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .wt-card:hover .wt-card-play {
+      background: rgba(143,191,190,0.3);
+      border-color: var(--sage-teal);
+    }
+
+    /* ── Modal viewer ─────────────────────────────────── */
+    .wt-modal {
+      display: none;
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.92);
+      flex-direction: column;
+    }
+    .wt-modal.open { display: flex; }
+
+    .wt-modal-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px;
+      background: rgba(28,28,28,0.98);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+
+    .wt-modal-title {
+      font-family: 'Gilda Display', serif;
+      font-size: 18px; color: #fff;
+    }
+
+    .wt-modal-sub {
+      font-size: 11px; letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.45);
+      font-family: 'Montserrat', sans-serif;
+      margin-top: 2px;
+    }
+
+    .wt-modal-close {
+      background: none; border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.7);
+      font-family: 'Montserrat', sans-serif; font-size: 10px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 8px 16px; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .wt-modal-close:hover { border-color: rgba(255,255,255,0.6); color: #fff; }
+
+    .wt-modal-frame {
+      flex: 1;
+      width: 100%;
+      border: none;
+      background: #000;
+    }
+
+    /* ── Empty / loading states ───────────────────────── */
+    .wt-empty {
+      grid-column: 1 / -1;
+      padding: 80px 40px;
+      text-align: center;
+      color: rgba(28,28,28,0.4);
+      font-family: 'Montserrat', sans-serif; font-size: 13px;
+    }
+
+    .wt-loading {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; padding: 80px 40px;
+      font-family: 'Montserrat', sans-serif; font-size: 12px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(28,28,28,0.4);
+    }
+
+    .wt-spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(28,28,28,0.15);
+      border-top-color: var(--sage-teal);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Tech callout ────────────────────────────────── */
+    .tech-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2px;
+    }
+
+    .tech-item {
+      padding: 36px 32px;
+      background: var(--white);
+    }
+
+    .tech-num {
+      font-family: 'Gilda Display', serif;
+      font-size: 36px; color: var(--warm-linen);
+      margin-bottom: 14px; line-height: 1;
+    }
+
+    .tech-label {
+      font-size: 13px; font-weight: 600;
+      letter-spacing: 0.04em; margin-bottom: 8px;
+    }
+
+    .tech-desc {
+      font-size: 12px; line-height: 1.75;
+      color: rgba(28,28,28,0.55);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ─────────────────────────────────────── -->
+  <nav id="main-nav">
+    <a href="index.html" class="nav-logo">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="collections.html">Collections</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+    <a href="login.html" class="nav-account">Account</a>
+    <button class="nav-toggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ── Page Hero ──────────────────────────────────────── -->
+  <section class="page-hero">
+    <div class="page-hero-bg" style="background-image: url('https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="page-hero-overlay"></div>
+    <div class="page-hero-content">
+      <span class="eyebrow">Immersive Delivery</span>
+      <h1>3D Property Walkthroughs</h1>
+      <span class="hero-script-sub">experience the space</span>
+    </div>
+  </section>
+
+  <!-- ── Intro ──────────────────────────────────────────── -->
+  <section class="section bg-cream">
+    <div class="container">
+      <div class="grid-2">
+        <div class="fade-up">
+          <span class="eyebrow">Gaussian Splatting</span>
+          <h2 style="font-size: clamp(28px, 4vw, 50px);">
+            Step inside the property before you even arrive.
+          </h2>
+          <div class="divider"></div>
+          <p class="body-sm">
+            We capture photorealistic 3D walkthroughs of hotel rooms, lobbies, terraces, and outdoor spaces using Gaussian Splatting — the same technology reshaping virtual tours in real estate and hospitality. The result is an immersive, interactive scene that lets prospective guests explore every corner of your property at their own pace.
+          </p>
+          <p class="body-sm mt-16">
+            Delivered as an embeddable viewer for your website or as a private link included in the client gallery — alongside the full photo and video library.
+          </p>
+        </div>
+        <div class="fade-up delay-2" style="display:flex; flex-direction:column; gap:2px;">
+          <div style="background:var(--forest-green); padding:28px 32px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-family:'Gilda Display',serif; font-size:17px; color:var(--white);">Photorealistic quality</span>
+            <span style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:var(--sage-teal);">01</span>
+          </div>
+          <div style="background:var(--black); padding:28px 32px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-family:'Gilda Display',serif; font-size:17px; color:var(--white);">Interactive exploration</span>
+            <span style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:var(--sage-teal);">02</span>
+          </div>
+          <div style="background:var(--warm-linen); padding:28px 32px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-family:'Gilda Display',serif; font-size:17px; color:var(--black);">Embeds on any website</span>
+            <span style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:var(--forest-green);">03</span>
+          </div>
+          <div style="background:var(--dusty-rose); padding:28px 32px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-family:'Gilda Display',serif; font-size:17px; color:var(--white);">Premium add-on to any shoot</span>
+            <span style="font-size:10px; letter-spacing:0.3em; text-transform:uppercase; color:rgba(255,255,255,0.7);">04</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Walkthrough gallery ────────────────────────────── -->
+  <section class="section bg-white" style="padding-top:0;">
+    <div class="container" style="padding-top:0;">
+      <div class="fade-up mb-48" style="padding-top:64px;">
+        <span class="eyebrow">Scenes</span>
+        <h2 style="font-size: clamp(28px, 4vw, 50px);">Featured Walkthroughs</h2>
+      </div>
+
+      <div id="wtLoading" class="wt-loading">
+        <div class="wt-spinner"></div>
+        Loading scenes
+      </div>
+
+      <div class="wt-grid" id="wtGrid" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- ── How it works ───────────────────────────────────── -->
+  <section class="section bg-linen">
+    <div class="container">
+      <div class="text-center mb-64 fade-up">
+        <span class="eyebrow">The Process</span>
+        <h2 style="font-size: clamp(28px, 4vw, 50px);">How Walkthroughs Are Made</h2>
+      </div>
+      <div class="tech-grid">
+        <div class="tech-item fade-up">
+          <div class="tech-num">01</div>
+          <div class="tech-label">Capture</div>
+          <p class="tech-desc">We record slow, overlapping video passes of each space — suites, lobbies, terraces — using 4K camera with steady, deliberate movement to maximise overlap between frames.</p>
+        </div>
+        <div class="tech-item fade-up">
+          <div class="tech-num">02</div>
+          <div class="tech-label">Processing</div>
+          <p class="tech-desc">The footage is processed through Gaussian Splatting algorithms that reconstruct a photorealistic 3D scene from the video frames — preserving colour, light, and texture with near-photographic fidelity.</p>
+        </div>
+        <div class="tech-item fade-up">
+          <div class="tech-num">03</div>
+          <div class="tech-label">Delivery</div>
+          <p class="tech-desc">The finished scene is delivered as an interactive web viewer — embeddable on your property website, shareable via link, and included in the client delivery gallery alongside all photos and video.</p>
+        </div>
+        <div class="tech-item fade-up" style="background:var(--forest-green);">
+          <div class="tech-num" style="color:rgba(255,255,255,0.2);">→</div>
+          <div class="tech-label" style="color:var(--white);">Add it to your shoot</div>
+          <p class="tech-desc" style="color:rgba(255,255,255,0.65);">3D walkthroughs are available as a premium add-on to any Editorial Stay, Fashioned Weekend, or Branded Journey collection engagement.</p>
+          <a href="contact.html" class="btn" style="margin-top:24px; background:var(--sage-teal); color:var(--white); font-size:9px; padding:10px 22px; display:inline-block;">Inquire</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Pull quote ─────────────────────────────────────── -->
+  <section class="pull-quote bg-black">
+    <span class="pq-script">be there first.</span>
+    <blockquote>"Let your guests fall in love with the property before they've even booked."</blockquote>
+    <cite>— Coastal Travel Company</cite>
+  </section>
+
+  <!-- ── CTA ────────────────────────────────────────────── -->
+  <section class="section bg-white">
+    <div class="container">
+      <div class="text-center fade-up">
+        <span class="eyebrow">Add it to your shoot</span>
+        <h2 style="font-size:clamp(28px,4vw,50px); margin-bottom:16px;">Ready to make your property explorable?</h2>
+        <p class="body-sm mb-40" style="max-width:480px; margin-left:auto; margin-right:auto;">
+          3D walkthroughs are captured on the same day as your editorial photography — no second visit required.
+        </p>
+        <a href="contact.html" class="btn btn-dark" style="margin-right:16px;">Start a Project</a>
+        <a href="services.html" class="btn btn-outline-dark">View All Services</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <span class="f-logo-main">Coastal</span>
+          <span class="f-logo-script">Travel Company</span>
+          <p>Editorial photography, video, and 3D walkthroughs for luxury hotels and destinations.</p>
+          <p class="f-location">Palm Beach, Florida</p>
+        </div>
+        <div class="footer-col">
+          <h5>Navigate</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="collections.html">Collections</a></li>
+            <li><a href="walkthroughs.html">Walkthroughs</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Services</h5>
+          <ul>
+            <li><a href="services.html">Editorial Photography</a></li>
+            <li><a href="services.html">Short-Form Video</a></li>
+            <li><a href="services.html">Lifestyle Capture</a></li>
+            <li><a href="services.html">Visual Storytelling</a></li>
+            <li><a href="walkthroughs.html">3D Walkthroughs</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="#">Instagram</a></li>
+            <li><a href="#">Pinterest</a></li>
+            <li><a href="contact.html">Inquire</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2024 Coastal Travel Company. All rights reserved.</p>
+        <p style="color:rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── Full-screen viewer modal ───────────────────────── -->
+  <div class="wt-modal" id="wtModal">
+    <div class="wt-modal-bar">
+      <div>
+        <div class="wt-modal-title" id="wtModalTitle"></div>
+        <div class="wt-modal-sub" id="wtModalSub"></div>
+      </div>
+      <button class="wt-modal-close" onclick="closeModal()">&#10005; Close</button>
+    </div>
+    <iframe class="wt-modal-frame" id="wtModalFrame"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; xr-spatial-tracking"
+      allowfullscreen></iframe>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="main.js"></script>
+  <script>
+    const WORKER_URL = CTC_CONFIG.workerUrl.replace(/\/+$/, '');
+
+    // ── Fetch and render walkthroughs ─────────────────────
+    async function loadWalkthroughs() {
+      const loading = document.getElementById('wtLoading');
+      const grid    = document.getElementById('wtGrid');
+      try {
+        const res  = await fetch(WORKER_URL + '/public/walkthroughs');
+        const data = await res.json();
+        loading.style.display = 'none';
+        grid.style.display    = '';
+        if (!Array.isArray(data) || data.length === 0) {
+          grid.innerHTML = '<div class="wt-empty">No walkthroughs published yet — check back soon.</div>';
+          return;
+        }
+        grid.innerHTML = data.map(wt => cardHtml(wt)).join('');
+      } catch {
+        loading.innerHTML = '<div class="wt-empty">Unable to load walkthroughs. Please try again later.</div>';
+      }
+    }
+
+    function cardHtml(wt) {
+      const thumbContent = wt.thumbnail_url
+        ? `<img class="wt-card-thumb" src="${esc(wt.thumbnail_url)}" alt="${esc(wt.title)}" loading="lazy" />`
+        : `<div class="wt-card-placeholder">
+             <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+               <path d="M8 36L20 20l8 10 6-7 6 13H8z" fill="white"/>
+               <circle cx="34" cy="14" r="4" fill="white"/>
+             </svg>
+           </div>`;
+
+      const collectionBadge = wt.collection ? esc(wt.collection) : '3D Walkthrough';
+
+      return `
+        <div class="wt-card fade-up" onclick="openModal(${JSON.stringify(JSON.stringify(wt))})">
+          ${thumbContent}
+          <div class="wt-card-overlay">
+            <div class="wt-card-eyebrow">${collectionBadge}</div>
+            <div class="wt-card-title">${esc(wt.property_name)}</div>
+            ${wt.location ? `<div class="wt-card-location">${esc(wt.location)}</div>` : ''}
+          </div>
+          <div class="wt-card-play">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="white">
+              <path d="M4 2.5l8 4.5-8 4.5V2.5z"/>
+            </svg>
+          </div>
+        </div>`;
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ── Modal ─────────────────────────────────────────────
+    function openModal(wtJson) {
+      const wt = JSON.parse(wtJson);
+      document.getElementById('wtModalTitle').textContent = wt.property_name || wt.title;
+      document.getElementById('wtModalSub').textContent   = [wt.location, wt.title].filter(Boolean).join(' · ');
+      document.getElementById('wtModalFrame').src = wt.embed_url;
+      document.getElementById('wtModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      document.getElementById('wtModalFrame').src = '';
+      document.getElementById('wtModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+    loadWalkthroughs();
+  </script>
+</body>
+</html>

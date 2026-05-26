@@ -39,6 +39,7 @@ function mockWorker(context, handlers) {
       const req    = route.request();
       const url    = new URL(req.url());
       const method = req.method();
+      if (method === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
       const key    = `${method} ${url.pathname}`;
       const handler = handlers[key] ?? handlers[url.pathname];
       if (handler) {
