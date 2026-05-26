@@ -171,39 +171,45 @@ test.describe('public walkthroughs page', () => {
     await context.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
-  test('published walkthroughs render as cards', async ({ page, context }) => {
-    await mockWorker(context, {
-      'GET /public/walkthroughs': (r) => json(r, [MOCK_WALKTHROUGH]),
-    });
-    // Await the mock response before asserting DOM — avoids races in headless CI
-    await Promise.all([
-      page.waitForResponse((r) => r.url().includes('/public/walkthroughs')),
-      page.goto(`${STATIC_BASE}/walkthroughs.html`),
-    ]);
-    await expect(page.locator('#wtGrid')).toContainText('Grand Palms Resort', { timeout: 5_000 });
+  test('published walkthroughs render as cards', async ({ page }) => {
+    // Use page.route with glob so Playwright intercepts the cross-origin HTTPS
+    // fetch regardless of CI network policy — context.route with a function
+    // predicate can miss cross-origin requests in headless Chromium.
+    await page.route('**/public/walkthroughs', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify([MOCK_WALKTHROUGH]),
+      }),
+    );
+    await page.goto(`${STATIC_BASE}/walkthroughs.html`);
     // Cards show property_name, collection badge, and location — title is shown in the modal subtitle
+    await expect(page.locator('#wtGrid')).toContainText('Grand Palms Resort', { timeout: 10_000 });
     await expect(page.locator('#wtGrid')).toContainText('The Editorial Stay');
   });
 
-  test('empty state renders when no walkthroughs exist', async ({ page, context }) => {
-    await mockWorker(context, {
-      'GET /public/walkthroughs': (r) => json(r, []),
-    });
-    await Promise.all([
-      page.waitForResponse((r) => r.url().includes('/public/walkthroughs')),
-      page.goto(`${STATIC_BASE}/walkthroughs.html`),
-    ]);
-    await expect(page.locator('#wtGrid')).toContainText('No walkthroughs published yet', { timeout: 5_000 });
+  test('empty state renders when no walkthroughs exist', async ({ page }) => {
+    await page.route('**/public/walkthroughs', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify([]),
+      }),
+    );
+    await page.goto(`${STATIC_BASE}/walkthroughs.html`);
+    await expect(page.locator('#wtGrid')).toContainText('No walkthroughs published yet', { timeout: 10_000 });
   });
 
-  test('clicking a card opens the modal with the embed iframe', async ({ page, context }) => {
-    await mockWorker(context, {
-      'GET /public/walkthroughs': (r) => json(r, [MOCK_WALKTHROUGH]),
-    });
-    await Promise.all([
-      page.waitForResponse((r) => r.url().includes('/public/walkthroughs')),
-      page.goto(`${STATIC_BASE}/walkthroughs.html`),
-    ]);
+  test('clicking a card opens the modal with the embed iframe', async ({ page }) => {
+    await page.route('**/public/walkthroughs', (route) =>
+      route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify([MOCK_WALKTHROUGH]),
+      }),
+    );
+    await page.goto(`${STATIC_BASE}/walkthroughs.html`);
+    await page.locator('#wtGrid .wt-card').first().waitFor({ timeout: 10_000 });
     await page.locator('#wtGrid .wt-card').first().click();
     await expect(page.locator('#wtModal')).toBeVisible({ timeout: 5_000 });
     // openModal sets #wtModalTitle to property_name and #wtModalSub to "location · title"
