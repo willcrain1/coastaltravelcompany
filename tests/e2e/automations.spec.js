@@ -83,7 +83,7 @@ function servicesAdminSetup(context, automations = MOCK_AUTOMATIONS, logs = []) 
 }
 
 async function gotoServicesAdmin(page) {
-  await page.evaluate((jwt) => localStorage.setItem('ctc_jwt', jwt), ADMIN_JWT);
+  await page.addInitScript((jwt) => localStorage.setItem('ctc_jwt', jwt), ADMIN_JWT);
   await page.goto(`${STATIC_BASE}/admin/services.html`);
   // Wait for automations list to render
   await page.waitForFunction(() => {
