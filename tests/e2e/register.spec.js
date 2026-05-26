@@ -76,8 +76,8 @@ test.describe('Registration Page', () => {
     await page.fill('#regConfirm',  'SecurePass1!');
     await page.click('#registerBtn');
 
-    await page.waitForURL('**/portal.html', { timeout: 10_000 });
-    expect(page.url()).toContain('portal.html');
+    await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/portal(\.html)?/);
 
     const jwt = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
     expect(jwt).toBe('mock-jwt-new-client');
@@ -96,7 +96,7 @@ test.describe('Registration Page', () => {
 
     await expect(page.locator('#registerError')).toHaveClass(/show/, { timeout: 5_000 });
     await expect(page.locator('#registerError')).toContainText(/already|taken|registered/i);
-    expect(page.url()).not.toContain('portal.html');
+    expect(page.url()).not.toMatch(/\/portal(\.html)?/);
   });
 
   test('password mismatch is caught client-side without calling the API', async ({ page, context }) => {
@@ -114,6 +114,6 @@ test.describe('Registration Page', () => {
     // Error shown, no API call made, no redirect
     await expect(page.locator('#registerError')).toHaveClass(/show/, { timeout: 3_000 });
     expect(apiCalled).toBe(false);
-    expect(page.url()).not.toContain('portal.html');
+    expect(page.url()).not.toMatch(/\/portal(\.html)?/);
   });
 });

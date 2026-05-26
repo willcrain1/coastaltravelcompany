@@ -300,10 +300,10 @@ test.describe('Client Gallery', () => {
     // init() redirects synchronously (no async fetch before the JWT check), so
     // the navigation may complete during page.goto(). Register waitForURL first
     // to capture the event whether it fires during or after goto().
-    const nav = page.waitForURL('**/login.html', { timeout: 10_000 });
+    const nav = page.waitForURL(/\/login(\.html)?/, { timeout: 10_000 });
     await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
     await nav;
-    expect(page.url()).toContain('login.html');
+    expect(page.url()).toMatch(/\/login(\.html)?/);
   });
 
   test('shows error when gallery config is missing required id field', async ({ page }) => {
