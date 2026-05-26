@@ -1127,3 +1127,64 @@ Alternative options in rough priority order:
 - [ ] Pass `MAILOSAUR_API_KEY` and `EMAIL_CAPTURE_DOMAIN` to the `acceptance-tests` GitHub Actions job via `env:` (sourced from repository secrets)
 - [ ] Gate the email assertions on `!!process.env.MAILOSAUR_API_KEY` so local runs without the secret skip gracefully rather than failing
 - [ ] Add a note to the preprod test checklist in `CLAUDE.md` confirming that email capture tests run automatically — remove the manual "verify email link works" steps that are now automated
+
+---
+
+## 43. Close Playwright e2e coverage gaps
+
+**Goal:** Eliminate the remaining test gaps where a silent production failure would only be caught by a human during manual preprod testing. Ranked by risk — highest-impact items first.
+
+### Stripe webhook completion
+
+Currently `invoice.spec.js` tests the Stripe checkout redirect but stops there. The webhook handler (`POST /stripe/webhook`) is what marks the invoice paid and advances the project stage; if it breaks, Stripe payments succeed but the app never updates.
+
+- [ ] Use the [Stripe CLI](https://stripe.com/docs/stripe-cli) (`stripe trigger checkout.session.completed`) in CI to fire a realistic webhook event against the preprod Worker
+- [ ] Assert the invoice status changes from `sent` → `paid` in the D1 `invoices` table after the webhook fires
+- [ ] Assert the corresponding project stage advances to `Retainer Paid` in the pipeline view
+- [ ] Add `STRIPE_CLI_API_KEY` to GitHub Actions secrets and install `stripe` CLI in the acceptance-tests job
+
+### Admin countersigning
+
+`contract.spec.js` ends at `client_signed` with the "waiting for admin" banner. The admin countersign step and the resulting `fully_executed` state are not exercised end-to-end.
+
+- [ ] Extend `contract.spec.js`: after client signs, log in as admin, navigate to the project contracts tab, click countersign
+- [ ] Assert the contract status advances to `fully_executed`
+- [ ] Assert both signatures and the full audit trail render on the public contract view
+- [ ] Assert both parties receive confirmation emails (gate behind `MAILOSAUR_API_KEY` per item 42)
+
+### Password reset full flow
+
+`register.spec.js` confirms the registration success message but never follows the `/auth/verify?token=...` link. The reset flow has zero Playwright coverage.
+
+- [ ] Add a test that registers, intercepts (or reads from KV via Worker test helper) the verify token, navigates to the verify URL, and asserts the account becomes loginable
+- [ ] Add a test for the full reset path: trigger reset → receive email → follow reset link → set new password → log in with new password (gate email delivery step behind `MAILOSAUR_API_KEY` per item 42)
+
+### Google OAuth login
+
+No e2e test exercises the Google Sign-In button. A broken `GOOGLE_CLIENT_ID` secret or a changed authorized-origin list would be invisible to CI.
+
+- [ ] Add a Playwright test that stubs `POST /auth/google` at the network layer (Playwright `route()`) to return a fixture JWT — avoids needing real Google credentials in CI
+- [ ] Assert the stub response stores a JWT in `localStorage` and redirects to `/portal.html`
+- [ ] Add a separate note in the preprod checklist that a human should verify real Google login quarterly (the stub test only covers the frontend wiring, not Cloudflare ↔ Google token verification)
+
+### Walkthrough CRUD
+
+The walkthroughs feature (`GET/POST/PUT/DELETE /admin/walkthroughs`, `GET /public/walkthroughs`) has zero Playwright coverage.
+
+- [ ] Add `tests/e2e/walkthroughs.spec.js` covering: admin creates a walkthrough, it appears in the public list, admin updates it, admin deletes it
+- [ ] Assert the public `/public/walkthroughs` endpoint returns the walkthrough without auth
+
+### Admin user management and gallery assignment
+
+No e2e test exercises the Users tab in the admin panel.
+
+- [ ] Add a test that creates a new client user via the admin UI, assigns a gallery to them
+- [ ] Log in as the new client and assert the assigned gallery appears in their portal
+- [ ] Assert a gallery removed from the user no longer appears in their portal
+
+### Automation settings
+
+The automations page has no Playwright test.
+
+- [ ] Add `tests/e2e/automations.spec.js`: admin toggles an automation on, confirms the enabled state persists after page reload, toggles it off
+- [ ] Assert `GET /admin/automation-logs` renders the log table (can be empty — just confirm the page doesn't error)
