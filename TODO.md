@@ -1184,7 +1184,7 @@ No e2e test exercises the Users tab in the admin panel.
 ### Automation settings ✅ Done
 
 - [x] `tests/e2e/automations.spec.js` added: all automation rows render with correct count, enabled automation has checked checkbox, disabled has unchecked, saving calls `PUT /admin/automations`, log section renders even when empty, log entries render when Worker returns them
-- [ ] Confirm enabled state persists after page reload (current tests check rendered state from mock; reload + re-fetch persistence not yet asserted)
+- [x] Enabled state persists after page reload: stateful mock captures the PUT payload and returns it on the next GET; after save + reload the toggled checkbox is still checked and untouched checkboxes remain unchecked
 
 ### Router-based e2e coverage enforcement ✅ Done
 

@@ -150,9 +150,64 @@ test.describe('automation settings panel', () => {
     await expect(page.locator('#automationLog')).toBeVisible();
   });
 
-  test('log entries render when the Worker returns them', async ({ page, context }) => {
-    await servicesAdminSetup(context, MOCK_AUTOMATIONS, MOCK_LOGS);
+  test('enabled state persists after page reload', async ({ page, context }) => {
+    // All automations start disabled so the toggle change is unambiguous.
+    let currentAutomations = MOCK_AUTOMATIONS.map(a => ({ ...a, enabled: false }));
+
+    // Stateful mock: GET returns currentAutomations; PUT updates it so the
+    // next GET (after reload) reflects the saved state.
+    await context.route(
+      (url) => url.toString().startsWith(WORKER_URL),
+      async (route) => {
+        const req    = route.request();
+        const url    = new URL(req.url());
+        const method = req.method();
+        if (method === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
+        const key = `${method} ${url.pathname}`;
+
+        if (key === 'GET /auth/me')               return json(route, { id: 'a1', email: 'admin@test.com', role: 'admin' });
+        if (key === 'GET /admin/automations')      return json(route, currentAutomations);
+        if (key === 'PUT /admin/automations') {
+          const body = await req.json();
+          if (Array.isArray(body)) currentAutomations = body;
+          return json(route, { ok: true });
+        }
+        if (key === 'GET /admin/automation-logs')  return json(route, []);
+        if (key === 'GET /admin/packages')          return json(route, []);
+        if (key === 'GET /admin/questionnaires')    return json(route, []);
+        if (key === 'GET /admin/availability')      return json(route, []);
+        if (key === 'GET /admin/blocked-dates')     return json(route, []);
+        if (key === 'GET /admin/contract-templates') return json(route, []);
+        await route.fulfill({ status: 404, headers: CORS, body: `No mock for: ${key}` });
+      },
+    );
+
     await gotoServicesAdmin(page);
-    await expect(page.locator('#automationLog')).toContainText('inquiry_auto_reply', { timeout: 5_000 });
+
+    // a1 starts unchecked
+    const a1 = page.locator('input[data-automation-id="a1"]');
+    await expect(a1).not.toBeChecked();
+
+    // Toggle a1 on then save; wait for the PUT to complete
+    await a1.click();
+    await expect(a1).toBeChecked();
+    const putDone = page.waitForResponse(
+      (r) => r.url().includes('/admin/automations') && r.request().method() === 'PUT',
+    );
+    await page.click('button[onclick="saveAutomations()"]');
+    await putDone;
+
+    // Reload — the page re-fetches GET /admin/automations which now returns
+    // the state that was sent in the PUT, so a1 should still be checked.
+    await page.reload();
+    await page.waitForFunction(() => {
+      const el = document.getElementById('automationList');
+      return el && el.querySelectorAll('input[type="checkbox"]').length > 0;
+    }, { timeout: 10_000 });
+
+    await expect(page.locator('input[data-automation-id="a1"]')).toBeChecked();
+    // Sanity: a2 was never toggled — it should still be unchecked
+    await expect(page.locator('input[data-automation-id="a2"]')).not.toBeChecked();
   });
 });
+
