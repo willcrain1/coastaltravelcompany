@@ -9,7 +9,7 @@
  * Portal endpoints (accessible to any authenticated user) are checked
  * separately: they should return 401 for unauthenticated requests.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { handleRequest } from '../src/router.js';
 import { createJWT } from '../src/jwt.js';
 import { makeKv, makeSqliteDb, makeD1, makeEnv, adminToken, clientToken, req, SECRET, ORIGIN } from './integration/helpers.js';
@@ -178,47 +178,62 @@ describe('JWT tampering', () => {
 });
 
 // ── Public route accessibility ────────────────────────────────────────────────
-// These routes should never return 401 — they are accessible without auth.
-// Some may return 400 (missing params), 404 (not found), or 503 (no DB),
-// but an auth rejection would mean public access is incorrectly gated.
+// Every route that requires no auth must never return 401.
+// The response may be 400 (bad params), 404 (not found), 503 (missing config),
+// etc. — but an auth rejection means public access is incorrectly gated.
+// A single env with KV + DB is used for all checks to avoid crashes in
+// handlers that unconditionally call env.DB.prepare().
 
 describe('public routes do not require auth', () => {
-  // Routes that only need KV
-  const KV_ONLY_ROUTES = [
-    ['GET',  '/auth/setup-status',  'auth setup status'],
-    ['GET',  '/auth/verify',        'email verify (missing token → 400, not 401)'],
-    ['POST', '/auth/resend-verify', 'resend verify (missing email → 400, not 401)'],
-    ['GET',  '/public/availability','public availability'],
+  let env;
+  beforeEach(() => {
+    env = makeEnv(makeKv(), makeD1(makeSqliteDb()));
+  });
+
+  // [method, path, body]  — body is sent as-is (raw string or undefined)
+  const PUBLIC_ROUTES = [
+    // Auth — no DB needed, but DB present causes no harm
+    ['GET',  '/auth/setup-status',           undefined,  'auth setup status'],
+    ['POST', '/auth/setup',                  '{}',       'first-time setup (empty body → 400)'],
+    ['POST', '/auth/register',               '{}',       'register (empty body → 400)'],
+    ['POST', '/auth/login',                  '{}',       'login (empty body → 400)'],
+    ['POST', '/auth/google',                 '{}',       'google auth (no client id → 503)'],
+    ['POST', '/auth/reset-request',          '{}',       'reset request (empty body → 400)'],
+    ['POST', '/auth/reset-confirm',          '{}',       'reset confirm (empty body → 400)'],
+    ['GET',  '/auth/verify',                 undefined,  'email verify (no token → 400)'],
+    ['POST', '/auth/resend-verify',          '{}',       'resend verify (empty body → 400)'],
+    // Public DB-backed routes — return 404 for unknown ids, never 401
+    ['GET',  '/proposals/p1',                undefined,  'public proposal'],
+    ['POST', '/proposals/p1/analytics',      '{}',       'proposal analytics'],
+    ['POST', '/proposals/p1/select',         '{}',       'proposal select'],
+    ['GET',  '/questionnaire/q1',            undefined,  'public questionnaire'],
+    ['POST', '/questionnaire/q1',            '{}',       'questionnaire submit'],
+    ['GET',  '/contracts/tok1',              undefined,  'public contract get'],
+    ['POST', '/contracts/tok1/view',         '{}',       'contract view'],
+    ['POST', '/contracts/tok1/sign',         '{}',       'contract sign'],
+    ['GET',  '/contracts/tok1/audit',        undefined,  'contract audit'],
+    ['GET',  '/invoices/tok1',               undefined,  'public invoice'],
+    ['POST', '/invoices/tok1/checkout',      '{}',       'invoice checkout'],
+    ['GET',  '/schedule/tok1',               undefined,  'public schedule get'],
+    ['POST', '/schedule/tok1',               '{}',       'public schedule post'],
+    // Infrastructure public routes
+    ['GET',  '/public/availability',         undefined,  'public availability'],
+    ['GET',  '/public/walkthroughs',         undefined,  'public walkthroughs'],
+    ['POST', '/contact',                     '{}',       'contact form (empty body → 400)'],
+    ['POST', '/stripe/webhook',              '',         'stripe webhook (no sig → 400)'],
   ];
 
-  // Routes that need a DB (but still must not return 401)
-  const DB_ROUTES = [
-    ['GET',  '/public/walkthroughs','public walkthroughs'],
-  ];
-
-  for (const [method, path, label] of KV_ONLY_ROUTES) {
+  for (const [method, path, body, label] of PUBLIC_ROUTES) {
     it(`not 401: ${label} (${method} ${path})`, async () => {
-      const body = method === 'POST' ? '{}' : undefined;
       const r = await handleRequest(
         new Request(`http://worker${path}`, {
           method,
           headers: {
             'Origin': ORIGIN,
-            ...(body ? { 'Content-Type': 'application/json' } : {}),
+            ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
           },
-          body,
+          body: body !== undefined ? body : undefined,
         }),
-        makeTestEnv(),
-      );
-      expect(r.status).not.toBe(401);
-    });
-  }
-
-  for (const [method, path, label] of DB_ROUTES) {
-    it(`not 401: ${label} (${method} ${path})`, async () => {
-      const env = makeEnv(makeKv(), makeD1(makeSqliteDb()));
-      const r = await handleRequest(
-        new Request(`http://worker${path}`, { method, headers: { 'Origin': ORIGIN } }),
         env,
       );
       expect(r.status).not.toBe(401);
