@@ -297,9 +297,13 @@ test.describe('Client Gallery', () => {
 
   test('redirects to /login.html when no JWT is present', async ({ page }) => {
     const hash = encodeConfig(buildConfig());
+    // init() redirects synchronously (no async fetch before the JWT check), so
+    // the navigation may complete during page.goto(). Register waitForURL first
+    // to capture the event whether it fires during or after goto().
+    const nav = page.waitForURL(/\/login(\.html)?/, { timeout: 10_000 });
     await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
-    await page.waitForURL('**/login.html', { timeout: 10_000 });
-    expect(page.url()).toContain('login.html');
+    await nav;
+    expect(page.url()).toMatch(/\/login(\.html)?/);
   });
 
   test('shows error when gallery config is missing required id field', async ({ page }) => {

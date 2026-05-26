@@ -38,7 +38,7 @@ jobs:
           export CLOUDFLARE_API_TOKEN="$CF_API_TOKEN"
           for f in migrations/*.sql; do
             echo "Applying $f..."
-            npx wrangler d1 execute ctc-preprod --env preprod --file "$f"
+            npx wrangler d1 execute ctc-preprod --env preprod --remote --file "$f"
           done
 
   deploy-site-preprod:
