@@ -26,6 +26,9 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Check e2e route coverage
+        run: node tests/e2e/scripts/check-route-coverage.js
+
       - name: Run acceptance tests
         run: npm test
 

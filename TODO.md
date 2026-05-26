@@ -1192,4 +1192,4 @@ No e2e test exercises the Users tab in the admin panel.
 - [x] Any route with zero spec references exits non-zero and prints the uncovered routes; currently 24/24 routes covered
 - [x] Allowlist maintained in the script with a required reason comment for each exempt route (e.g. `POST /stripe/webhook` — Stripe CLI; `POST /token` — gallery.spec.js)
 - [x] Static-prefix pattern matching: a spec referencing `/admin/projects` satisfies routes like `GET /admin/projects/:id/notes`
-- [ ] Add the script as a step in the `acceptance-tests` GitHub Actions job so it runs automatically in CI
+- [x] Added as a step in the `acceptance-tests` GitHub Actions job — runs before the Playwright suite so uncovered routes are reported immediately
