@@ -166,22 +166,26 @@ test.describe('admin walkthroughs panel', () => {
 
 // ── Public walkthroughs page ──────────────────────────────────────────────────
 
-test.describe('public walkthroughs page', () => {
-  test.afterEach(async ({ context }) => {
-    await context.unrouteAll({ behavior: 'ignoreErrors' });
-  });
+// Intercept the cross-origin fetch for public walkthroughs tests by patching
+// window.fetch via addInitScript. Playwright route interception (context.route /
+// page.route) does not reliably intercept cross-origin HTTPS fetches from HTTP
+// pages in CI's sandboxed Chromium — patching fetch directly is the safe fallback.
+function mockPublicFetch(page, data) {
+  return page.addInitScript((mockData) => {
+    const _fetch = window.fetch;
+    window.fetch = (url, ...rest) =>
+      String(url).includes('/public/walkthroughs')
+        ? Promise.resolve(new Response(JSON.stringify(mockData), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }))
+        : _fetch(url, ...rest);
+  }, data);
+}
 
+test.describe('public walkthroughs page', () => {
   test('published walkthroughs render as cards', async ({ page }) => {
-    // Use page.route with glob so Playwright intercepts the cross-origin HTTPS
-    // fetch regardless of CI network policy — context.route with a function
-    // predicate can miss cross-origin requests in headless Chromium.
-    await page.route('**/public/walkthroughs', (route) =>
-      route.fulfill({
-        status: 200,
-        headers: { 'content-type': 'application/json', ...CORS },
-        body: JSON.stringify([MOCK_WALKTHROUGH]),
-      }),
-    );
+    await mockPublicFetch(page, [MOCK_WALKTHROUGH]);
     await page.goto(`${STATIC_BASE}/walkthroughs.html`);
     // Cards show property_name, collection badge, and location — title is shown in the modal subtitle
     await expect(page.locator('#wtGrid')).toContainText('Grand Palms Resort', { timeout: 10_000 });
@@ -189,25 +193,13 @@ test.describe('public walkthroughs page', () => {
   });
 
   test('empty state renders when no walkthroughs exist', async ({ page }) => {
-    await page.route('**/public/walkthroughs', (route) =>
-      route.fulfill({
-        status: 200,
-        headers: { 'content-type': 'application/json', ...CORS },
-        body: JSON.stringify([]),
-      }),
-    );
+    await mockPublicFetch(page, []);
     await page.goto(`${STATIC_BASE}/walkthroughs.html`);
     await expect(page.locator('#wtGrid')).toContainText('No walkthroughs published yet', { timeout: 10_000 });
   });
 
   test('clicking a card opens the modal with the embed iframe', async ({ page }) => {
-    await page.route('**/public/walkthroughs', (route) =>
-      route.fulfill({
-        status: 200,
-        headers: { 'content-type': 'application/json', ...CORS },
-        body: JSON.stringify([MOCK_WALKTHROUGH]),
-      }),
-    );
+    await mockPublicFetch(page, [MOCK_WALKTHROUGH]);
     await page.goto(`${STATIC_BASE}/walkthroughs.html`);
     await page.locator('#wtGrid .wt-card').first().waitFor({ timeout: 10_000 });
     await page.locator('#wtGrid .wt-card').first().click();
