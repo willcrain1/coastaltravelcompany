@@ -1087,3 +1087,43 @@ This item tracks the integration, polish, and acceptance testing work that goes 
 - [ ] For every portal route: assert 401 with no token and 200 with a valid client token
 - [ ] Cross-check the route list against `router.js` programmatically so new routes can't be added without a corresponding auth boundary test
 - [ ] Add JWT tampering tests: expired token → 401, wrong secret → 401, role field removed from payload → appropriate rejection
+
+---
+
+## 42. End-to-end email testing via mailbox capture service
+
+**Goal:** Verify that every Resend email (verification, password reset, invoice send, contract send, contact form) is actually delivered with the correct content — something unit tests cannot do because they stub `fetch`. Use a mailbox capture service so real SMTP delivery is exercised in the preprod Playwright suite without relying on real inboxes.
+
+### Why this matters
+
+Unit tests assert that the Worker calls `fetch('https://api.resend.com/emails', ...)` with the right shape. They do not verify that Resend accepts the request, that the API key is valid, that the `from` domain is verified, or that the rendered HTML is well-formed. A misconfigured Resend account or a broken email template would pass all unit tests and only be caught by a human during manual preprod testing.
+
+### Recommended approach: Mailosaur
+
+[Mailosaur](https://mailosaur.com) provides dedicated SMTP/API inboxes per test run. Each inbox has a deterministic address (`<anything>@<server-id>.mailosaur.net`) that can be polled via their REST API immediately after sending. It integrates cleanly with Playwright and has a Node.js SDK.
+
+Alternative options in rough priority order:
+1. **Mailtrap** — similar inbox-capture model, generous free tier, good Node SDK
+2. **Resend test mode** — Resend itself supports a test API key that records sends without delivering; no external service needed but you can only assert the API accepted the request, not inspect the rendered HTML
+3. **Ethereal Email** — free, nodemailer-based, good for one-off smoke tests but no persistent inboxes
+
+### Setup steps
+
+- [ ] **Choose and configure the service** — sign up for Mailosaur (or Mailtrap) and create a preprod server/inbox; store the API key as a GitHub Actions secret (`MAILOSAUR_API_KEY`) and as a Cloudflare Worker secret on `coastal-gallery-proxy-preprod`
+- [ ] **Route preprod emails to the capture inbox** — in the Worker, check `env.EMAIL_CAPTURE_DOMAIN`; if set, rewrite all `to` addresses to `<original-local-part>@<EMAIL_CAPTURE_DOMAIN>` before calling Resend. This ensures no real email is sent from preprod while still exercising the full Resend code path
+- [ ] **Add `EMAIL_CAPTURE_DOMAIN` to preprod Worker secrets** — set to the Mailosaur server inbox domain (e.g. `abc123.mailosaur.net`)
+- [ ] **Install Mailosaur Node SDK** — `npm install --save-dev mailosaur` in the `tests/e2e` package; add to the Playwright project
+
+### Playwright test coverage
+
+- [ ] **Verification email** — register a new account using a `@<server>.mailosaur.net` address; poll Mailosaur API until the verification email arrives (timeout 10 s); assert subject line, presence of the verify link, and that clicking the link marks the account verified
+- [ ] **Password reset email** — trigger reset for an existing preprod account; poll for reset email; assert the reset link is present and functional
+- [ ] **Invoice send** — admin creates and sends an invoice to a capture address; poll for email; assert it contains the invoice total and payment link URL
+- [ ] **Contract send** — admin sends a contract to a capture address; poll for email; assert it contains the signing link URL
+- [ ] **Contact form** — submit the contact form; poll for the notification email sent to `thecoastaltravelcompany@gmail.com` (rewritten to capture inbox in preprod); assert subject and sender name appear in the body
+
+### CI integration
+
+- [ ] Pass `MAILOSAUR_API_KEY` and `EMAIL_CAPTURE_DOMAIN` to the `acceptance-tests` GitHub Actions job via `env:` (sourced from repository secrets)
+- [ ] Gate the email assertions on `!!process.env.MAILOSAUR_API_KEY` so local runs without the secret skip gracefully rather than failing
+- [ ] Add a note to the preprod test checklist in `CLAUDE.md` confirming that email capture tests run automatically — remove the manual "verify email link works" steps that are now automated
