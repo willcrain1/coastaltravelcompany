@@ -14,6 +14,17 @@
 8. [Gallery System — How It Works](#gallery-system--how-it-works)
 9. [Admin Workflow](#admin-workflow)
 10. [Maintenance & Deployment](#maintenance--deployment)
+11. [Testing](#testing)
+    - [Overview](#testing-overview)
+    - [Worker Unit Tests](#worker-unit-tests)
+    - [Worker Integration Tests](#worker-integration-tests)
+    - [Auth Boundary Tests](#auth-boundary-tests)
+    - [D1 Migration Smoke Tests](#d1-migration-smoke-tests)
+    - [Playwright Acceptance Tests](#playwright-acceptance-tests)
+    - [Route Coverage Enforcement](#route-coverage-enforcement)
+    - [CI Workflows](#ci-workflows)
+    - [Coverage Requirements](#coverage-requirements)
+    - [When to Add New Tests](#when-to-add-new-tests)
 
 ---
 
@@ -451,3 +462,295 @@ git push
 ### Renewing the domain
 
 Renew `coastaltravelcompany.com` at Name.com before it expires. No DNS changes are needed — nameservers stay pointed at Cloudflare.
+
+---
+
+## Testing
+
+### Testing Overview
+
+There are four distinct test layers in this repository. Each has a different scope, toolchain, and CI trigger.
+
+| Layer | Tool | Location | Runs in CI |
+|---|---|---|---|
+| Worker unit tests | Vitest | `worker/tests/` | Every PR and push to preprod/master |
+| Worker integration tests | Vitest | `worker/tests/integration/` | Every PR and push to preprod/master |
+| Auth boundary tests | Vitest | `worker/tests/auth-boundaries.test.js` | Every PR and push to preprod/master |
+| D1 migration smoke tests | Vitest | `worker/tests/migration-smoke.test.js` | PRs that touch `worker/migrations/**` |
+| Playwright acceptance tests | Playwright | `tests/e2e/` | PRs to `master` only |
+
+All Vitest tests (unit, integration, auth boundaries, and migration smoke) are run by the same command — `cd worker && npm run test:unit` — and share the same 95% coverage threshold.
+
+---
+
+### Worker Unit Tests
+
+**Location:** `worker/tests/*.test.js` and `worker/tests/admin/*.test.js`
+
+**What they test:** Individual handler functions in isolation. Each file mirrors a source module under `worker/src/`:
+
+| Test file | Source module |
+|---|---|
+| `auth.test.js` | `src/auth.js` |
+| `constants.test.js` | `src/constants.js` |
+| `contact.test.js` | `src/contact.js` |
+| `crypto.test.js` | `src/crypto.js` |
+| `gallery-proxy.test.js` | `src/gallery-proxy.js` |
+| `jwt.test.js` | `src/jwt.js` |
+| `kv.test.js` | `src/kv.js` |
+| `portal.test.js` | `src/portal.js` |
+| `router.test.js` | `src/router.js` |
+| `utils.test.js` | `src/utils.js` |
+| `walkthroughs.test.js` | `src/walkthroughs.js` |
+| `admin/automations.test.js` | `src/admin/automations.js` |
+| `admin/contracts.test.js` | `src/admin/contracts.js` |
+| `admin/galleries.test.js` | `src/admin/galleries.js` |
+| `admin/invoices.test.js` | `src/admin/invoices.js` |
+| `admin/packages.test.js` | `src/admin/packages.js` |
+| `admin/projects.test.js` | `src/admin/projects.js` |
+| `admin/questionnaires.test.js` | `src/admin/questionnaires.js` |
+| `admin/scheduling.test.js` | `src/admin/scheduling.js` |
+| `admin/users.test.js` | `src/admin/users.js` |
+
+**How dependencies are mocked:**
+
+- **KV:** An in-memory `Map` wrapped with `get/put/delete` methods
+- **D1:** A `vi.fn()` stub with `prepare().bind().all/run/first()` methods that return configurable results
+- **`fetch` (outbound HTTP):** `vi.stubGlobal('fetch', ...)` used in gallery-proxy tests that simulate NAS responses
+- **`env.RESEND_API_KEY` / `env.GOOGLE_CLIENT_ID`:** Set or omitted to test 503 error paths
+
+**Running locally:**
+```bash
+cd worker
+npm run test:unit          # run all tests with coverage report
+npx vitest run             # run without coverage
+npx vitest --reporter=verbose  # verbose per-test output
+```
+
+---
+
+### Worker Integration Tests
+
+**Location:** `worker/tests/integration/`
+
+**What they test:** Full request/response cycles through `handleRequest()` (the router entry point). Unlike unit tests, no individual handler is imported — requests go through the complete middleware stack (CORS check → origin validation → auth → handler → response).
+
+| Test file | Coverage |
+|---|---|
+| `integration/auth.test.js` | Full register → verify-email → login → `/auth/me` lifecycle; setup flow; duplicate registration; verify/token edge cases |
+| `integration/crud.test.js` | Project and package CRUD through the router; DB route auth enforcement; gallery token exchange (`POST /token`) |
+
+**Infrastructure helpers (`worker/tests/integration/helpers.js`):**
+
+```js
+makeKv()         // in-memory KV with an exposed _store Map for test inspection
+makeSqliteDb()   // in-memory SQLite DB with all migrations applied (via better-sqlite3)
+makeD1(db)       // wraps the SQLite DB in the D1 async API shape (prepare/bind/all/run/first)
+makeEnv(kv, d1)  // builds the env object handed to every Worker handler
+adminToken()     // creates a signed JWT with role:admin
+clientToken()    // creates a signed JWT with role:client
+req(method, path, { token, body })  // builds a Request with Origin + Authorization headers
+SECRET           // the JWT secret used in tests
+ORIGIN           // 'https://coastaltravelcompany.com'
+```
+
+The `better-sqlite3` package provides a synchronous SQLite engine for Node.js. All 13 D1 migration files are applied to the in-memory DB at construction time, so integration tests run against the real schema.
+
+---
+
+### Auth Boundary Tests
+
+**Location:** `worker/tests/auth-boundaries.test.js`
+
+**What they test:** Systematic security enforcement across every route. This file is the authoritative record of which routes require which level of auth.
+
+**Admin routes (36 routes × 3 checks = 108 tests):**
+Every route in the `ADMIN_ROUTES` array is checked for:
+1. **No auth → 401** — request with no `Authorization` header
+2. **Client role → 403** — valid JWT but `role: 'client'`
+3. **Tampered JWT → 401** — JWT signed with the wrong secret
+
+**Portal routes (2 routes × 2 checks = 4 tests):**
+1. **No auth → 401**
+2. **Tampered JWT → 401**
+
+**Public routes (26 routes, 1 check each):**
+Every route that requires no auth is verified to NOT return 401. The routes are exercised with a full env (KV + D1) so that handlers that unconditionally access `env.DB` don't crash.
+
+**Origin enforcement (3 tests):**
+- Missing `Origin` header → 403
+- Unknown origin → 403
+- Correct origin on OPTIONS preflight → 204
+
+**JWT tampering (3 tests):**
+- Signature character flipped → 401
+- Payload modified to elevate role → 401
+- Expired token → 401
+
+**Portal client access (2 tests):**
+- `GET /portal/galleries` with valid client JWT and matching KV record → 200
+- Same request with no KV record for the user → 401
+
+**Router cross-check (1 test):**
+Reads `router.js` at test time and counts the number of distinct `/admin/` path definitions. Asserts that `ADMIN_ROUTES.length >= definedAdminPaths.size - 5` (tolerance for regex-only paths). If a new admin route is added to `router.js` without being added to `ADMIN_ROUTES`, this test fails.
+
+---
+
+### D1 Migration Smoke Tests
+
+**Location:** `worker/tests/migration-smoke.test.js`
+
+**What they test:** That the SQL migration files are correct, sequential, and idempotent.
+
+| Test | What it checks |
+|---|---|
+| All migrations apply without throwing | No syntax errors in any `.sql` file |
+| All 20 expected tables exist | Schema matches the `EXPECTED_TABLES` list |
+| Covers all 13 migration files | No migration file was added without updating the count |
+| Idempotent re-apply | Running all migrations twice does not throw |
+| `automation_settings` seeds 6 rows | Default automation configuration is correct |
+| No duplicate seeds | Re-applying migrations does not double-insert seed rows |
+| `projects` has required columns | Schema has `status`, `budget`, `event_date` columns |
+| `contracts` UNIQUE constraint | `(project_id, token)` is enforced |
+
+The test uses `better-sqlite3` to apply all files in `worker/migrations/` to an in-memory database.
+
+**When these tests run in CI:** Only when files in `worker/migrations/**` change (or when `worker/tests/migration-smoke.test.js` itself changes). This keeps CI fast for non-migration PRs.
+
+---
+
+### Playwright Acceptance Tests
+
+**Location:** `tests/e2e/*.spec.js`
+
+**What they test:** End-to-end user journeys in a real browser (Chromium). The static site is served locally on `localhost:9876` by `http-server`. All Worker API calls are intercepted by Playwright's `context.route()` and fulfilled with mock responses — no real Worker or network is required.
+
+| Spec file | Feature area |
+|---|---|
+| `auth.spec.js` | Login page, portal redirect, admin redirect, Google OAuth stub |
+| `register.spec.js` | Registration form, email verification, password reset flow |
+| `gallery.spec.js` | Gallery lock screen, photo grid, token exchange |
+| `portal-project.spec.js` | Client portal project detail page |
+| `pipeline.spec.js` | Admin pipeline/CRM board |
+| `proposal.spec.js` | Public proposal page |
+| `contract.spec.js` | Contract signing flow |
+| `invoice.spec.js` | Invoice payment page |
+| `questionnaire.spec.js` | Questionnaire submission |
+| `schedule.spec.js` | Public scheduling/booking page |
+| `availability.spec.js` | Admin availability settings |
+| `automations.spec.js` | Admin automation settings panel |
+| `walkthroughs.spec.js` | Admin walkthrough CRUD and public walkthroughs page |
+| `contact.spec.js` | Contact form |
+
+**The `mockWorker` helper pattern:**
+
+Each spec file uses a shared `mockWorker(context, handlers)` function that intercepts requests to `WORKER_URL` and dispatches them to per-endpoint handler callbacks:
+
+```js
+await mockWorker(context, {
+  'GET /auth/me':          (route) => json(route, { id: 'u1', role: 'admin' }),
+  'GET /admin/galleries':  (route) => json(route, []),
+});
+```
+
+This means acceptance tests are not coupled to the live Worker — they test only the frontend behavior and can run in CI without Worker deployment.
+
+**Running locally:**
+```bash
+npm test                   # headless Chromium, list reporter
+npm run test:headed        # headed browser (watch what's happening)
+npm run test:ui            # Playwright interactive UI mode
+
+BASE_URL=http://localhost:9876 npm test   # use an already-running server
+```
+
+**CI behavior:** On first retry (CI only), Playwright saves a video of failing tests. Screenshots are captured on failure. Reports are uploaded as GitHub Actions artifacts.
+
+---
+
+### Route Coverage Enforcement
+
+**Location:** `tests/e2e/scripts/check-route-coverage.js`
+
+**What it does:** Parses `worker/src/router.js` to extract every route pattern, then verifies each one is referenced in at least one Playwright spec file or is in the explicit allowlist.
+
+**Running it:**
+```bash
+node tests/e2e/scripts/check-route-coverage.js
+```
+
+Output example:
+```
+Route coverage: 24/24 routes referenced in e2e specs
+
+All routes are covered. ✓
+```
+
+**How coverage is determined:** The script checks whether the route's path (or its static prefix before `/:id`) appears anywhere in any spec file. This catches direct string references like `'/admin/galleries'` as well as template literals like `` `/admin/projects/${id}` ``.
+
+**The ALLOWLIST:** Routes excluded from the spec-file requirement have an entry in `ALLOWLIST` inside the script, with a comment explaining why (e.g. "tested via Stripe CLI trigger in preprod, not via Playwright page interaction"). Every ALLOWLIST entry must have a reason.
+
+**Note:** This script is not currently wired into CI and must be run manually. It is intended as a development tool — run it before opening a PR that adds new routes.
+
+---
+
+### CI Workflows
+
+| Workflow file | Trigger | What runs |
+|---|---|---|
+| `worker-unit-tests.yml` | Every PR; pushes to `preprod` and `master` | `cd worker && npm run test:unit` — all Vitest tests with 95% coverage check |
+| `migration-smoke.yml` | PRs or pushes that touch `worker/migrations/**` | `npx vitest run tests/migration-smoke.test.js` |
+| `acceptance-tests.yml` | PRs to `master` only | `npm test` — full Playwright suite against static site |
+| `validate-pr-to-master.yml` | PRs to `master` | Rejects if source branch is not `preprod` |
+| `deploy-worker-preprod.yml` | Pushes to `preprod` | Deploys Worker to preprod environment |
+| `deploy-prod.yml` / `create-pages-prod.yml` | Pushes to `master` | Deploys Worker and GitHub Pages to production |
+| `run-migrations-prod.yml` | Manual (`workflow_dispatch`) | Runs pending D1 migrations against production database |
+
+**Key point:** Acceptance tests only run on PRs to `master`, not on every PR. This is intentional — they require a full browser environment and take ~5 minutes. Worker unit tests run on every PR so regressions are caught early.
+
+---
+
+### Coverage Requirements
+
+The Vitest coverage threshold is configured in `worker/vitest.config.js` and enforced in CI:
+
+```
+lines:      95%
+functions:  95%
+branches:   95%
+statements: 95%
+```
+
+If any metric falls below 95%, `npm run test:unit` exits non-zero and the CI job fails. Coverage is measured only over `src/**/*.js` (the Worker source) — test helpers and migration files are excluded.
+
+There is no numeric coverage requirement for Playwright acceptance tests. Coverage there is enforced structurally: the `check-route-coverage.js` script verifies that every route defined in `router.js` is referenced in at least one spec.
+
+---
+
+### When to Add New Tests
+
+#### Adding a new Worker API route
+
+1. **Unit test** — create or extend a test file in `worker/tests/` (or `worker/tests/admin/` for admin handlers) that imports and calls the handler function directly. Cover the happy path, auth failure (401/403), missing `DB`/`KV` (503), and any validation errors (400).
+
+2. **Auth boundary** — update `worker/tests/auth-boundaries.test.js`:
+   - If the route is admin-only: add it to the `ADMIN_ROUTES` array. The three auth checks (no auth → 401, client → 403, bad JWT → 401) are generated automatically from that array.
+   - If the route is public (no auth required): add it to the `PUBLIC_ROUTES` array in the `public routes do not require auth` describe block.
+   - If the route is portal-accessible (any authenticated user): add it to `PORTAL_ROUTES`.
+   - If the route is a new admin route, the `router cross-check` test will detect the count discrepancy and fail if you forget this step.
+
+3. **Playwright reference** — add at least one reference to the route path in an appropriate spec file under `tests/e2e/`. This can be as simple as a `mockWorker` entry like `'POST /admin/new-feature': (r) => json(r, {})` inside an existing spec that exercises the surrounding UI. Run `node tests/e2e/scripts/check-route-coverage.js` to verify the route is covered before opening a PR.
+
+#### Adding a new D1 migration
+
+1. Create `worker/migrations/NNN_description.sql` with the next sequential number.
+2. Update `EXPECTED_TABLES` in `worker/tests/migration-smoke.test.js` to include any new tables.
+3. Update the migration file count assertion: `expect(files).toHaveLength(N)` where `N` is the new total.
+4. If the migration includes seed data (e.g. `INSERT OR IGNORE`), add a test that applies all migrations twice and verifies the row count is not doubled.
+
+#### Adding a new frontend page
+
+Add a new Playwright spec file in `tests/e2e/<feature>.spec.js`. At minimum, test:
+- Unauthenticated access redirects to `/login.html` (for protected pages)
+- The page renders its key UI elements for an authenticated user
+- Any primary user action (form submission, button click) makes the expected Worker API call and handles success and error responses
