@@ -124,8 +124,8 @@ test.describe('Login Page', () => {
     });
 
     await page.goto(`${STATIC_BASE}/login.html`);
-    await page.waitForURL('**/portal.html', { timeout: 10_000 });
-    expect(page.url()).toContain('portal.html');
+    await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/portal(\.html)?/);
   });
 
   test('already-logged-in admin is redirected to the admin panel', async ({ page, context }) => {
@@ -135,8 +135,8 @@ test.describe('Login Page', () => {
     });
 
     await page.goto(`${STATIC_BASE}/login.html`);
-    await page.waitForURL('**/pipeline.html', { timeout: 10_000 });
-    expect(page.url()).toContain('pipeline.html');
+    await page.waitForURL(/\/pipeline(\.html)?/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/pipeline(\.html)?/);
   });
 });
 
@@ -149,8 +149,8 @@ test.describe('Client Portal', () => {
 
   test('redirects to /login.html when no JWT is present', async ({ page }) => {
     await page.goto(`${STATIC_BASE}/portal.html`);
-    await page.waitForURL('**/login.html', { timeout: 10_000 });
-    expect(page.url()).toContain('login.html');
+    await page.waitForURL(/\/login(\.html)?/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/login(\.html)?/);
   });
 
   test('renders gallery grid for an authenticated client', async ({ page, context }) => {
@@ -202,8 +202,8 @@ test.describe('Admin Panel Auth', () => {
 
   test('redirects to /login.html when no JWT is present', async ({ page }) => {
     await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
-    await page.waitForURL('**/login.html', { timeout: 10_000 });
-    expect(page.url()).toContain('login.html');
+    await page.waitForURL(/\/login(\.html)?/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/login(\.html)?/);
   });
 
   test('redirects to /portal.html when JWT belongs to a non-admin client', async ({ page, context }) => {
@@ -213,7 +213,7 @@ test.describe('Admin Panel Auth', () => {
     });
 
     await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
-    await page.waitForURL('**/portal.html', { timeout: 10_000 });
-    expect(page.url()).toContain('portal.html');
+    await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/portal(\.html)?/);
   });
 });
