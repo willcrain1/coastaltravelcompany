@@ -397,7 +397,9 @@
   <script src="config.js"></script>
   <script src="main.js"></script>
   <script>
-    const WORKER_URL = CTC_CONFIG.workerUrl.replace(/\/+$/, '');
+    // WORKER_URL is already declared by main.js (const in global scope).
+    // Redeclaring it here would throw SyntaxError and prevent loadWalkthroughs()
+    // from running. main.js uses the same CTC_CONFIG.workerUrl value.
 
     // ── Fetch and render walkthroughs ─────────────────────
     async function loadWalkthroughs() {
