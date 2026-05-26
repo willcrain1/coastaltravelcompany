@@ -108,7 +108,19 @@ test.describe('Login Page', () => {
   test('already-logged-in client is redirected to the portal', async ({ page, context }) => {
     await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-client'));
     await mockWorker(context, {
-      'GET /auth/me': (route) => clientResponse(route),
+      // login.html verifies the JWT; portal.html re-verifies on load and redirects
+      // back to /login.html if any of these calls fail, so all three must be mocked.
+      'GET /auth/me':          (route) => clientResponse(route),
+      'GET /portal/galleries': (route) => route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify([]),
+      }),
+      'GET /portal/invoices': (route) => route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify([]),
+      }),
     });
 
     await page.goto(`${STATIC_BASE}/login.html`);
