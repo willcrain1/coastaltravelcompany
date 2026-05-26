@@ -1188,3 +1188,14 @@ The automations page has no Playwright test.
 
 - [ ] Add `tests/e2e/automations.spec.js`: admin toggles an automation on, confirms the enabled state persists after page reload, toggles it off
 - [ ] Assert `GET /admin/automation-logs` renders the log table (can be empty — just confirm the page doesn't error)
+
+### Router-based e2e coverage enforcement
+
+Add a CI script that derives the required test surface from `router.js` directly, so new endpoints cannot be shipped without either a spec reference or an explicit exemption — no manually maintained manifest required.
+
+- [ ] Write a Node script (`tests/e2e/scripts/check-route-coverage.js`) that parses all route patterns out of `worker/src/router.js` (regex over the `pathname.match(...)` and `pathname ===` lines) and builds a list of canonical route signatures (e.g. `GET /admin/walkthroughs`, `POST /admin/projects/:id/invoices`)
+- [ ] For each route signature, search all `tests/e2e/**/*.spec.js` files for a reference — either a literal path string, a path-building expression that matches the pattern, or an explicit coverage annotation comment (`// covers: GET /admin/walkthroughs`) for routes tested indirectly
+- [ ] Any route with zero references fails the script with a non-zero exit code and prints the uncovered routes
+- [ ] Maintain a small allowlist in the script for routes that are intentionally excluded from e2e testing (e.g. `POST /stripe/webhook` — covered by Stripe CLI test separately; `POST /auth/google` — stubbed via `page.route()`)
+- [ ] Add the script as a step in the `acceptance-tests` GitHub Actions job: run it after the Playwright suite so failures are reported alongside test output
+- [ ] Use pattern matching (not string equality) when comparing route signatures to spec references — a spec hitting `/admin/projects/proj-123` should satisfy the `GET /admin/projects/:id` route
