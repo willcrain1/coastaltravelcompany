@@ -184,14 +184,9 @@ describe('JWT tampering', () => {
 // A single env with KV + DB is used for all checks to avoid crashes in
 // handlers that unconditionally call env.DB.prepare().
 
-describe('public routes do not require auth', () => {
-  let env;
-  beforeEach(() => {
-    env = makeEnv(makeKv(), makeD1(makeSqliteDb()));
-  });
-
-  // [method, path, body]  — body is sent as-is (raw string or undefined)
-  const PUBLIC_ROUTES = [
+// [method, path, body, label] — body is sent as-is (raw string or undefined).
+// Also consumed by the router cross-check at the bottom of this file.
+const PUBLIC_ROUTES = [
     // Auth — no DB needed, but DB present causes no harm
     ['GET',  '/auth/setup-status',           undefined,  'auth setup status'],
     ['POST', '/auth/setup',                  '{}',       'first-time setup (empty body → 400)'],
@@ -221,7 +216,13 @@ describe('public routes do not require auth', () => {
     ['GET',  '/public/walkthroughs',         undefined,  'public walkthroughs'],
     ['POST', '/contact',                     '{}',       'contact form (empty body → 400)'],
     ['POST', '/stripe/webhook',              '',         'stripe webhook (no sig → 400)'],
-  ];
+];
+
+describe('public routes do not require auth', () => {
+  let env;
+  beforeEach(() => {
+    env = makeEnv(makeKv(), makeD1(makeSqliteDb()));
+  });
 
   for (const [method, path, body, label] of PUBLIC_ROUTES) {
     it(`not 401: ${label} (${method} ${path})`, async () => {
@@ -264,9 +265,10 @@ describe('portal routes accept client tokens', () => {
 });
 
 // ── Router cross-check ────────────────────────────────────────────────────────
-// Assert that ADMIN_ROUTES covers every admin-path route defined in router.js.
-// When a new admin route is added to router.js without updating this file, this
-// test will fail — prompting the author to add an auth boundary test for it.
+// Assert that ADMIN_ROUTES and PUBLIC_ROUTES cover every matching route defined
+// in router.js. When a new route is added to router.js without updating this
+// file the relevant test will fail, prompting the author to add auth boundary
+// coverage for the new route.
 
 describe('router cross-check', () => {
   it('ADMIN_ROUTES covers all /admin/* routes defined in router.js', async () => {
@@ -291,7 +293,6 @@ describe('router cross-check', () => {
 
     // Every path in ADMIN_ROUTES must match at least one definition in router.js
     for (const [, path] of ADMIN_ROUTES) {
-      const canonicalPath = path.replace(/\/[^/]+$/, '/:id').replace(/\/[^/]+$/, '/:id');
       const covered = [...definedPaths].some(def =>
         path.startsWith(def.replace(/:id/g, '').replace(/\/+$/, '')) ||
         def.replace(/\/\(\[.*\]\)/g, '') === path ||
@@ -306,5 +307,67 @@ describe('router cross-check', () => {
     // Hard assertion: the number of defined admin paths should be <= the number of
     // ADMIN_ROUTES entries (more definitions than tests = untested route added).
     expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(definedPaths.size - 5); // -5 tolerance for regex paths
+  });
+
+  it('PUBLIC_ROUTES covers all public routes defined in router.js', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join, dirname } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const __dir = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(__dir, '../src/router.js'), 'utf8');
+
+    // Routes that require auth and must NOT be in PUBLIC_ROUTES
+    const AUTH_REQUIRED = new Set(['/portal/galleries', '/portal/invoices', '/auth/me']);
+
+    // Paths exempted from PUBLIC_ROUTES with a reason
+    const ALLOWLIST = new Set([
+      '/portal/project/:id', // magic portal token (not JWT), tested in portal-project.spec.js
+      '/token',              // requires any valid JWT + gallery assignment — not a simple public route
+    ]);
+
+    // ── Literal path checks: pathname === '/path' ─────────────────────────────
+    const literalPaths = [...src.matchAll(/pathname\s*===\s*'(\/[^']+)'/g)]
+      .map(m => m[1])
+      .filter(p => !p.startsWith('/admin/') && !AUTH_REQUIRED.has(p));
+
+    // ── Regex path checks: pathname.match(/^\/.../) ───────────────────────────
+    // The character-class-aware alternation [^\[/]|\[[^\]]*\] handles [^/]
+    // inside the pattern without stopping at the / inside the character class.
+    const regexPaths = [...src.matchAll(
+      /pathname\.match\(\/\^((?:\\.|[^\[/]|\[[^\]]*\])+?)\/\)/g,
+    )]
+      .map(m =>
+        '/' + m[1]
+          .replace(/\\\//g, '/')      // unescape \/  →  /
+          .replace(/\([^)]+\)/g, ':id') // capture groups → :id
+          .replace(/\$$/, '')           // strip end anchor
+          .replace(/^\//, ''),          // drop duplicate leading /
+      )
+      .filter(p => !p.startsWith('/admin/'));
+
+    const allPublicPaths = [...new Set([...literalPaths, ...regexPaths])];
+
+    // Per-path hard assertion: every detected public path must be in PUBLIC_ROUTES
+    // or in the ALLOWLIST. This fires immediately when a new public route is added
+    // to router.js without a corresponding PUBLIC_ROUTES entry.
+    for (const p of allPublicPaths) {
+      if (ALLOWLIST.has(p)) continue;
+      const staticPrefix = p.split('/:')[0]; // e.g. /contracts/:id/sign → /contracts
+      const isCovered = PUBLIC_ROUTES.some(([, testPath]) =>
+        testPath.startsWith(staticPrefix),
+      );
+      expect(
+        isCovered,
+        `PUBLIC_ROUTES has no entry covering router.js path: ${p} — add it or add to ALLOWLIST`,
+      ).toBe(true);
+    }
+
+    // Count-based safety net: PUBLIC_ROUTES should account for every detected path
+    // (plus ALLOWLIST). A tolerance of 3 covers multi-method single-line routes
+    // (e.g. GET|POST on one if-statement) where we have one router.js path but
+    // two PUBLIC_ROUTES entries.
+    expect(PUBLIC_ROUTES.length + ALLOWLIST.size).toBeGreaterThanOrEqual(
+      allPublicPaths.length - 3,
+    );
   });
 });
