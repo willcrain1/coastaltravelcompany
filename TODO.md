@@ -881,3 +881,175 @@ Booking funnel tracking — if a booking flow is added later
 - [x] Investigate `main.js` mobile nav toggle logic — check whether the menu's height or max-height calculation accounts for the current scroll position
 - [x] Check whether the mobile nav overlay is positioned `fixed` vs `absolute` — root cause was `backdrop-filter: blur(8px)` on `nav.scrolled` making `nav` the containing block for `position:fixed` children, clipping the overlay to the nav bar height; fixed by setting `nav.style.backdropFilter = 'none'` on open and clearing it on close
 - [x] Verify the body scroll-lock behavior when the nav is open — scroll-lock (`document.body.style.overflow = 'hidden'`) was already in place and working correctly
+
+---
+
+## 37. Hybrid data load approach
+
+**Goal:** Use the NAS as the primary backup/archive for all original files. Serve active gallery thumbnails, static site assets, and splat files from Cloudflare R2 to reduce NAS load and improve global delivery performance.
+
+### Phase 1 — R2 infrastructure
+
+- [ ] Create R2 bucket `ctc-assets` in the Cloudflare dashboard; add a second bucket `ctc-assets-preprod` for staging
+- [ ] Bind both buckets in `wrangler.toml`: `ASSETS` binding for prod, preprod environments respectively
+- [ ] Define the key-space layout:
+  - `site/` — static site assets (CSS, JS, public images); compare with Cloudflare Pages CDN to decide if migration is worth it
+  - `galleries/{passphrase}/thumbs/{id}.jpg` — active gallery thumbnails cached from NAS
+  - `splats/{slug}/scene.splat` — 3D splat files
+  - NAS remains the source-of-truth for originals; R2 holds hot/cached copies only
+
+### Phase 2 — NAS → R2 sync
+
+- [ ] Write `worker/scripts/sync-gallery-to-r2.sh`: enumerate active galleries from D1, download thumbnails from NAS via `nas.coastaltravelcompany.com` using the existing `sharing_sid` flow, upload to R2 using `wrangler r2 object put`
+- [ ] Add a `r2_synced BOOLEAN DEFAULT 0` column to the `galleries` table in a new D1 migration (`worker/migrations/NNN_r2_synced_flag.sql`)
+- [ ] Add a GitHub Actions workflow `sync-gallery-to-r2.yml` (manual `workflow_dispatch` trigger initially; scheduled `cron` trigger once validated) that runs the sync script and marks galleries as synced in D1
+
+### Phase 3 — Worker routing changes
+
+- [ ] In `worker/src/router.js`, for thumbnail and download requests: check D1 `r2_synced` flag for the session's gallery; if true, serve from R2 directly (R2 `get` binding); if false, fall back to the existing NAS proxy path
+- [ ] Add a `Cache-Control: public, max-age=86400` header to R2-served responses; keep NAS proxy responses non-cached
+- [ ] Add a custom response header `X-Asset-Source: r2 | nas` for observability
+
+### Phase 4 — Acceptance test
+
+- [ ] Add Playwright test: create a gallery in admin (preprod env), trigger sync, load gallery page, confirm thumbnail responses include `X-Asset-Source: r2`
+
+---
+
+## 38. Add Real Estate client type
+
+**Goal:** Expand the platform to support real estate agents as a distinct client type. Agents get per-property virtual tour pages, photo gallery integration, 3D splat walkthrough embeds, Zillow/Redfin data linking, and privacy-compliant aggregate analytics — all managed from their portal.
+
+### Phase 1 — Data model (D1 migrations)
+
+- [ ] `worker/migrations/NNN_client_type.sql` — add `client_type TEXT NOT NULL DEFAULT 'standard' CHECK(client_type IN ('standard','real_estate'))` to the `users` table
+- [ ] `worker/migrations/NNN_properties.sql` — create `properties` table:
+  ```sql
+  id TEXT PRIMARY KEY,
+  agent_user_id TEXT NOT NULL REFERENCES users(id),
+  address TEXT NOT NULL,
+  mls_number TEXT,
+  zillow_url TEXT,
+  redfin_url TEXT,
+  splat_r2_key TEXT,          -- R2 key of the uploaded .splat file
+  hotspots_json TEXT,         -- JSON array of {label, x, y, z, note} hotspot objects
+  lead_gate_enabled INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','archived')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  ```
+- [ ] `worker/migrations/NNN_property_galleries.sql` — create `property_galleries` join table: `property_id, passphrase, display_order`; one property can draw photos from multiple galleries
+- [ ] `worker/migrations/NNN_property_analytics.sql` — create `property_events` table:
+  ```sql
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  property_id TEXT NOT NULL REFERENCES properties(id),
+  session_id TEXT NOT NULL,   -- client-generated crypto.randomUUID(); no IP or device stored
+  event_type TEXT NOT NULL CHECK(event_type IN ('view','room_enter','hotspot_click','lead_capture')),
+  room_label TEXT,
+  duration_ms INTEGER,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  ```
+- [ ] `worker/migrations/NNN_property_leads.sql` — create `property_leads` table: `id, property_id, email, session_id, created_at`; email is PII — only insert after explicit opt-in
+
+### Phase 2 — Worker API endpoints (`worker/src/router.js`)
+
+- [ ] `POST /re/properties` — create property; requires `client_type = 'real_estate'`; returns `{id}`
+- [ ] `GET /re/properties` — list the authenticated agent's properties with pre-aggregated stats: `total_views`, `avg_dwell_ms`, `engagement_rate` (% of sessions with ≥ 3 `room_enter` events or any `hotspot_click`)
+- [ ] `PATCH /re/properties/:id` — update `address`, `mls_number`, `zillow_url`, `redfin_url`, `hotspots_json`, `lead_gate_enabled`, `status`; owner-only
+- [ ] `GET /re/properties/:id/analytics` — return room engagement breakdown:
+  ```json
+  { "rooms": [{ "label": "Kitchen", "views": 450, "avg_duration_ms": 75000 }],
+    "total_views": 620, "avg_dwell_ms": 180000, "engagement_rate": 0.62 }
+  ```
+  Computed from `property_events` with a single aggregating SQL query; no raw event rows returned
+- [ ] `POST /re/properties/:id/events` — ingest analytics events from the tour page; validates `session_id` is a UUID, `event_type` is in the allowed set; rejects any fields beyond the schema (no freeform data); rate-limited 60 events/session/minute via KV
+- [ ] `POST /re/properties/:id/leads` — store lead email; requires consent flag `{ email, consent: true }` in body; sends notification email to agent via Resend; returns 400 if `consent !== true`
+- [ ] `GET /re/properties/:id/report` — returns HTML with print CSS (Coastal Travel Co. branding, property photo, stats table, Actionable Insight blurb); agent prints to PDF from browser
+
+### Phase 3 — Property page (`site/property/property-page.html`)
+
+- [ ] Build property page template: hero photo (largest photo from linked gallery), splat viewer (iframe to a self-hosted or third-party splat renderer using `splat_r2_key` URL), photo gallery grid (reuse `client-gallery.html` component or a lightweight subset), Zillow/Redfin embed section (iframe with sandbox), agent branding footer
+- [ ] Property page URL scheme: `https://coastaltravelcompany.com/property/{id}` — page reads `id` from the URL path, calls `GET /re/properties/:id` (public endpoint, no auth required for viewing), renders content
+- [ ] Analytics tracking: generate `session_id = crypto.randomUUID()` on page load, store in `sessionStorage`; fire `POST /re/properties/:id/events` with `{event_type:'view', session_id}` on load; fire `room_enter` events via `IntersectionObserver` on room-labeled sections; fire `hotspot_click` events on hotspot tap/click
+- [ ] Consent gate: show a minimal cookie/tracking consent banner on first visit (before any events are sent); store consent as `sessionStorage.setItem('ctc_consent','granted')`; only call the events endpoint if consent is `'granted'`
+- [ ] Lead capture gate: if `lead_gate_enabled` is true, show modal after 30 s of browsing with a form ("Enter your email to view full property specs"); submit to `POST /re/properties/:id/leads`; dismiss permanently in `sessionStorage` once submitted
+
+### Phase 4 — Agent portal dashboard (`site/portal/real-estate.html`)
+
+- [ ] Property list view: card grid, each card shows address, status badge, Pulse metrics (total views, avg dwell, engagement rate), links to detail view and public property page
+- [ ] Property detail view: Room Engagement Table (room | views | avg time | trend indicator vs. a stored neighborhood benchmark average); Actionable Insight text block auto-generated from template strings (e.g. "Kitchen engagement is 30% above average — feature it in your next post")
+- [ ] Hotspot Manager: display a thumbnail of the property hero photo with existing hotspots overlaid as draggable pins; click empty area to add new hotspot (label + note fields); save via `PATCH /re/properties/:id`
+- [ ] Embed Link Generator: text input pre-filled with the `<iframe src="...">` embed code; "Copy" button uses `navigator.clipboard.writeText`
+- [ ] QR Code Generator: use the `qrcode.js` library (CDN, no build step) to render a downloadable `<canvas>` QR code pointing at the property page URL; "Download PNG" button
+
+### Phase 5 — Privacy & compliance (prerequisite for public launch)
+
+- [ ] Complete item 39 (privacy policy) before any real estate property pages go live publicly
+- [ ] `property_events` table must never store IP addresses, user agents, or device fingerprints — enforce at the Worker ingest endpoint (strip any extra fields, validate schema strictly)
+- [ ] Add "Do Not Sell or Share My Personal Information" link in every property page footer, pointing to `privacy.html#do-not-sell`
+- [ ] Consent banner on property pages (see Phase 3) must fire before any `POST /re/properties/:id/events` call; if consent is denied, no events are sent for that session
+
+---
+
+## 39. Create privacy policy
+
+**Goal:** Publish an accurate, readable privacy policy page that satisfies CCPA minimum requirements and covers all data collected across the current platform and the planned real estate analytics feature. Required before real estate property pages launch publicly.
+
+### Content — sections to include
+
+- [ ] **What we collect and why** — for each data type below, state what is collected, why, and how long it is retained:
+  - Contact form: name, email, message → forwarded to `thecoastaltravelcompany@gmail.com` via Resend; not stored server-side; retained by recipient's email client only
+  - User accounts: email address, bcrypt-hashed password (or Google OAuth token), role — stored in D1 indefinitely until account deletion is requested
+  - Gallery sessions: short-lived session token (UUID) in Cloudflare KV, 4-hour TTL; no IP address or browser fingerprint stored; photos fetched from NAS through Worker and not cached server-side
+  - Booking/invoicing: name, email, invoice and contract data stored in D1; Stripe payment tokens (not card numbers — Stripe holds those)
+  - Real estate analytics (when live): anonymized `session_id` (UUID generated in browser, stored in `sessionStorage` only), room engagement events, hotspot interactions — aggregate only, no PII, collected only with consent
+  - Real estate lead capture (when live): email address submitted voluntarily by the visitor, shared only with the listing agent; not sold to third parties
+- [ ] **Third-party services** — list each, link to their privacy policy, describe what data is shared with them:
+  - Cloudflare (Pages, Workers, R2, KV, D1, Tunnel)
+  - Resend (email delivery — contact form, notifications)
+  - Google (OAuth login)
+  - Stripe (payment processing)
+  - Synology NAS (photo storage — self-hosted)
+- [ ] **Cookies and local storage** — the site currently sets no cookies; `sessionStorage` is used for gallery tokens and analytics session IDs (cleared when the tab closes); `localStorage` is used in the admin panel for saved settings
+- [ ] **Your rights (CCPA)** — right to know, right to delete, right to opt-out of sale/sharing; include `id="do-not-sell"` anchor for direct linking
+- [ ] **How to contact us** — email address for privacy requests; target response time (e.g. 30 days)
+- [ ] **Effective date and version** — include a "Last updated: YYYY-MM-DD" line at the top
+
+### Implementation
+
+- [ ] Create `site/privacy.html` — use the shared nav, `styles.css`, and footer pattern from `about.html`; no new styles required
+- [ ] Add the footer privacy link to: `site/index.html`, `site/about.html`, `site/services.html`, `site/collections.html`, `site/contact.html`, `site/login.html`, `site/portal.html` — append `<a href="/privacy.html">Privacy Policy</a>` to each page's footer (or footer partial if one is extracted)
+- [ ] Have the policy reviewed by a human before publishing — flag this in the PR description; tag with `needs-legal-review`
+
+---
+
+## 40. Create full real estate portal
+
+**Goal:** Deliver the complete agent-facing portal (item 38 Phase 4) and the public property page (item 38 Phase 3) as a polished, shippable product with analytics, lead capture, PDF-ready reports, QR codes, and embed tooling. Items 38 and 39 are hard prerequisites — complete them first.
+
+This item tracks the integration, polish, and acceptance testing work that goes beyond the individual feature implementation tasks in item 38.
+
+### Integration checklist
+
+- [ ] End-to-end flow works without errors: agent creates property in portal → adds photos from gallery → publishes → shares public URL → visitor views page → analytics appear in agent dashboard within 60 seconds
+- [ ] Lead capture gate flow: visitor triggers gate → submits email with consent → agent receives Resend email notification → lead appears in portal (add `GET /re/properties/:id/leads` endpoint and a Leads tab in the detail view)
+- [ ] R2 splat file upload: add a file upload field in the property create/edit form in the portal; `PUT` the file directly to R2 via a pre-signed URL (Worker generates with `ASSETS.createMultipartUpload` or `fetch` to R2 API); store the resulting key in `properties.splat_r2_key`
+
+### PDF report
+
+- [ ] `GET /re/properties/:id/report` returns a styled HTML page with `@media print` CSS: Coastal Travel Co. logo (use the existing brand colors and Gilda Display font), property address, hero photo, Pulse metrics summary, Room Engagement Table, Actionable Insight text, footer with "Generated by Coastal Travel Co." and the date
+- [ ] Print CSS hides nav, sidebar, and all interactive controls; sets page size to Letter; forces `break-inside: avoid` on each section
+- [ ] Test print-to-PDF in Chrome and Safari; confirm layout doesn't break across pages
+
+### QR code generator
+
+- [ ] Load `qrcode.min.js` from CDN (jsDelivr) in the portal; no build step
+- [ ] Render QR code into a `<canvas>` in the portal's Embed & Share tab; target URL is the public property page (`https://coastaltravelcompany.com/property/{id}`)
+- [ ] "Download PNG" button: `canvas.toBlob()` → object URL → `<a download="property-qr.png">` click; confirm download works on Chrome and Safari mobile
+
+### Acceptance tests (Playwright)
+
+- [ ] Real estate agent login → property creation → publish → confirm public property page renders (address, hero photo visible)
+- [ ] Analytics event ingest: load property page, wait 1 s, confirm `POST /re/properties/:id/events` returns 200
+- [ ] Lead capture: trigger gate, submit email, confirm `POST /re/properties/:id/leads` returns 200 and agent receives Resend email (mock Resend in preprod using test API key with delivery verification)
+- [ ] Agent dashboard: navigate to property analytics tab, confirm Room Engagement Table renders with at least the seeded event data
+- [ ] Embed & Share tab: confirm QR code canvas renders and Download PNG button produces a non-empty file
