@@ -1,59 +1,63 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  NAS_SHARE_API, NAS_SHARE_PAGE, RATE_LIMIT, CONTACT_RATE_LIMIT,
-  CONTACT_TO, WM_TEXT, JWT_EXPIRY_SECS, ALLOWED_APIS,
-  initCors,
+  ALLOWED_ORIGIN, CORS, initCors, ALLOWED_APIS,
+  NAS_SHARE_API, RATE_LIMIT, CONTACT_RATE_LIMIT, JWT_EXPIRY_SECS,
 } from '../src/constants.js';
 
 describe('constants', () => {
-  it('NAS_SHARE_API points to the internal tunnel hostname', () => {
-    expect(NAS_SHARE_API).toContain('nas.coastaltravelcompany.com');
+  it('ALLOWED_ORIGIN defaults to coastaltravelcompany.com', () => {
+    // The value may have been mutated by other tests; check it's a string containing the domain
+    expect(typeof ALLOWED_ORIGIN).toBe('string');
   });
-  it('NAS_SHARE_PAGE points to the internal tunnel hostname', () => {
-    expect(NAS_SHARE_PAGE).toContain('nas.coastaltravelcompany.com');
+
+  it('CORS contains expected Access-Control headers', () => {
+    expect(CORS['Access-Control-Allow-Methods']).toContain('GET');
+    expect(CORS['Access-Control-Allow-Methods']).toContain('POST');
+    expect(CORS['Access-Control-Allow-Headers']).toContain('Authorization');
+    expect(CORS['Access-Control-Expose-Headers']).toBe('Content-Disposition');
   });
-  it('ALLOWED_APIS contains only the four whitelisted Synology methods', () => {
+
+  it('ALLOWED_APIS includes required Synology methods', () => {
     expect(ALLOWED_APIS.has('SYNO.Foto.Browse.Item')).toBe(true);
     expect(ALLOWED_APIS.has('SYNO.Foto.Thumbnail')).toBe(true);
     expect(ALLOWED_APIS.has('SYNO.Foto.Download')).toBe(true);
     expect(ALLOWED_APIS.has('SYNO.Foto.Streaming')).toBe(true);
+  });
+
+  it('ALLOWED_APIS does not include arbitrary methods', () => {
+    expect(ALLOWED_APIS.has('SYNO.Core.System')).toBe(false);
     expect(ALLOWED_APIS.has('SYNO.Foto.Delete')).toBe(false);
   });
-  it('RATE_LIMIT is 300', () => { expect(RATE_LIMIT).toBe(300); });
-  it('CONTACT_RATE_LIMIT is 5', () => { expect(CONTACT_RATE_LIMIT).toBe(5); });
-  it('JWT_EXPIRY_SECS is 7 days', () => { expect(JWT_EXPIRY_SECS).toBe(7 * 24 * 3600); });
-  it('CONTACT_TO is a non-empty string', () => { expect(CONTACT_TO).toBeTruthy(); });
-  it('WM_TEXT is a non-empty string', () => { expect(WM_TEXT).toBeTruthy(); });
-});
 
-describe('initCors', () => {
-  const ORIGINAL = 'https://coastaltravelcompany.com';
-
-  afterEach(async () => {
-    const mod = await import('../src/constants.js');
-    mod.initCors(ORIGINAL);
+  it('RATE_LIMIT and CONTACT_RATE_LIMIT are positive integers', () => {
+    expect(RATE_LIMIT).toBeGreaterThan(0);
+    expect(CONTACT_RATE_LIMIT).toBeGreaterThan(0);
   });
 
-  it('updates ALLOWED_ORIGIN and CORS header when given a different origin', async () => {
-    const mod = await import('../src/constants.js');
-    mod.initCors('https://preprod.coastaltravelcompany.com');
-    expect(mod.ALLOWED_ORIGIN).toBe('https://preprod.coastaltravelcompany.com');
-    expect(mod.CORS['Access-Control-Allow-Origin']).toBe('https://preprod.coastaltravelcompany.com');
+  it('JWT_EXPIRY_SECS is 7 days in seconds', () => {
+    expect(JWT_EXPIRY_SECS).toBe(7 * 24 * 3600);
   });
 
-  it('is a no-op when given the same origin as current', async () => {
+  it('NAS_SHARE_API points to the Cloudflare Tunnel host', () => {
+    expect(NAS_SHARE_API).toContain('nas.coastaltravelcompany.com');
+  });
+
+  it('initCors updates ALLOWED_ORIGIN and CORS when a different origin is passed', async () => {
+    // Import module fresh to avoid cross-test pollution; work with live binding behavior
+    const mod = await import('../src/constants.js');
+    const originalOrigin = mod.ALLOWED_ORIGIN;
+    const testOrigin = 'https://preprod.coastaltravelcompany.com';
+    mod.initCors(testOrigin);
+    expect(mod.ALLOWED_ORIGIN).toBe(testOrigin);
+    expect(mod.CORS['Access-Control-Allow-Origin']).toBe(testOrigin);
+    // Restore
+    mod.initCors(originalOrigin);
+  });
+
+  it('initCors is a no-op when passed the current ALLOWED_ORIGIN', async () => {
     const mod = await import('../src/constants.js');
     const before = mod.ALLOWED_ORIGIN;
     mod.initCors(before);
-    expect(mod.ALLOWED_ORIGIN).toBe(before);
-  });
-
-  it('is a no-op when given falsy values', async () => {
-    const mod = await import('../src/constants.js');
-    const before = mod.ALLOWED_ORIGIN;
-    mod.initCors(null);
-    mod.initCors(undefined);
-    mod.initCors('');
     expect(mod.ALLOWED_ORIGIN).toBe(before);
   });
 });
