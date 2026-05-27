@@ -115,9 +115,13 @@ jobs:
           echo "Source branch is preprod — OK"
 
   acceptance-tests:
-    name: Playwright acceptance tests
+    name: Playwright (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
@@ -127,13 +131,13 @@ jobs:
         run: npm install
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-      - name: Run acceptance tests
-        run: npm test
+      - name: Run acceptance tests (shard ${{ matrix.shard }}/4)
+        run: npm test -- --shard=${{ matrix.shard }}/4
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}-of-4
           path: |
             playwright-report/
             test-results/
