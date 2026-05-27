@@ -55,7 +55,11 @@ Editable text zones are marked with `data-content-id="ZONE_ID"` on the element t
 **Secret** (set via `wrangler secret put GITHUB_TOKEN [--env preprod]`):
 - `GITHUB_TOKEN` — fine-grained PAT, `contents: write` scope on this repo only
 
-The target branch is inferred from `ALLOWED_ORIGIN`: requests through the preprod Worker (where `ALLOWED_ORIGIN` contains `"preprod"`) read and write the `preprod` branch; the prod Worker writes `master`. No extra variable is needed.
+**Variable** (set in `wrangler.toml` — already documented in `wrangler.toml.example`):
+- `CMS_BRANCH = "master"` for the production Worker
+- `CMS_BRANCH = "preprod"` for the preprod Worker
+
+Saves made through the preprod editor land on the `preprod` branch; saves through the prod editor land on `master`.
 
 **Branch protection bypass (one-time GitHub setup):**
 
