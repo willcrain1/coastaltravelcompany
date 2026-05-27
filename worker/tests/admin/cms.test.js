@@ -26,7 +26,7 @@ const INDEX_HTML = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeEnv({ token = 'ghp_test', noGitHub = false } = {}) {
+function makeEnv({ token = 'ghp_test', noGitHub = false, branch = 'master' } = {}) {
   const store = new Map();
   return {
     KV: {
@@ -36,6 +36,7 @@ function makeEnv({ token = 'ghp_test', noGitHub = false } = {}) {
     },
     JWT_SECRET:   SECRET,
     GITHUB_TOKEN: noGitHub ? undefined : token,
+    CMS_BRANCH:   branch,
   };
 }
 
@@ -469,5 +470,102 @@ describe('handleAdminCmsRevert', () => {
     expect(body.message).toContain('Revert');
     expect(body.message).toContain('Home');
     expect(body.message).toContain('oldsha1'); // first 7 chars of sha
+  });
+});
+
+// ── Branch routing ────────────────────────────────────────────────────────────
+
+describe('branch routing', () => {
+  it('GET page sends ?ref=master by default', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u, opts = {}) => {
+      calls.push({ url: String(u), method: opts.method });
+      return { ok: true, json: async () => ({ content: btoa(INDEX_HTML), sha: 'sha1' }) };
+    }));
+    await handleAdminCmsPage(
+      await adminReq('GET', 'http://t/admin/cms/page?file=index.html'),
+      makeEnv(),
+    );
+    expect(calls[0].url).toContain('?ref=master');
+  });
+
+  it('GET page sends ?ref=preprod when CMS_BRANCH is preprod', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u, opts = {}) => {
+      calls.push({ url: String(u), method: opts.method });
+      return { ok: true, json: async () => ({ content: btoa(INDEX_HTML), sha: 'sha1' }) };
+    }));
+    await handleAdminCmsPage(
+      await adminReq('GET', 'http://t/admin/cms/page?file=index.html'),
+      makeEnv({ branch: 'preprod' }),
+    );
+    expect(calls[0].url).toContain('?ref=preprod');
+  });
+
+  it('PUT page sends branch in the PUT body', async () => {
+    const bodies = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u, opts = {}) => {
+      if (opts.method === 'PUT') {
+        bodies.push(JSON.parse(opts.body));
+        return { ok: true, json: async () => ({ commit: { sha: 'c1' }, content: { sha: 'ns' } }) };
+      }
+      return { ok: true, json: async () => ({ content: btoa(INDEX_HTML), sha: 'sha1' }) };
+    }));
+    await handleAdminCmsPage(
+      await adminReq('PUT', 'http://t/admin/cms/page?file=index.html', {
+        zones: { 'hero-title': 'Changed Title' },
+      }),
+      makeEnv({ branch: 'preprod' }),
+    );
+    expect(bodies[0].branch).toBe('preprod');
+  });
+
+  it('GET history sends &sha=master by default', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u) => {
+      calls.push(String(u));
+      return { ok: true, json: async () => [] };
+    }));
+    await handleAdminCmsHistory(
+      await adminReq('GET', 'http://t/admin/cms/history?file=index.html'),
+      makeEnv(),
+    );
+    expect(calls[0]).toContain('&sha=master');
+  });
+
+  it('GET history sends &sha=preprod when CMS_BRANCH is preprod', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u) => {
+      calls.push(String(u));
+      return { ok: true, json: async () => [] };
+    }));
+    await handleAdminCmsHistory(
+      await adminReq('GET', 'http://t/admin/cms/history?file=index.html'),
+      makeEnv({ branch: 'preprod' }),
+    );
+    expect(calls[0]).toContain('&sha=preprod');
+  });
+
+  it('revert historical fetch uses ?ref=<sha>, current uses ?ref=<branch>, PUT uses branch', async () => {
+    const getUrls = [];
+    const putBodies = [];
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u, opts = {}) => {
+      if (opts.method === 'PUT') {
+        putBodies.push(JSON.parse(opts.body));
+        return { ok: true, json: async () => ({ commit: { sha: 'rev1' } }) };
+      }
+      getUrls.push(String(u));
+      return { ok: true, json: async () => ({ content: btoa(INDEX_HTML), sha: 'currentsha' }) };
+    }));
+    await handleAdminCmsRevert(
+      await adminReq('POST', 'http://t/admin/cms/revert', { file: 'index.html', sha: 'historicsha' }),
+      makeEnv({ branch: 'preprod' }),
+    );
+    // First GET fetches historical content by commit sha
+    expect(getUrls[0]).toContain('?ref=historicsha');
+    // Second GET fetches current file on the branch
+    expect(getUrls[1]).toContain('?ref=preprod');
+    // PUT targets the correct branch
+    expect(putBodies[0].branch).toBe('preprod');
   });
 });

@@ -50,8 +50,27 @@ Editable text zones are marked with `data-content-id="ZONE_ID"` on the element t
 - Pattern: `page-section-field`, e.g. `hero-eyebrow`, `contact-intro-body`, `service-1-title`
 - `GITHUB_TOKEN` must be set as a Worker secret (fine-grained PAT with `contents: write` scope on this repo only)
 
-### Worker secrets required for CMS
-Add `GITHUB_TOKEN` to the Worker secrets list alongside `JWT_SECRET`, `RESEND_API_KEY`, etc.
+### Worker configuration for CMS
+
+**Secret** (set via `wrangler secret put GITHUB_TOKEN [--env preprod]`):
+- `GITHUB_TOKEN` — fine-grained PAT, `contents: write` scope on this repo only
+
+**Variable** (set in `wrangler.toml` or Cloudflare dashboard → Worker → Settings → Variables):
+- `CMS_BRANCH = "master"` for production Worker
+- `CMS_BRANCH = "preprod"` for preprod Worker
+
+The CMS reads and writes files on whichever branch `CMS_BRANCH` specifies, so saves made through the preprod editor land on `preprod` and saves through the prod editor land on `master`.
+
+**Branch protection bypass (one-time GitHub setup):**
+
+The GitHub Contents API respects branch protection rules. If `master` or `preprod` require PR reviews, direct API writes will be rejected with 422 unless the PAT owner is granted bypass rights:
+
+1. GitHub → repo Settings → Branches → protection rule for `master`
+2. Enable **"Allow specified actors to bypass required pull requests"**
+3. Add the GitHub user account whose PAT is used as `GITHUB_TOKEN`
+4. Repeat for the `preprod` branch protection rule
+
+Use a dedicated bot/machine account for the PAT rather than a personal account so bypass rights are scoped tightly.
 
 ## Architecture
 

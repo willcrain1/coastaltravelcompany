@@ -85,8 +85,9 @@ async function ghFetch(path, options = {}, token) {
   });
 }
 
-async function getFileData(file, token, ref) {
-  const qs  = ref ? `?ref=${ref}` : '';
+async function getFileData(file, token, ref, branch = 'master') {
+  // ref wins (historical fetch by commit SHA); otherwise read from the target branch
+  const qs  = `?ref=${ref ?? branch}`;
   const res = await ghFetch(`/repos/${GITHUB_REPO}/contents/site/${file}${qs}`, {}, token);
   if (!res.ok) return null;
   const data = await res.json();
@@ -94,7 +95,7 @@ async function getFileData(file, token, ref) {
   return { html: text, sha: data.sha };
 }
 
-async function putFileData(file, content, sha, message, token) {
+async function putFileData(file, content, sha, message, token, branch = 'master') {
   // btoa requires latin-1; use encodeURIComponent + unescape for unicode safety
   const encoded = btoa(unescape(encodeURIComponent(content)));
   return ghFetch(
@@ -102,15 +103,15 @@ async function putFileData(file, content, sha, message, token) {
     {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, content: encoded, sha }),
+      body: JSON.stringify({ message, content: encoded, sha, branch }),
     },
     token,
   );
 }
 
-async function getFileHistory(file, token) {
+async function getFileHistory(file, token, branch = 'master') {
   const res = await ghFetch(
-    `/repos/${GITHUB_REPO}/commits?path=site/${file}&per_page=10`,
+    `/repos/${GITHUB_REPO}/commits?path=site/${file}&per_page=10&sha=${branch}`,
     {},
     token,
   );
@@ -162,9 +163,11 @@ export async function handleAdminCmsPage(request, env) {
   if (!file || !PAGES[file]) return jsonResponse({ error: 'Unknown page' }, 400);
   const cfg = PAGES[file];
 
+  const branch = env.CMS_BRANCH ?? 'master';
+
   // ── GET: read current zone values ─────────────────────────────────────────
   if (request.method === 'GET') {
-    const fileData = await getFileData(file, env.GITHUB_TOKEN);
+    const fileData = await getFileData(file, env.GITHUB_TOKEN, undefined, branch);
     if (!fileData) return jsonResponse({ error: 'Failed to fetch file from GitHub' }, 502);
     return jsonResponse({
       file,
@@ -180,7 +183,7 @@ export async function handleAdminCmsPage(request, env) {
     if (!updates) return jsonResponse({ error: 'Missing zones' }, 400);
 
     // Fetch a fresh SHA immediately before writing to avoid stale-SHA 409s
-    const fileData = await getFileData(file, env.GITHUB_TOKEN);
+    const fileData = await getFileData(file, env.GITHUB_TOKEN, undefined, branch);
     if (!fileData) return jsonResponse({ error: 'Failed to fetch file from GitHub' }, 502);
 
     let html = fileData.html;
@@ -196,7 +199,7 @@ export async function handleAdminCmsPage(request, env) {
     if (changedLabels.length === 0) return jsonResponse({ ok: true, message: 'No changes' });
 
     const commitMsg = `Update ${changedLabels.join(', ')} on ${cfg.label} page`;
-    const res = await putFileData(file, html, fileData.sha, commitMsg, env.GITHUB_TOKEN);
+    const res = await putFileData(file, html, fileData.sha, commitMsg, env.GITHUB_TOKEN, branch);
     if (!res.ok) {
       const err = await res.text();
       return jsonResponse({ error: `GitHub write failed: ${err}` }, 502);
@@ -219,7 +222,7 @@ export async function handleAdminCmsHistory(request, env) {
   const file = url.searchParams.get('file');
   if (!file || !PAGES[file]) return jsonResponse({ error: 'Unknown page' }, 400);
 
-  const commits = await getFileHistory(file, env.GITHUB_TOKEN);
+  const commits = await getFileHistory(file, env.GITHUB_TOKEN, env.CMS_BRANCH ?? 'master');
   return jsonResponse(commits.map(c => ({
     sha:     c.sha,
     message: c.commit?.message,
@@ -239,15 +242,17 @@ export async function handleAdminCmsRevert(request, env) {
   const { file, sha } = await request.json();
   if (!file || !sha || !PAGES[file]) return jsonResponse({ error: 'Missing file or sha' }, 400);
 
-  const historical = await getFileData(file, env.GITHUB_TOKEN, sha);
+  const branch = env.CMS_BRANCH ?? 'master';
+
+  const historical = await getFileData(file, env.GITHUB_TOKEN, sha, branch);
   if (!historical) return jsonResponse({ error: 'Could not fetch historical version' }, 502);
 
-  const current = await getFileData(file, env.GITHUB_TOKEN);
+  const current = await getFileData(file, env.GITHUB_TOKEN, undefined, branch);
   if (!current) return jsonResponse({ error: 'Could not fetch current file' }, 502);
 
   const cfg     = PAGES[file];
   const message = `Revert ${cfg.label} page to ${sha.slice(0, 7)}`;
-  const res     = await putFileData(file, historical.html, current.sha, message, env.GITHUB_TOKEN);
+  const res     = await putFileData(file, historical.html, current.sha, message, env.GITHUB_TOKEN, branch);
   if (!res.ok) {
     const err = await res.text();
     return jsonResponse({ error: `GitHub write failed: ${err}` }, 502);
