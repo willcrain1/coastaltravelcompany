@@ -23,9 +23,27 @@ jobs:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
         run: |
           chmod +x ./worker/deploy-worker.sh
           ./worker/deploy-worker.sh
+
+      - name: Sync secrets to prod Worker
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          CMS_GITHUB_PAT: ${{ secrets.CMS_GITHUB_PAT }}
+        run: |
+          cd worker
+          [ -n "$JWT_SECRET" ]              && printf '%s' "$JWT_SECRET"              | npx wrangler secret put JWT_SECRET
+          [ -n "$RESEND_API_KEY" ]          && printf '%s' "$RESEND_API_KEY"          | npx wrangler secret put RESEND_API_KEY
+          [ -n "$STRIPE_SECRET_KEY" ]       && printf '%s' "$STRIPE_SECRET_KEY"       | npx wrangler secret put STRIPE_SECRET_KEY
+          [ -n "$STRIPE_WEBHOOK_SECRET" ]   && printf '%s' "$STRIPE_WEBHOOK_SECRET"   | npx wrangler secret put STRIPE_WEBHOOK_SECRET
+          [ -n "$CMS_GITHUB_PAT" ]          && printf '%s' "$CMS_GITHUB_PAT"          | npx wrangler secret put GITHUB_TOKEN
 
       - name: Run D1 migrations (prod)
         env:

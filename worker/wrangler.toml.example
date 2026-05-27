@@ -7,6 +7,7 @@ compatibility_date = "2024-09-23"
 
 [vars]
 CMS_BRANCH = "master"
+# GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"  # optional — set via GOOGLE_CLIENT_ID Actions variable
 
 [[kv_namespaces]]
 binding = "KV"
@@ -29,6 +30,7 @@ name = "your-worker-name-preprod"
 [env.preprod.vars]
 ALLOWED_ORIGIN = "https://preprod.coastaltravelcompany.com"
 CMS_BRANCH = "preprod"
+# GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"  # same value as prod
 
 [[env.preprod.kv_namespaces]]
 binding = "KV"
