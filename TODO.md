@@ -205,18 +205,18 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 10. Preprod Environment
+## ~~10. Preprod Environment~~ ✅ Done
 
 **Goal:** Create a staging environment that mirrors production so every change — especially Worker deploys, D1 migrations, and auth flows — can be validated end-to-end before touching production. This is a forcing function for safe deployments; Worker changes can't be rolled back once live, and D1 schema migrations that fail in prod require manual intervention.
 
 ### GitHub Pages staging site
 - [x] Create a `preprod` branch in the repo (branch off master; keep it rebased on master going forward)
-- [ ] Configure a GitHub Pages deployment environment named `preprod` in repo Settings → Pages → Environments; point it at the `preprod` branch so pushes to `preprod` deploy to a separate Pages URL (e.g. `willcrain1.github.io/coastaltravelcompany` on the `preprod` environment, or a custom subdomain)
-- [ ] Add a `preprod.coastaltravelcompany.com` CNAME DNS record in Cloudflare pointing to the Pages deployment URL; enable "Proxied" so it goes through Cloudflare
+- [x] Configure a GitHub Pages deployment environment named `preprod` in repo Settings → Pages → Environments; point it at the `preprod` branch so pushes to `preprod` deploy to a separate Pages URL (e.g. `willcrain1.github.io/coastaltravelcompany` on the `preprod` environment, or a custom subdomain)
+- [x] Add a `preprod.coastaltravelcompany.com` CNAME DNS record in Cloudflare pointing to the Pages deployment URL; enable "Proxied" so it goes through Cloudflare
 - [x] Add `preprod.coastaltravelcompany.com` as an allowed origin in the preprod Worker's CORS config — Worker reads `env.ALLOWED_ORIGIN` set via `[env.preprod.vars]` in `wrangler.toml`; `initCors()` in `router.js` applies it at request time
 
 ### Cloudflare Worker — preprod instance
-- [ ] Create a second Cloudflare Worker named `coastal-gallery-proxy-preprod` in the Cloudflare dashboard (Workers → Create); initial deploy via `./worker/deploy-worker-preprod.sh`
+- [x] Create a second Cloudflare Worker named `coastal-gallery-proxy-preprod` in the Cloudflare dashboard (Workers → Create); initial deploy via `./worker/deploy-worker-preprod.sh`
 - [x] Add a `[env.preprod]` section to `worker/wrangler.toml` so `wrangler deploy --env preprod` targets the preprod Worker independently from production; `worker/wrangler.toml.example` updated to show the preprod env block
 - [x] Create `worker/deploy-worker-preprod.sh` — auto-provisions `CTC_AUTH_PREPROD` KV and `ctc-preprod` D1, runs all migrations, generates `wrangler.toml` with `[env.preprod]` section, deploys with `--env preprod`
 - [x] Add `CF_WORKER_NAME_PREPROD` to `worker/.worker-config.example` alongside the existing production fields
@@ -231,12 +231,12 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [x] Migration run order and preprod workflow documented in `CLAUDE.md` under "Preprod environment → Adding new D1 migrations"
 
 ### Secrets — separate values per environment
-- [ ] Set each Worker secret on the preprod Worker independently via Cloudflare dashboard → preprod Worker → Settings → Variables, or `wrangler secret put <NAME> --env preprod`: `JWT_SECRET` (different value from prod), `RESEND_API_KEY` (can reuse prod key; preprod emails will go to real inboxes), `GOOGLE_CLIENT_ID` (same value — authorized origins must include `preprod.coastaltravelcompany.com` in Google Cloud Console), `STRIPE_SECRET_KEY` (use Stripe **test mode** key for preprod), `STRIPE_WEBHOOK_SECRET` (register a separate Stripe webhook endpoint for preprod)
+- [x] Set each Worker secret on the preprod Worker independently via Cloudflare dashboard → preprod Worker → Settings → Variables, or `wrangler secret put <NAME> --env preprod`: `JWT_SECRET` (different value from prod), `RESEND_API_KEY` (can reuse prod key; preprod emails will go to real inboxes), `GOOGLE_CLIENT_ID` (same value — authorized origins must include `preprod.coastaltravelcompany.com` in Google Cloud Console), `STRIPE_SECRET_KEY` (use Stripe **test mode** key for preprod), `STRIPE_WEBHOOK_SECRET` (register a separate Stripe webhook endpoint for preprod)
 - [ ] Register the preprod Stripe webhook in the Stripe dashboard pointing to `POST https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev/stripe/webhook` for `checkout.session.completed`
 
 ### GitHub Actions CI/CD
 - [x] Added `.github/workflows/deploy-worker-preprod.yml` — triggers on push to `preprod`, runs `deploy-worker-preprod.sh` then deploys Pages to the `preprod` environment
-- [ ] Add a branch protection rule on `preprod` requiring PR review before merge (GitHub Settings → Branches)
+- [x] Add a branch protection rule on `preprod` requiring PR review before merge (GitHub Settings → Branches)
 
 ### Admin environment switcher
 - [x] Updated `admin/galleries.html` — Production/Preprod toggle with env badge; Preprod mode shows a Worker URL input; `proxyUrl` in the generated gallery config uses the active environment's URL; selection persists in `localStorage`
