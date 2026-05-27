@@ -1,8 +1,9 @@
 import { PhotonImage, draw_text_with_border } from '@cf-wasm/photon';
 import { NAS_SHARE_API, NAS_SHARE_PAGE, ALLOWED_APIS, CORS, RATE_LIMIT } from './constants.js';
-import { jsonResponse, authRequired, forbidden } from './utils.js';
+import { jsonResponse, rateLimitedResponse, authRequired, forbidden } from './utils.js';
 import { getAuth } from './jwt.js';
 import { getGallery } from './kv.js';
+import { checkGalleryUnlockBruteForce, recordGalleryUnlockFailure, clearGalleryUnlockCounter } from './brute-force.js';
 
 // Per-isolate NAS session cache: passphrase → { cookie, sid, exp }
 export const sidCache = {};
@@ -99,6 +100,12 @@ export async function applyWatermark(imageBytes) {
 export async function handleTokenExchange(request, env) {
   const payload = await getAuth(request, env);
   if (!payload) return authRequired();
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  if (await checkGalleryUnlockBruteForce(ip, env.KV)) {
+    return rateLimitedResponse('Too many failed gallery access attempts from your network. Please try again in 10 minutes.', 600);
+  }
+
   const body      = await request.text();
   const galleryId = new URLSearchParams(body).get('galleryId');
   if (!galleryId) return jsonResponse({ error: 'Missing galleryId' }, 400);
@@ -113,8 +120,10 @@ export async function handleTokenExchange(request, env) {
   try {
     await getSharingSid(passphrase, gallery.sharePassword || null);
   } catch (err) {
+    await recordGalleryUnlockFailure(ip, env.KV);
     return jsonResponse({ error: 'Gallery session failed: ' + err.message }, 401);
   }
+  await clearGalleryUnlockCounter(ip, env.KV);
   const sid = crypto.randomUUID();
   await env.KV.put('tok:' + sid, JSON.stringify({ passphrase, sharePassword: gallery.sharePassword || null }), { expirationTtl: 14400 });
   return jsonResponse({ sid });
