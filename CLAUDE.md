@@ -33,16 +33,12 @@ Editable text zones are marked with `data-content-id="ZONE_ID"` on the element t
 - Pattern: `page-section-field`, e.g. `hero-eyebrow`, `contact-intro-body`, `service-1-title`
 - `CMS_GITHUB_TOKEN` must be set as a Worker secret (fine-grained PAT with `contents: write` scope on this repo only)
 
-### Worker configuration for CMS
+### Worker secrets required for CMS
 
 **Secret** (set via `wrangler secret put CMS_GITHUB_TOKEN [--env preprod]`):
 - `CMS_GITHUB_TOKEN` — fine-grained PAT, `contents: write` scope on this repo only
 
-**Variable** (set in `wrangler.toml` or Cloudflare dashboard → Worker → Settings → Variables):
-- `CMS_BRANCH = "master"` for production Worker
-- `CMS_BRANCH = "preprod"` for preprod Worker
-
-The CMS reads and writes files on whichever branch `CMS_BRANCH` specifies, so saves made through the preprod editor land on `preprod` and saves through the prod editor land on `master`.
+The target branch is inferred from `ALLOWED_ORIGIN`: requests through the preprod Worker (where `ALLOWED_ORIGIN` contains `"preprod"`) read and write the `preprod` branch; the prod Worker writes `master`. No extra variable is needed.
 
 **Branch protection bypass (one-time GitHub setup):**
 
