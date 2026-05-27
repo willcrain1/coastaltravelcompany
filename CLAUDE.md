@@ -32,3 +32,23 @@ Editable text zones are marked with `data-content-id="ZONE_ID"` on the element t
 - Only mark elements that contain **plain text only** (no child elements other than inline text); elements with child tags (e.g. `<a>`, `<strong>`, `<br>`) are not safe to use as zones
 - Pattern: `page-section-field`, e.g. `hero-eyebrow`, `contact-intro-body`, `service-1-title`
 - `CMS_GITHUB_TOKEN` must be set as a Worker secret (fine-grained PAT with `contents: write` scope on this repo only)
+
+### Worker configuration for CMS
+
+**Secret** (set via `wrangler secret put CMS_GITHUB_TOKEN [--env preprod]`):
+- `CMS_GITHUB_TOKEN` — fine-grained PAT, `contents: write` scope on this repo only
+
+**Variable** (set in `wrangler.toml` or Cloudflare dashboard → Worker → Settings → Variables):
+- `CMS_BRANCH = "master"` for production Worker
+- `CMS_BRANCH = "preprod"` for preprod Worker
+
+The CMS reads and writes files on whichever branch `CMS_BRANCH` specifies, so saves made through the preprod editor land on `preprod` and saves through the prod editor land on `master`.
+
+**Branch protection bypass (one-time GitHub setup):**
+
+The GitHub Contents API respects branch protection rules. If `master` or `preprod` require PR reviews, direct API writes will be rejected with 422 unless the PAT owner is granted bypass rights:
+
+1. GitHub → repo Settings → Branches → protection rule for `master`
+2. Enable **"Allow specified actors to bypass required pull requests"**
+3. Add the GitHub user account whose PAT is used as `CMS_GITHUB_TOKEN`
+4. Repeat for the `preprod` branch protection rule
