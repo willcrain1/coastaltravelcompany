@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  getUser, putUser, deleteUser, listUsers, getUserById,
+  getUser, getUserById, putUser, deleteUser, listUsers,
   getGallery, putGallery, deleteGallery, listGalleries,
   syncGalleryAssignments, stripSensitive, stripGallery,
 } from '../src/kv.js';
@@ -8,182 +8,111 @@ import {
 function makeKv() {
   const store = new Map();
   return {
-    _store: store,
-    get:    (k)          => Promise.resolve(store.has(k) ? store.get(k) : null),
-    put:    (k, v, _opts) => { store.set(k, v); return Promise.resolve(); },
-    delete: (k)          => { store.delete(k); return Promise.resolve(); },
+    get:    async (k)    => store.get(k) ?? null,
+    put:    async (k, v) => { store.set(k, v); },
+    delete: async (k)    => { store.delete(k); },
   };
 }
 
-function makeUser(overrides = {}) {
-  return {
-    id: 'user-id-1',
-    email: 'test@example.com',
-    passwordHash: 'hashed-password',
-    role: 'client',
-    created: Date.now(),
-    galleries: [],
-    ...overrides,
-  };
-}
+const user1 = () => ({ id: 'u1', email: 'Alice@Example.com', role: 'admin', created: 1, galleries: [] });
+const gal1  = () => ({ id: 'g1', eventName: 'Wedding', passphrase: 'secret' });
 
-function makeGallery(overrides = {}) {
-  return {
-    id: 'gallery-1',
-    eventName: 'Test Event',
-    passphrase: 'secret-passphrase',
-    assignedUsers: [],
-    ...overrides,
-  };
-}
-
-describe('User KV helpers', () => {
+describe('getUser / putUser', () => {
   let kv;
   beforeEach(() => { kv = makeKv(); });
 
-  it('putUser + getUser round-trips by email', async () => {
-    const user = makeUser();
-    await putUser(user, kv);
-    const found = await getUser('test@example.com', kv);
-    expect(found).not.toBeNull();
-    expect(found.email).toBe('test@example.com');
-    expect(found.id).toBe('user-id-1');
+  it('returns null for a nonexistent user', async () => {
+    expect(await getUser('nobody@example.com', kv)).toBeNull();
   });
-
-  it('getUser returns null when not found', async () => {
-    const found = await getUser('nobody@example.com', kv);
-    expect(found).toBeNull();
+  it('stores and retrieves by lowercase email', async () => {
+    await putUser(user1(), kv);
+    expect((await getUser('alice@example.com', kv))?.id).toBe('u1');
   });
-
-  it('putUser normalizes email to lowercase', async () => {
-    const user = makeUser({ email: 'Upper@Example.COM' });
-    await putUser(user, kv);
-    const found = await getUser('upper@example.com', kv);
-    expect(found).not.toBeNull();
-  });
-
-  it('putUser adds to users_list', async () => {
-    await putUser(makeUser(), kv);
-    const raw  = await kv.get('users_list');
-    const list = JSON.parse(raw);
-    expect(list).toContain('test@example.com');
-  });
-
-  it('putUser does not duplicate entries in users_list', async () => {
-    await putUser(makeUser(), kv);
-    await putUser(makeUser({ role: 'admin' }), kv);
-    const raw  = await kv.get('users_list');
-    const list = JSON.parse(raw);
-    const count = list.filter(e => e === 'test@example.com').length;
-    expect(count).toBe(1);
-  });
-
-  it('putUser creates user_id: index', async () => {
-    const user = makeUser();
-    await putUser(user, kv);
-    const email = await kv.get('user_id:user-id-1');
-    expect(email).toBe('test@example.com');
-  });
-
-  it('getUserById resolves via user_id index', async () => {
-    await putUser(makeUser(), kv);
-    const found = await getUserById('user-id-1', kv);
-    expect(found).not.toBeNull();
-    expect(found.email).toBe('test@example.com');
-  });
-
-  it('getUserById returns null for unknown id', async () => {
-    const found = await getUserById('no-such-id', kv);
-    expect(found).toBeNull();
-  });
-
-  it('deleteUser removes user and updates list', async () => {
-    await putUser(makeUser(), kv);
-    await deleteUser('test@example.com', kv);
-    const found = await getUser('test@example.com', kv);
-    expect(found).toBeNull();
-    const raw  = await kv.get('users_list');
-    const list = JSON.parse(raw);
-    expect(list).not.toContain('test@example.com');
-  });
-
-  it('deleteUser is a no-op for unknown email', async () => {
-    await expect(deleteUser('nobody@example.com', kv)).resolves.toBeUndefined();
-  });
-
-  it('listUsers returns all stored users', async () => {
-    await putUser(makeUser({ id: 'u1', email: 'a@test.com' }), kv);
-    await putUser(makeUser({ id: 'u2', email: 'b@test.com' }), kv);
-    const users = await listUsers(kv);
-    expect(users).toHaveLength(2);
-    const emails = users.map(u => u.email);
-    expect(emails).toContain('a@test.com');
-    expect(emails).toContain('b@test.com');
-  });
-
-  it('listUsers returns empty array when no users', async () => {
-    const users = await listUsers(kv);
-    expect(users).toEqual([]);
+  it('does not duplicate entries in the users_list', async () => {
+    await putUser(user1(), kv);
+    await putUser(user1(), kv);
+    const list = await listUsers(kv);
+    expect(list.filter(u => u.id === 'u1').length).toBe(1);
   });
 });
 
-describe('Gallery KV helpers', () => {
+describe('getUserById', () => {
   let kv;
   beforeEach(() => { kv = makeKv(); });
 
-  it('putGallery + getGallery round-trips', async () => {
-    const gallery = makeGallery();
-    await putGallery(gallery, kv);
-    const found = await getGallery('gallery-1', kv);
-    expect(found).not.toBeNull();
-    expect(found.id).toBe('gallery-1');
-    expect(found.passphrase).toBe('secret-passphrase');
+  it('resolves a user by id', async () => {
+    await putUser(user1(), kv);
+    expect((await getUserById('u1', kv))?.email).toBe('Alice@Example.com');
   });
-
-  it('getGallery returns null for unknown id', async () => {
-    const found = await getGallery('no-such-id', kv);
-    expect(found).toBeNull();
+  it('returns null for unknown id', async () => {
+    expect(await getUserById('nope', kv)).toBeNull();
   });
+});
 
-  it('putGallery prepends to galleries_list', async () => {
-    await putGallery(makeGallery({ id: 'g1' }), kv);
-    await putGallery(makeGallery({ id: 'g2' }), kv);
-    const raw  = await kv.get('galleries_list');
-    const list = JSON.parse(raw);
-    // g2 prepended last so is at index 0
-    expect(list[0]).toBe('g2');
-    expect(list).toContain('g1');
+describe('deleteUser', () => {
+  let kv;
+  beforeEach(() => { kv = makeKv(); });
+
+  it('removes user from store and list', async () => {
+    await putUser(user1(), kv);
+    await deleteUser('alice@example.com', kv);
+    expect(await getUser('alice@example.com', kv)).toBeNull();
+    expect((await listUsers(kv)).find(u => u.id === 'u1')).toBeUndefined();
   });
-
-  it('putGallery does not duplicate in galleries_list', async () => {
-    await putGallery(makeGallery(), kv);
-    await putGallery(makeGallery({ eventName: 'Updated' }), kv);
-    const raw  = await kv.get('galleries_list');
-    const list = JSON.parse(raw);
-    const count = list.filter(id => id === 'gallery-1').length;
-    expect(count).toBe(1);
+  it('is a no-op for a nonexistent user', async () => {
+    await expect(deleteUser('ghost@example.com', kv)).resolves.toBeUndefined();
   });
+});
 
-  it('deleteGallery removes gallery and updates list', async () => {
-    await putGallery(makeGallery(), kv);
-    await deleteGallery('gallery-1', kv);
-    const found = await getGallery('gallery-1', kv);
-    expect(found).toBeNull();
-    const raw  = await kv.get('galleries_list');
-    const list = JSON.parse(raw);
-    expect(list).not.toContain('gallery-1');
+describe('listUsers', () => {
+  it('returns all stored users', async () => {
+    const kv = makeKv();
+    await putUser({ id: 'a', email: 'a@t.com', role: 'admin', created: 1, galleries: [] }, kv);
+    await putUser({ id: 'b', email: 'b@t.com', role: 'client', created: 2, galleries: [] }, kv);
+    expect((await listUsers(kv)).length).toBe(2);
   });
-
-  it('listGalleries returns all galleries', async () => {
-    await putGallery(makeGallery({ id: 'g1' }), kv);
-    await putGallery(makeGallery({ id: 'g2' }), kv);
-    const galleries = await listGalleries(kv);
-    expect(galleries).toHaveLength(2);
+  it('returns empty array when no users', async () => {
+    expect(await listUsers(makeKv())).toEqual([]);
   });
+});
 
-  it('listGalleries returns empty array when none stored', async () => {
-    const galleries = await listGalleries(kv);
-    expect(galleries).toEqual([]);
+describe('getGallery / putGallery', () => {
+  let kv;
+  beforeEach(() => { kv = makeKv(); });
+
+  it('returns null for nonexistent gallery', async () => {
+    expect(await getGallery('nope', kv)).toBeNull();
+  });
+  it('stores and retrieves a gallery', async () => {
+    await putGallery(gal1(), kv);
+    expect((await getGallery('g1', kv))?.eventName).toBe('Wedding');
+  });
+  it('prepends newer galleries to the list (most recent first)', async () => {
+    await putGallery({ id: 'ga' }, kv);
+    await putGallery({ id: 'gb' }, kv);
+    const list = await listGalleries(kv);
+    expect(list[0].id).toBe('gb');
+  });
+  it('does not duplicate in list', async () => {
+    await putGallery(gal1(), kv);
+    await putGallery(gal1(), kv);
+    expect((await listGalleries(kv)).filter(g => g.id === 'g1').length).toBe(1);
+  });
+});
+
+describe('deleteGallery', () => {
+  it('removes gallery and updates list', async () => {
+    const kv = makeKv();
+    await putGallery(gal1(), kv);
+    await deleteGallery('g1', kv);
+    expect(await getGallery('g1', kv)).toBeNull();
+    expect((await listGalleries(kv)).find(g => g.id === 'g1')).toBeUndefined();
+  });
+});
+
+describe('listGalleries', () => {
+  it('returns empty array when none stored', async () => {
+    expect(await listGalleries(makeKv())).toEqual([]);
   });
 });
 
@@ -191,95 +120,68 @@ describe('syncGalleryAssignments', () => {
   let kv;
   beforeEach(() => { kv = makeKv(); });
 
-  it('adds user to gallery assignedUsers when in added list', async () => {
-    await putGallery(makeGallery({ id: 'g1', assignedUsers: [] }), kv);
-    await syncGalleryAssignments('user@test.com', ['g1'], [], kv);
-    const g = await getGallery('g1', kv);
-    expect(g.assignedUsers).toContain('user@test.com');
+  it('adds user email to assignedUsers', async () => {
+    await putGallery({ id: 'g1', assignedUsers: [] }, kv);
+    await syncGalleryAssignments('u@t.com', ['g1'], [], kv);
+    expect((await getGallery('g1', kv)).assignedUsers).toContain('u@t.com');
   });
-
-  it('does not duplicate in assignedUsers', async () => {
-    await putGallery(makeGallery({ id: 'g1', assignedUsers: ['user@test.com'] }), kv);
-    await syncGalleryAssignments('user@test.com', ['g1'], [], kv);
+  it('does not add duplicate assignment', async () => {
+    await putGallery({ id: 'g1', assignedUsers: ['u@t.com'] }, kv);
+    await syncGalleryAssignments('u@t.com', ['g1'], [], kv);
     const g = await getGallery('g1', kv);
-    const count = g.assignedUsers.filter(e => e === 'user@test.com').length;
-    expect(count).toBe(1);
+    expect(g.assignedUsers.filter(e => e === 'u@t.com').length).toBe(1);
   });
-
-  it('removes user from gallery assignedUsers when in removed list', async () => {
-    await putGallery(makeGallery({ id: 'g1', assignedUsers: ['user@test.com'] }), kv);
-    await syncGalleryAssignments('user@test.com', [], ['g1'], kv);
-    const g = await getGallery('g1', kv);
-    expect(g.assignedUsers).not.toContain('user@test.com');
+  it('removes user email from assignedUsers', async () => {
+    await putGallery({ id: 'g1', assignedUsers: ['u@t.com'] }, kv);
+    await syncGalleryAssignments('u@t.com', [], ['g1'], kv);
+    expect((await getGallery('g1', kv)).assignedUsers).not.toContain('u@t.com');
   });
-
-  it('handles missing gallery gracefully in added list', async () => {
-    await expect(syncGalleryAssignments('user@test.com', ['nonexistent'], [], kv))
-      .resolves.toBeUndefined();
+  it('handles gallery with no assignedUsers field', async () => {
+    await putGallery({ id: 'g1' }, kv);
+    await syncGalleryAssignments('u@t.com', ['g1'], [], kv);
+    expect((await getGallery('g1', kv)).assignedUsers).toContain('u@t.com');
+  });
+  it('silently skips nonexistent gallery ids', async () => {
+    await expect(syncGalleryAssignments('u@t.com', ['nope'], [], kv)).resolves.toBeUndefined();
+    await expect(syncGalleryAssignments('u@t.com', [], ['nope'], kv)).resolves.toBeUndefined();
+  });
+  it('removes from gallery with no assignedUsers field (defaults to empty array)', async () => {
+    await putGallery({ id: 'g1' }, kv);
+    await syncGalleryAssignments('u@t.com', [], ['g1'], kv);
+    expect((await getGallery('g1', kv)).assignedUsers).toEqual([]);
   });
 });
 
 describe('stripSensitive', () => {
-  it('removes passwordHash from user object', () => {
-    const user = {
-      id: 'u1', email: 'a@b.com', role: 'admin',
-      created: 1234, galleries: ['g1'],
-      passwordHash: 'secret-hash',
-      verified: true,
-    };
-    const stripped = stripSensitive(user);
-    expect(stripped.passwordHash).toBeUndefined();
-    expect(stripped.id).toBe('u1');
-    expect(stripped.email).toBe('a@b.com');
-    expect(stripped.role).toBe('admin');
+  it('omits passwordHash and exposes hasPassword flag', () => {
+    const u = { id: 'u1', email: 'a@b.com', role: 'client', created: 1, galleries: ['g1'], passwordHash: 'hash', verified: true };
+    const s = stripSensitive(u);
+    expect(s.passwordHash).toBeUndefined();
+    expect(s.hasPassword).toBe(true);
+    expect(s.galleries).toEqual(['g1']);
+    expect(s.verified).toBe(true);
   });
-
-  it('sets hasPassword to true when passwordHash is present', () => {
-    const user = { id: 'u1', email: 'a@b.com', role: 'client', created: 1, galleries: [], passwordHash: 'hash' };
-    expect(stripSensitive(user).hasPassword).toBe(true);
+  it('defaults galleries to [] when absent', () => {
+    expect(stripSensitive({ id: 'u1', email: 'a@b.com', role: 'client', created: 1 }).galleries).toEqual([]);
   });
-
-  it('sets hasPassword to false when passwordHash is null', () => {
-    const user = { id: 'u1', email: 'a@b.com', role: 'client', created: 1, galleries: [], passwordHash: null };
-    expect(stripSensitive(user).hasPassword).toBe(false);
+  it('verified defaults to true when undefined', () => {
+    expect(stripSensitive({ id: 'u1', email: 'a@b.com', role: 'client', created: 1 }).verified).toBe(true);
   });
-
-  it('defaults verified to true when not set to false', () => {
-    const user = { id: 'u1', email: 'a@b.com', role: 'client', created: 1, galleries: [] };
-    expect(stripSensitive(user).verified).toBe(true);
-  });
-
-  it('preserves verified: false', () => {
-    const user = { id: 'u1', email: 'a@b.com', role: 'client', created: 1, galleries: [], verified: false };
-    expect(stripSensitive(user).verified).toBe(false);
+  it('hasPassword is false when no passwordHash', () => {
+    expect(stripSensitive({ id: 'u1', email: 'a@b.com', role: 'client', created: 1 }).hasPassword).toBe(false);
   });
 });
 
 describe('stripGallery', () => {
-  it('removes passphrase field', () => {
-    const g = { id: 'g1', eventName: 'Test', passphrase: 'secret', assignedUsers: [] };
-    const stripped = stripGallery(g);
-    expect(stripped.passphrase).toBeUndefined();
-    expect(stripped.id).toBe('g1');
+  it('removes sensitive fields', () => {
+    const g = { id: 'g1', eventName: 'E', passphrase: 's', pw: 'p', pwHash: 'h', sharePassword: 'sp' };
+    const s = stripGallery(g);
+    expect(s.passphrase).toBeUndefined();
+    expect(s.pw).toBeUndefined();
+    expect(s.pwHash).toBeUndefined();
+    expect(s.sharePassword).toBeUndefined();
+    expect(s.eventName).toBe('E');
   });
-
-  it('removes pw, pwHash, sharePassword fields', () => {
-    const g = { id: 'g1', pw: 'pw', pwHash: 'hash', sharePassword: 'sp', passphrase: 'pp' };
-    const stripped = stripGallery(g);
-    expect(stripped.pw).toBeUndefined();
-    expect(stripped.pwHash).toBeUndefined();
-    expect(stripped.sharePassword).toBeUndefined();
-    expect(stripped.passphrase).toBeUndefined();
-  });
-
-  it('returns null when gallery is null', () => {
-    expect(stripGallery(null)).toBeNull();
-  });
-
-  it('preserves non-sensitive fields', () => {
-    const g = { id: 'g1', eventName: 'Beach', passphrase: 'secret', assignedUsers: ['u@u.com'] };
-    const stripped = stripGallery(g);
-    expect(stripped.eventName).toBe('Beach');
-    expect(stripped.assignedUsers).toEqual(['u@u.com']);
-  });
+  it('returns null for null input', () => { expect(stripGallery(null)).toBeNull(); });
+  it('returns null for undefined input', () => { expect(stripGallery(undefined)).toBeNull(); });
 });

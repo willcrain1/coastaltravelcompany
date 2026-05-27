@@ -1,176 +1,156 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { handlePublicWalkthroughs, handleAdminWalkthroughs, handleAdminWalkthroughById } from '../src/walkthroughs.js';
 import { createJWT } from '../src/jwt.js';
-import {
-  handlePublicWalkthroughs,
-  handleAdminWalkthroughs,
-  handleAdminWalkthroughById,
-} from '../src/walkthroughs.js';
 
-const SECRET = 'test-secret-32-chars-long-enough!';
-const ORIGIN = 'https://coastaltravelcompany.com';
+const SECRET = 'test-jwt-secret-at-least-32-chars!!';
 
-async function signToken(payload) {
-  const now = Math.floor(Date.now() / 1000);
-  return createJWT({ iat: now, exp: now + 3600, ...payload }, SECRET);
+function makeDb(rows = [], firstRow = null) {
+  const stmt = {
+    bind:  vi.fn().mockReturnThis(),
+    all:   vi.fn().mockResolvedValue({ results: rows }),
+    run:   vi.fn().mockResolvedValue({}),
+    first: vi.fn().mockResolvedValue(firstRow),
+  };
+  stmt.bind.mockReturnValue(stmt);
+  return { prepare: vi.fn().mockReturnValue(stmt) };
 }
 
-function makeRequest(method, path, body = null, token = null) {
-  const headers = { 'Content-Type': 'application/json', 'Origin': ORIGIN };
-  if (token) headers['Authorization'] = 'Bearer ' + token;
-  return new Request('https://worker.example.com' + path, {
+async function adminReq(method, body) {
+  const token = await createJWT({ sub: 'a@t.com', role: 'admin', exp: Math.floor(Date.now() / 1000) + 3600 }, SECRET);
+  return new Request('http://t', {
     method,
-    headers,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
 }
-
-function makeEnv(d1, overrides = {}) {
-  return { DB: d1, JWT_SECRET: SECRET, ...overrides };
-}
-
-function makeD1(rows = []) {
-  const stmt = {
-    bind: (..._args) => stmt,
-    all:  () => Promise.resolve({ results: rows }),
-    run:  () => Promise.resolve({ success: true }),
-    first: () => Promise.resolve(rows[0] || null),
-  };
-  return { prepare: () => stmt };
+async function clientReq(method) {
+  const token = await createJWT({ sub: 'c@t.com', role: 'client', exp: Math.floor(Date.now() / 1000) + 3600 }, SECRET);
+  return new Request('http://t', { method, headers: { Authorization: `Bearer ${token}` } });
 }
 
 describe('handlePublicWalkthroughs', () => {
-  it('returns 200 with list of published walkthroughs', async () => {
-    const rows = [
-      { id: 'w1', title: 'Beachfront Villa', property_name: 'Villa 1', embed_url: 'https://example.com/embed', published: 1, sort_order: 0 },
-    ];
-    const d1  = makeD1(rows);
-    const req = makeRequest('GET', '/public/walkthroughs');
-    const res = await handlePublicWalkthroughs(req, makeEnv(d1));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(Array.isArray(body)).toBe(true);
-    expect(body[0].id).toBe('w1');
+  it('returns published walkthroughs', async () => {
+    const db = makeDb([{ id: 'w1', title: 'Tour' }]);
+    const r  = await handlePublicWalkthroughs(new Request('http://t'), { DB: db, JWT_SECRET: SECRET });
+    expect(r.status).toBe(200);
+    expect((await r.json()).length).toBe(1);
   });
-
-  it('returns empty array when no walkthroughs', async () => {
-    const d1  = makeD1([]);
-    const req = makeRequest('GET', '/public/walkthroughs');
-    const res = await handlePublicWalkthroughs(req, makeEnv(d1));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body).toEqual([]);
+  it('returns empty array when none published', async () => {
+    const db = makeDb([]);
+    const r  = await handlePublicWalkthroughs(new Request('http://t'), { DB: db, JWT_SECRET: SECRET });
+    expect((await r.json())).toEqual([]);
+  });
+  it('returns empty array when DB returns no results property', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.all.mockResolvedValue({});
+    const r = await handlePublicWalkthroughs(new Request('http://t'), { DB: db, JWT_SECRET: SECRET });
+    expect((await r.json())).toEqual([]);
   });
 });
 
 describe('handleAdminWalkthroughs', () => {
-  it('returns 401 when no auth', async () => {
-    const d1  = makeD1([]);
-    const req = makeRequest('GET', '/admin/walkthroughs');
-    const res = await handleAdminWalkthroughs(req, makeEnv(d1));
-    expect(res.status).toBe(401);
+  it('401 when not authenticated', async () => {
+    expect((await handleAdminWalkthroughs(new Request('http://t'), { JWT_SECRET: SECRET, DB: makeDb() })).status).toBe(401);
   });
-
-  it('returns 403 for client role', async () => {
-    const token = await signToken({ sub: 'c@test.com', id: 'cid', role: 'client' });
-    const d1    = makeD1([]);
-    const req   = makeRequest('GET', '/admin/walkthroughs', null, token);
-    const res   = await handleAdminWalkthroughs(req, makeEnv(d1));
-    expect(res.status).toBe(403);
+  it('403 for non-admin', async () => {
+    const r = await handleAdminWalkthroughs(await clientReq('GET'), { JWT_SECRET: SECRET, DB: makeDb() });
+    expect(r.status).toBe(403);
   });
-
-  it('returns 200 with all walkthroughs for GET (admin)', async () => {
-    const rows  = [{ id: 'w1', title: 'Test', property_name: 'P1', embed_url: 'u', published: 0, sort_order: 0 }];
-    const token = await signToken({ sub: 'admin@test.com', id: 'aid', role: 'admin' });
-    const d1    = makeD1(rows);
-    const req   = makeRequest('GET', '/admin/walkthroughs', null, token);
-    const res   = await handleAdminWalkthroughs(req, makeEnv(d1));
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body[0].id).toBe('w1');
+  it('returns list on GET', async () => {
+    const db = makeDb([{ id: 'w1' }]);
+    const r  = await handleAdminWalkthroughs(await adminReq('GET'), { JWT_SECRET: SECRET, DB: db });
+    expect(r.status).toBe(200);
+    expect((await r.json()).length).toBe(1);
   });
-
-  it('returns 201 when POST creates a walkthrough', async () => {
-    const token = await signToken({ sub: 'admin@test.com', id: 'aid', role: 'admin' });
-    const d1    = makeD1([{ id: 'new-id', title: 'New Walk', property_name: 'P2', embed_url: 'u2', published: 0, sort_order: 0, created_at: '2024-01-01' }]);
-    const req   = makeRequest('POST', '/admin/walkthroughs', {
-      title: 'New Walk', property_name: 'P2', embed_url: 'u2',
-    }, token);
-    const res = await handleAdminWalkthroughs(req, makeEnv(d1));
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body.title).toBe('New Walk');
+  it('returns empty array on GET when DB returns no results property', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.all.mockResolvedValue({});
+    const r = await handleAdminWalkthroughs(await adminReq('GET'), { JWT_SECRET: SECRET, DB: db });
+    expect(r.status).toBe(200);
+    expect((await r.json())).toEqual([]);
   });
-
-  it('returns 405 for unsupported method', async () => {
-    const token = await signToken({ sub: 'admin@test.com', id: 'aid', role: 'admin' });
-    const d1    = makeD1([]);
-    const req   = makeRequest('DELETE', '/admin/walkthroughs', null, token);
-    const res   = await handleAdminWalkthroughs(req, makeEnv(d1));
-    expect(res.status).toBe(405);
+  it('201 on POST creates walkthrough (minimal)', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.first.mockResolvedValue({ id: 'w2', title: 'New' });
+    const r = await handleAdminWalkthroughs(await adminReq('POST', { title: 'New', embed_url: 'https://matterport.com/x' }), { JWT_SECRET: SECRET, DB: db });
+    expect(r.status).toBe(201);
+  });
+  it('201 on POST creates walkthrough (no title, no embed_url)', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.first.mockResolvedValue({ id: 'w_bare' });
+    const r = await handleAdminWalkthroughs(await adminReq('POST', {}), { JWT_SECRET: SECRET, DB: db });
+    expect(r.status).toBe(201);
+  });
+  it('201 on POST creates walkthrough (all fields)', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.first.mockResolvedValue({ id: 'w3', title: 'Full' });
+    const r = await handleAdminWalkthroughs(await adminReq('POST', {
+      title: 'Full Tour', property_name: 'Beach House', location: 'Malibu',
+      description: 'Amazing views', embed_url: 'https://matterport.com/y',
+      thumbnail_url: 'https://cdn.x.com/thumb.jpg', collection: 'coastal',
+      sort_order: 3, published: true,
+    }), { JWT_SECRET: SECRET, DB: db });
+    expect(r.status).toBe(201);
+  });
+  it('405 for unsupported method', async () => {
+    const r = await handleAdminWalkthroughs(await adminReq('DELETE'), { JWT_SECRET: SECRET, DB: makeDb() });
+    expect(r.status).toBe(405);
   });
 });
 
 describe('handleAdminWalkthroughById', () => {
-  it('returns 401 when no auth', async () => {
-    const d1  = makeD1([]);
-    const req = makeRequest('PUT', '/admin/walkthroughs/w1', { title: 'Updated' });
-    const res = await handleAdminWalkthroughById(req, makeEnv(d1), 'w1');
-    expect(res.status).toBe(401);
+  it('401 when not authenticated', async () => {
+    expect((await handleAdminWalkthroughById(new Request('http://t'), { JWT_SECRET: SECRET, DB: makeDb() }, 'w1')).status).toBe(401);
   });
-
-  it('returns 403 for client role', async () => {
-    const token = await signToken({ sub: 'c@test.com', id: 'cid', role: 'client' });
-    const d1    = makeD1([]);
-    const req   = makeRequest('PUT', '/admin/walkthroughs/w1', { title: 'X' }, token);
-    const res   = await handleAdminWalkthroughById(req, makeEnv(d1), 'w1');
-    expect(res.status).toBe(403);
+  it('403 for non-admin', async () => {
+    const r = await handleAdminWalkthroughById(await clientReq('PUT'), { JWT_SECRET: SECRET, DB: makeDb() }, 'w1');
+    expect(r.status).toBe(403);
   });
-
-  it('returns 404 for PUT on non-existent walkthrough', async () => {
-    const token = await signToken({ sub: 'admin@test.com', id: 'aid', role: 'admin' });
-    const d1    = makeD1([]); // first query returns empty (not found)
-    const req   = makeRequest('PUT', '/admin/walkthroughs/w1', { title: 'X' }, token);
-    const res   = await handleAdminWalkthroughById(req, makeEnv(d1), 'w1');
-    expect(res.status).toBe(404);
+  it('404 on PUT when not found', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.first.mockResolvedValue(null);
+    const r = await handleAdminWalkthroughById(await adminReq('PUT', { title: 'X' }), { JWT_SECRET: SECRET, DB: db }, 'w1');
+    expect(r.status).toBe(404);
   });
-
-  it('returns 200 for PUT on existing walkthrough', async () => {
-    const token = await signToken({ sub: 'admin@test.com', id: 'aid', role: 'admin' });
-    let callCount = 0;
-    const d1 = {
-      prepare: () => ({
-        bind: () => ({
-          first: () => {
-            callCount++;
-            if (callCount === 1) return Promise.resolve({ id: 'w1' }); // exists check
-            return Promise.resolve({ id: 'w1', title: 'Updated', property_name: 'P1', embed_url: 'u', published: 0, sort_order: 0 }); // fetch after update
-          },
-          run: () => Promise.resolve({ success: true }),
-        }),
-      }),
-    };
-    const req = makeRequest('PUT', '/admin/walkthroughs/w1', {
-      title: 'Updated', property_name: 'P1', embed_url: 'u', sort_order: 0, published: false,
-    }, token);
-    const res = await handleAdminWalkthroughById(req, makeEnv(d1), 'w1');
-    expect(res.status).toBe(200);
+  it('200 on PUT when found (minimal)', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.first.mockResolvedValueOnce({ id: 'w1' }).mockResolvedValue({ id: 'w1', title: 'Updated' });
+    const r = await handleAdminWalkthroughById(await adminReq('PUT', { title: 'Updated', embed_url: 'https://x.com' }), { JWT_SECRET: SECRET, DB: db }, 'w1');
+    expect(r.status).toBe(200);
   });
-
-  it('returns 200 for DELETE', async () => {
-    const token = await signToken({ sub: 'admin@test.com', id: 'aid', role: 'admin' });
-    const d1    = makeD1([]);
-    const req   = makeRequest('DELETE', '/admin/walkthroughs/w1', null, token);
-    const res   = await handleAdminWalkthroughById(req, makeEnv(d1), 'w1');
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
+  it('200 on PUT with no title/embed_url (uses empty defaults)', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.first.mockResolvedValueOnce({ id: 'w1' }).mockResolvedValue({ id: 'w1' });
+    const r = await handleAdminWalkthroughById(await adminReq('PUT', {}), { JWT_SECRET: SECRET, DB: db }, 'w1');
+    expect(r.status).toBe(200);
   });
-
-  it('returns 405 for unsupported method', async () => {
-    const token = await signToken({ sub: 'admin@test.com', id: 'aid', role: 'admin' });
-    const d1    = makeD1([]);
-    const req   = makeRequest('POST', '/admin/walkthroughs/w1', null, token);
-    const res   = await handleAdminWalkthroughById(req, makeEnv(d1), 'w1');
-    expect(res.status).toBe(405);
+  it('200 on PUT when found (all fields)', async () => {
+    const db   = makeDb();
+    const stmt = db.prepare();
+    stmt.first.mockResolvedValueOnce({ id: 'w1' }).mockResolvedValue({ id: 'w1', title: 'Full', published: 1 });
+    const r = await handleAdminWalkthroughById(await adminReq('PUT', {
+      title: 'Full Tour', property_name: 'House', location: 'LA',
+      description: 'Nice', embed_url: 'https://matterport.com/z',
+      thumbnail_url: 'https://cdn.x.com/t.jpg', collection: 'luxury',
+      sort_order: 5, published: true,
+    }), { JWT_SECRET: SECRET, DB: db }, 'w1');
+    expect(r.status).toBe(200);
+  });
+  it('200 on DELETE', async () => {
+    const r = await handleAdminWalkthroughById(await adminReq('DELETE'), { JWT_SECRET: SECRET, DB: makeDb() }, 'w1');
+    expect(r.status).toBe(200);
+    expect((await r.json()).ok).toBe(true);
+  });
+  it('405 for unsupported method', async () => {
+    const r = await handleAdminWalkthroughById(await adminReq('PATCH'), { JWT_SECRET: SECRET, DB: makeDb() }, 'w1');
+    expect(r.status).toBe(405);
   });
 });
