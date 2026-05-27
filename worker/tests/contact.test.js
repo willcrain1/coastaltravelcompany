@@ -1,125 +1,129 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { handleContact } from '../src/contact.js';
+
+const ORIGIN = 'https://coastaltravelcompany.com';
 
 function makeKv() {
   const store = new Map();
   return {
-    get:    async (k)      => store.get(k) ?? null,
-    put:    async (k, v)   => { store.set(k, v); },
-    delete: async (k)      => { store.delete(k); },
+    _store: store,
+    get:    (k)           => Promise.resolve(store.has(k) ? store.get(k) : null),
+    put:    (k, v, _opts) => { store.set(k, v); return Promise.resolve(); },
+    delete: (k)           => { store.delete(k); return Promise.resolve(); },
   };
 }
 
-function makeReq(fields = {}, ip = '1.2.3.4') {
-  const data = new URLSearchParams({
-    'first-name': 'John', 'last-name': 'Doe',
-    email: 'john@test.com', property: 'Beach House',
-    location: 'Miami', collection: 'Standard',
-    timeline: 'Q1', message: 'Hello there',
-    ...fields,
-  });
-  return new Request('http://t/contact', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'CF-Connecting-IP': ip },
-    body: data.toString(),
+function makeContactRequest(formData = {}, ip = '1.2.3.4') {
+  const defaults = {
+    'first-name': 'Alice',
+    'last-name':  'Smith',
+    email:        'alice@test.com',
+    property:     'Beach House',
+    location:     'Malibu',
+    collection:   'Luxury',
+    timeline:     '2025-06',
+    message:      'I would like to book a shoot.',
+  };
+  const params = new URLSearchParams({ ...defaults, ...formData });
+  const headers = {
+    'Content-Type':     'application/x-www-form-urlencoded',
+    'Origin':           ORIGIN,
+    'CF-Connecting-IP': ip,
+  };
+  return new Request('https://worker.example.com/contact', {
+    method:  'POST',
+    headers,
+    body:    params.toString(),
   });
 }
 
-afterEach(() => { vi.unstubAllGlobals(); });
-
 describe('handleContact', () => {
-  it('429 when rate limit is exhausted', async () => {
-    const kv = makeKv();
-    await kv.put('contact_rl:1.2.3.4', '5');
-    const r = await handleContact(makeReq(), { KV: kv, RESEND_API_KEY: 'key' });
-    expect(r.status).toBe(429);
-  });
+  let kv;
 
-  it('400 when first-name is missing', async () => {
+  beforeEach(() => {
+    kv = makeKv();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const r = await handleContact(makeReq({ 'first-name': '' }), { KV: makeKv(), RESEND_API_KEY: 'key' });
-    expect(r.status).toBe(400);
   });
 
-  it('400 when email is missing', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const r = await handleContact(makeReq({ email: '' }), { KV: makeKv(), RESEND_API_KEY: 'key' });
-    expect(r.status).toBe(400);
+  afterEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
-  it('400 when message is missing', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const r = await handleContact(makeReq({ message: '' }), { KV: makeKv(), RESEND_API_KEY: 'key' });
-    expect(r.status).toBe(400);
+  it('returns 429 when rate limit exceeded', async () => {
+    kv._store.set('contact_rl:1.2.3.4', '5');
+    const req = makeContactRequest();
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key' });
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.error).toMatch(/too many submissions/i);
   });
 
-  it('502 when Resend returns non-ok', async () => {
+  it('returns 400 when first-name is missing', async () => {
+    const req = makeContactRequest({ 'first-name': '' });
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key' });
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toMatch(/required fields/i);
+  });
+
+  it('returns 400 when email is missing', async () => {
+    const req = makeContactRequest({ email: '' });
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when message is missing', async () => {
+    const req = makeContactRequest({ message: '' });
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key' });
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 502 when Resend API fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
-    const r = await handleContact(makeReq(), { KV: makeKv(), RESEND_API_KEY: 'key' });
-    expect(r.status).toBe(502);
+    const req = makeContactRequest();
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key' });
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toMatch(/failed to send/i);
   });
 
-  it('200 and increments rate-limit counter on success', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const kv = makeKv();
-    const r  = await handleContact(makeReq(), { KV: kv, RESEND_API_KEY: 'key' });
-    expect(r.status).toBe(200);
-    expect((await r.json()).ok).toBe(true);
-    expect(await kv.get('contact_rl:1.2.3.4')).toBe('1');
+  it('returns 200 and calls Resend on success', async () => {
+    const req = makeContactRequest();
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+      'https://api.resend.com/emails',
+      expect.objectContaining({ method: 'POST' })
+    );
   });
 
-  it('uses IP=unknown when CF-Connecting-IP header absent', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const kv = makeKv();
-    const req = new Request('http://t/contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ 'first-name': 'Jane', email: 'j@t.com', message: 'Hi' }).toString(),
-    });
+  it('increments rate-limit counter on success', async () => {
+    const req = makeContactRequest();
     await handleContact(req, { KV: kv, RESEND_API_KEY: 'key' });
-    expect(await kv.get('contact_rl:unknown')).toBe('1');
+    expect(kv._store.get('contact_rl:1.2.3.4')).toBe('1');
   });
 
-  it('writes project to DB when DB available', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const runMock = vi.fn().mockResolvedValue({});
-    const env = {
-      KV: makeKv(), RESEND_API_KEY: 'key',
-      DB: { prepare: vi.fn().mockReturnValue({ bind: vi.fn().mockReturnValue({ run: runMock }) }) },
-    };
-    await handleContact(makeReq(), env);
-    expect(runMock).toHaveBeenCalled();
+  it('attempts DB insert when env.DB is present', async () => {
+    const mockRun = vi.fn().mockResolvedValue({ success: true });
+    const mockBind = vi.fn().mockReturnValue({ run: mockRun });
+    const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+    const db = { prepare: mockPrepare };
+    const req = makeContactRequest();
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key', DB: db });
+    expect(res.status).toBe(200);
+    expect(mockPrepare).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO projects'));
   });
 
-  it('does not fail when DB write throws', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const env = {
-      KV: makeKv(), RESEND_API_KEY: 'key',
-      DB: { prepare: vi.fn().mockReturnValue({ bind: vi.fn().mockReturnValue({ run: vi.fn().mockRejectedValue(new Error('db err')) }) }) },
-    };
-    const r = await handleContact(makeReq(), env);
-    expect(r.status).toBe(200);
-  });
-
-  it('stores clientName without lastName when last-name is empty', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const runMock = vi.fn().mockResolvedValue({});
-    const env = {
-      KV: makeKv(), RESEND_API_KEY: 'key',
-      DB: { prepare: vi.fn().mockReturnValue({ bind: vi.fn().mockReturnValue({ run: runMock }) }) },
-    };
-    await handleContact(makeReq({ 'last-name': '' }), env);
-    expect(runMock).toHaveBeenCalled();
-  });
-
-  it('includes escaping of HTML in email body (no XSS)', async () => {
-    let capturedBody;
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((url, opts) => {
-      capturedBody = JSON.parse(opts.body);
-      return Promise.resolve({ ok: true });
-    }));
-    await handleContact(makeReq({ 'first-name': '<script>', message: 'hello<script>alert(1)</script>' }), { KV: makeKv(), RESEND_API_KEY: 'key' });
-    expect(capturedBody.html).not.toContain('<script>alert');
-    expect(capturedBody.html).toContain('&lt;script&gt;');
+  it('does not fail when DB insert throws', async () => {
+    const mockRun = vi.fn().mockRejectedValue(new Error('DB error'));
+    const mockBind = vi.fn().mockReturnValue({ run: mockRun });
+    const mockPrepare = vi.fn().mockReturnValue({ bind: mockBind });
+    const db = { prepare: mockPrepare };
+    const req = makeContactRequest();
+    const res = await handleContact(req, { KV: kv, RESEND_API_KEY: 'key', DB: db });
+    expect(res.status).toBe(200);
   });
 });

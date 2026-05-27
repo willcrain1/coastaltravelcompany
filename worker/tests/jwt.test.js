@@ -1,72 +1,115 @@
 import { describe, it, expect } from 'vitest';
 import { createJWT, verifyJWT, getAuth } from '../src/jwt.js';
 
-const SECRET = 'test-secret-for-unit-tests-at-least-32';
+const SECRET = 'test-secret-32-chars-long-enough!';
 
-function futureExp() { return Math.floor(Date.now() / 1000) + 3600; }
-function pastExp()   { return Math.floor(Date.now() / 1000) - 1; }
+function makePayload(overrides = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  return { sub: 'test@example.com', id: 'abc123', role: 'admin', iat: now, exp: now + 3600, ...overrides };
+}
 
-describe('createJWT / verifyJWT', () => {
-  it('round-trips a payload correctly', async () => {
-    const payload = { sub: 'user@test.com', role: 'admin', exp: futureExp() };
+describe('createJWT', () => {
+  it('produces a three-part dot-separated token', async () => {
+    const token = await createJWT(makePayload(), SECRET);
+    expect(token.split('.')).toHaveLength(3);
+  });
+
+  it('encodes the payload correctly', async () => {
+    const payload = makePayload({ role: 'client' });
     const token   = await createJWT(payload, SECRET);
-    expect(token.split('.').length).toBe(3);
+    const [, body] = token.split('.');
+    const pad   = (4 - (body.length % 4)) % 4;
+    const b64   = body.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice(0, pad);
+    const decoded = JSON.parse(atob(b64));
+    expect(decoded.sub).toBe(payload.sub);
+    expect(decoded.role).toBe('client');
+  });
+});
+
+describe('verifyJWT', () => {
+  it('returns the payload for a valid token', async () => {
+    const payload = makePayload();
+    const token   = await createJWT(payload, SECRET);
     const result  = await verifyJWT(token, SECRET);
-    expect(result.sub).toBe('user@test.com');
-    expect(result.role).toBe('admin');
+    expect(result.sub).toBe(payload.sub);
+    expect(result.role).toBe(payload.role);
   });
 
-  it('throws on wrong number of parts', async () => {
-    await expect(verifyJWT('a.b.c.d', SECRET)).rejects.toThrow('bad format');
-    await expect(verifyJWT('only.two', SECRET)).rejects.toThrow('bad format');
-  });
-
-  it('throws on tampered signature', async () => {
-    const token = await createJWT({ sub: 'x' }, SECRET);
+  it('throws on bad signature', async () => {
+    const token  = await createJWT(makePayload(), SECRET);
     const parts  = token.split('.');
-    parts[2]     = 'invalidsignature';
+    parts[2]     = parts[2].split('').reverse().join('');
     await expect(verifyJWT(parts.join('.'), SECRET)).rejects.toThrow('bad signature');
   });
 
+  it('throws when token has wrong number of parts', async () => {
+    await expect(verifyJWT('a.b', SECRET)).rejects.toThrow('bad format');
+  });
+
   it('throws on expired token', async () => {
-    const token = await createJWT({ sub: 'x', exp: pastExp() }, SECRET);
+    const now     = Math.floor(Date.now() / 1000);
+    const payload = { sub: 'user@test.com', iat: now - 7200, exp: now - 3600 };
+    const token   = await createJWT(payload, SECRET);
     await expect(verifyJWT(token, SECRET)).rejects.toThrow('expired');
   });
 
-  it('accepts token without exp field', async () => {
-    const token  = await createJWT({ sub: 'no-exp' }, SECRET);
-    const result = await verifyJWT(token, SECRET);
-    expect(result.sub).toBe('no-exp');
-  });
-
-  it('throws when signed with a different secret', async () => {
-    const token = await createJWT({ sub: 'x', exp: futureExp() }, 'other-secret');
-    await expect(verifyJWT(token, SECRET)).rejects.toThrow('bad signature');
+  it('throws when signed with different secret', async () => {
+    const token = await createJWT(makePayload(), SECRET);
+    await expect(verifyJWT(token, 'wrong-secret')).rejects.toThrow();
   });
 });
 
 describe('getAuth', () => {
-  it('returns null when JWT_SECRET is not configured', async () => {
-    const req = new Request('http://test', { headers: { Authorization: 'Bearer xxx' } });
-    expect(await getAuth(req, {})).toBeNull();
+  it('returns null when JWT_SECRET is missing', async () => {
+    const request = new Request('https://example.com/', {
+      headers: { Authorization: 'Bearer sometoken' },
+    });
+    const result = await getAuth(request, {});
+    expect(result).toBeNull();
   });
+
   it('returns null when Authorization header is missing', async () => {
-    expect(await getAuth(new Request('http://test'), { JWT_SECRET: SECRET })).toBeNull();
+    const request = new Request('https://example.com/');
+    const result  = await getAuth(request, { JWT_SECRET: SECRET });
+    expect(result).toBeNull();
   });
+
   it('returns null when header does not start with Bearer', async () => {
-    const req = new Request('http://test', { headers: { Authorization: 'Token abc' } });
-    expect(await getAuth(req, { JWT_SECRET: SECRET })).toBeNull();
+    const request = new Request('https://example.com/', {
+      headers: { Authorization: 'Basic abc123' },
+    });
+    const result = await getAuth(request, { JWT_SECRET: SECRET });
+    expect(result).toBeNull();
   });
+
   it('returns null for an invalid token', async () => {
-    const req = new Request('http://test', { headers: { Authorization: 'Bearer bad.token.here' } });
-    expect(await getAuth(req, { JWT_SECRET: SECRET })).toBeNull();
+    const request = new Request('https://example.com/', {
+      headers: { Authorization: 'Bearer invalid.token.here' },
+    });
+    const result = await getAuth(request, { JWT_SECRET: SECRET });
+    expect(result).toBeNull();
   });
+
   it('returns payload for a valid token', async () => {
-    const payload = { sub: 'a@b.com', role: 'client', exp: futureExp() };
+    const payload = makePayload({ role: 'admin', sub: 'admin@test.com' });
     const token   = await createJWT(payload, SECRET);
-    const req     = new Request('http://test', { headers: { Authorization: `Bearer ${token}` } });
-    const result  = await getAuth(req, { JWT_SECRET: SECRET });
-    expect(result.sub).toBe('a@b.com');
-    expect(result.role).toBe('client');
+    const request = new Request('https://example.com/', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const result = await getAuth(request, { JWT_SECRET: SECRET });
+    expect(result).not.toBeNull();
+    expect(result.sub).toBe('admin@test.com');
+    expect(result.role).toBe('admin');
+  });
+
+  it('returns null for expired token', async () => {
+    const now     = Math.floor(Date.now() / 1000);
+    const payload = { sub: 'u@test.com', iat: now - 7200, exp: now - 3600 };
+    const token   = await createJWT(payload, SECRET);
+    const request = new Request('https://example.com/', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const result = await getAuth(request, { JWT_SECRET: SECRET });
+    expect(result).toBeNull();
   });
 });

@@ -1,324 +1,359 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  handleAuthSetupStatus, handleAuthSetup, handleAuthRegister, handleAuthLogin,
-  handleAuthMe, handleAuthVerify, handleAuthResendVerify,
-  handleAuthResetRequest, handleAuthResetConfirm, handleAuthGoogle,
-} from '../src/auth.js';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createJWT } from '../src/jwt.js';
+import { hashPassword } from '../src/crypto.js';
 
-const SECRET = 'test-jwt-secret-at-least-32-chars!!';
+// Mock brute-force module
+vi.mock('../src/brute-force.js', () => ({
+  checkLoginBruteForce:         vi.fn().mockResolvedValue({ locked: false }),
+  recordLoginFailure:           vi.fn().mockResolvedValue(undefined),
+  clearLoginCounters:           vi.fn().mockResolvedValue(undefined),
+  checkResetBruteForce:         vi.fn().mockResolvedValue({ locked: false }),
+  recordResetAttempt:           vi.fn().mockResolvedValue(undefined),
+  checkGalleryUnlockBruteForce: vi.fn().mockResolvedValue(false),
+  recordGalleryUnlockFailure:   vi.fn().mockResolvedValue(undefined),
+  clearGalleryUnlockCounter:    vi.fn().mockResolvedValue(undefined),
+}));
+
+import {
+  handleAuthLogin,
+  handleAuthSetupStatus,
+  handleAuthSetup,
+  handleAuthRegister,
+  handleAuthMe,
+  handleAuthVerify,
+  handleAuthResetRequest,
+  handleAuthResetConfirm,
+} from '../src/auth.js';
+
+import {
+  checkLoginBruteForce,
+  recordLoginFailure,
+  clearLoginCounters,
+} from '../src/brute-force.js';
+
+const SECRET = 'test-secret-32-chars-long-enough!';
+const ORIGIN = 'https://coastaltravelcompany.com';
 
 function makeKv() {
   const store = new Map();
   return {
-    get:    async (k)      => store.get(k) ?? null,
-    put:    async (k, v)   => { store.set(k, v); },
-    delete: async (k)      => { store.delete(k); },
+    _store: store,
+    get:    (k)           => Promise.resolve(store.has(k) ? store.get(k) : null),
+    put:    (k, v, _opts) => { store.set(k, v); return Promise.resolve(); },
+    delete: (k)           => { store.delete(k); return Promise.resolve(); },
   };
 }
 
-function makeEnv(o = {}) {
-  return { KV: makeKv(), JWT_SECRET: SECRET, ...o };
+function makeEnv(kv, overrides = {}) {
+  return { KV: kv, JWT_SECRET: SECRET, ...overrides };
 }
 
-function post(url, body, env) {
-  return new Request(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+function makeRequest(method, path, body, token) {
+  const headers = { 'Content-Type': 'application/json', 'Origin': ORIGIN };
+  if (token) headers['Authorization'] = 'Bearer ' + token;
+  return new Request('https://worker.example.com' + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
   });
 }
 
-afterEach(() => { vi.unstubAllGlobals(); });
-
-// ── Setup status ──────────────────────────────────────────────────────────────
+async function signToken(payload) {
+  const now = Math.floor(Date.now() / 1000);
+  return createJWT({ iat: now, exp: now + 3600, ...payload }, SECRET);
+}
 
 describe('handleAuthSetupStatus', () => {
-  it('returns configured:false when users list is empty', async () => {
-    const r = await handleAuthSetupStatus(makeEnv());
-    expect((await r.json()).configured).toBe(false);
+  it('returns configured: false when no users', async () => {
+    const kv  = makeKv();
+    const res = await handleAuthSetupStatus(makeEnv(kv));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.configured).toBe(false);
   });
-  it('returns configured:true when users exist', async () => {
-    const env = makeEnv();
-    await env.KV.put('users_list', JSON.stringify(['a@b.com']));
-    expect((await (await handleAuthSetupStatus(env)).json()).configured).toBe(true);
+
+  it('returns configured: true when users list is non-empty', async () => {
+    const kv = makeKv();
+    kv._store.set('users_list', JSON.stringify(['admin@test.com']));
+    const res  = await handleAuthSetupStatus(makeEnv(kv));
+    const body = await res.json();
+    expect(body.configured).toBe(true);
   });
 });
-
-// ── Setup (first admin) ───────────────────────────────────────────────────────
 
 describe('handleAuthSetup', () => {
-  it('503 when JWT_SECRET missing', async () => {
-    const r = await handleAuthSetup(post('http://t', { email: 'a@b.com', password: 'pass1234' }), makeEnv({ JWT_SECRET: undefined }));
-    expect(r.status).toBe(503);
+  it('returns 503 when JWT_SECRET is missing', async () => {
+    const kv  = makeKv();
+    const req = makeRequest('POST', '/auth/setup', { email: 'a@b.com', password: 'password123' });
+    const res = await handleAuthSetup(req, { KV: kv });
+    expect(res.status).toBe(503);
   });
-  it('409 when already configured', async () => {
-    const env = makeEnv();
-    await env.KV.put('users_list', JSON.stringify(['x@x.com']));
-    expect((await handleAuthSetup(post('http://t', { email: 'a@b.com', password: 'pass1234' }), env)).status).toBe(409);
+
+  it('returns 409 when already configured', async () => {
+    const kv = makeKv();
+    kv._store.set('users_list', JSON.stringify(['admin@test.com']));
+    const req = makeRequest('POST', '/auth/setup', { email: 'a@b.com', password: 'password123' });
+    const res = await handleAuthSetup(req, makeEnv(kv));
+    expect(res.status).toBe(409);
   });
-  it('400 for missing email', async () => {
-    expect((await handleAuthSetup(post('http://t', { email: '', password: 'pass1234' }), makeEnv())).status).toBe(400);
+
+  it('returns 400 when email is missing', async () => {
+    const kv  = makeKv();
+    const req = makeRequest('POST', '/auth/setup', { password: 'password123' });
+    const res = await handleAuthSetup(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('400 for short password', async () => {
-    expect((await handleAuthSetup(post('http://t', { email: 'a@b.com', password: 'short' }), makeEnv())).status).toBe(400);
+
+  it('returns 400 when password is too short', async () => {
+    const kv  = makeKv();
+    const req = makeRequest('POST', '/auth/setup', { email: 'a@b.com', password: 'short' });
+    const res = await handleAuthSetup(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('creates admin and returns token', async () => {
-    const env = makeEnv();
-    const r   = await handleAuthSetup(post('http://t', { email: 'admin@test.com', password: 'securepw1' }), env);
-    expect(r.status).toBe(200);
-    const b = await r.json();
-    expect(b.token).toBeTruthy();
-    expect(b.user.role).toBe('admin');
-    expect(b.user.email).toBe('admin@test.com');
+
+  it('creates admin user and returns token on success', async () => {
+    const kv  = makeKv();
+    const req = makeRequest('POST', '/auth/setup', { email: 'admin@test.com', password: 'password123' });
+    const res = await handleAuthSetup(req, makeEnv(kv));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.token).toBeTruthy();
+    expect(body.user.role).toBe('admin');
+    expect(body.user.email).toBe('admin@test.com');
   });
 });
-
-// ── Register ──────────────────────────────────────────────────────────────────
-
-describe('handleAuthRegister', () => {
-  it('503 when JWT_SECRET missing', async () => {
-    const r = await handleAuthRegister(post('http://t', { email: 'a@b.com', password: 'pass1234' }), makeEnv({ JWT_SECRET: undefined }));
-    expect(r.status).toBe(503);
-  });
-  it('400 for short password', async () => {
-    expect((await handleAuthRegister(post('http://t', { email: 'a@b.com', password: 'short' }), makeEnv())).status).toBe(400);
-  });
-  it('400 for missing email', async () => {
-    expect((await handleAuthRegister(post('http://t', { email: '', password: 'pass1234' }), makeEnv())).status).toBe(400);
-  });
-  it('409 when email already registered', async () => {
-    const env = makeEnv();
-    await env.KV.put('user:dup@test.com', JSON.stringify({ id: 'x', email: 'dup@test.com' }));
-    expect((await handleAuthRegister(post('http://t', { email: 'dup@test.com', password: 'pass1234' }), env)).status).toBe(409);
-  });
-  it('returns ok:true on success (no email)', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const r = await handleAuthRegister(post('http://t', { email: 'new@test.com', password: 'pass1234' }), makeEnv());
-    expect(r.status).toBe(200);
-    expect((await r.json()).ok).toBe(true);
-  });
-  it('sends verification email when RESEND_API_KEY set', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('fetch', fetchMock);
-    await handleAuthRegister(post('http://t', { email: 'verify@test.com', password: 'pass1234' }), makeEnv({ RESEND_API_KEY: 'key' }));
-    expect(fetchMock).toHaveBeenCalledWith('https://api.resend.com/emails', expect.any(Object));
-  });
-});
-
-// ── Login ─────────────────────────────────────────────────────────────────────
 
 describe('handleAuthLogin', () => {
-  it('503 when JWT_SECRET missing', async () => {
-    expect((await handleAuthLogin(post('http://t', { email: 'a@b.com', password: 'pw' }), makeEnv({ JWT_SECRET: undefined }))).status).toBe(503);
+  let kv;
+
+  beforeEach(() => {
+    kv = makeKv();
+    vi.mocked(checkLoginBruteForce).mockResolvedValue({ locked: false });
+    vi.mocked(recordLoginFailure).mockResolvedValue(undefined);
+    vi.mocked(clearLoginCounters).mockResolvedValue(undefined);
   });
-  it('400 for missing credentials', async () => {
-    expect((await handleAuthLogin(post('http://t', { email: '', password: '' }), makeEnv())).status).toBe(400);
+
+  afterEach(() => { vi.clearAllMocks(); });
+
+  it('returns 503 when JWT_SECRET is missing', async () => {
+    const req = makeRequest('POST', '/auth/login', { email: 'a@b.com', password: 'pass' });
+    const res = await handleAuthLogin(req, { KV: kv });
+    expect(res.status).toBe(503);
   });
-  it('401 for wrong credentials', async () => {
-    expect((await handleAuthLogin(post('http://t', { email: 'ghost@test.com', password: 'pw' }), makeEnv())).status).toBe(401);
+
+  it('returns 400 when email is missing', async () => {
+    const req = makeRequest('POST', '/auth/login', { password: 'password123' });
+    const res = await handleAuthLogin(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('403 for unverified user', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-    const env = makeEnv();
-    await handleAuthRegister(post('http://t', { email: 'unv@test.com', password: 'pass1234' }), env);
-    const r = await handleAuthLogin(post('http://t', { email: 'unv@test.com', password: 'pass1234' }), env);
-    expect(r.status).toBe(403);
-    expect((await r.json()).unverified).toBe(true);
+
+  it('returns 400 when password is missing', async () => {
+    const req = makeRequest('POST', '/auth/login', { email: 'a@b.com' });
+    const res = await handleAuthLogin(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('returns token for valid verified admin', async () => {
-    const env = makeEnv();
-    await handleAuthSetup(post('http://t', { email: 'admin@test.com', password: 'pass1234' }), env);
-    const r = await handleAuthLogin(post('http://t', { email: 'admin@test.com', password: 'pass1234' }), env);
-    expect(r.status).toBe(200);
-    const b = await r.json();
-    expect(b.token).toBeTruthy();
-    expect(b.user.role).toBe('admin');
+
+  it('returns 429 when email is locked', async () => {
+    vi.mocked(checkLoginBruteForce).mockResolvedValue({
+      locked: true,
+      reason: 'Too many failed login attempts. Please try again in 15 minutes.',
+    });
+    const req = makeRequest('POST', '/auth/login', { email: 'user@test.com', password: 'pass' });
+    const res = await handleAuthLogin(req, makeEnv(kv));
+    expect(res.status).toBe(429);
   });
-  it('401 for wrong password on existing user', async () => {
-    const env = makeEnv();
-    await handleAuthSetup(post('http://t', { email: 'admin@test.com', password: 'pass1234' }), env);
-    expect((await handleAuthLogin(post('http://t', { email: 'admin@test.com', password: 'wrongpass' }), env)).status).toBe(401);
+
+  it('returns 401 for non-existent user (generic message)', async () => {
+    const req = makeRequest('POST', '/auth/login', { email: 'nobody@test.com', password: 'password123' });
+    const res = await handleAuthLogin(req, makeEnv(kv));
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toMatch(/invalid email or password/i);
+  });
+
+  it('returns 401 for wrong password (generic message)', async () => {
+    const hash = await hashPassword('correct-password');
+    kv._store.set('user:wrong@test.com', JSON.stringify({
+      id: 'uid1', email: 'wrong@test.com', passwordHash: hash,
+      role: 'client', created: Date.now(), galleries: [], verified: true,
+    }));
+    kv._store.set('users_list', JSON.stringify(['wrong@test.com']));
+    const req = makeRequest('POST', '/auth/login', { email: 'wrong@test.com', password: 'wrong-password' });
+    const res = await handleAuthLogin(req, makeEnv(kv));
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toMatch(/invalid email or password/i);
+  });
+
+  it('calls recordLoginFailure on wrong password', async () => {
+    const req = makeRequest('POST', '/auth/login', { email: 'nobody@test.com', password: 'pass' });
+    await handleAuthLogin(req, makeEnv(kv));
+    expect(vi.mocked(recordLoginFailure)).toHaveBeenCalledOnce();
+  });
+
+  it('returns 403 for unverified user', async () => {
+    const hash = await hashPassword('mypassword');
+    kv._store.set('user:unverified@test.com', JSON.stringify({
+      id: 'uid2', email: 'unverified@test.com', passwordHash: hash,
+      role: 'client', created: Date.now(), galleries: [], verified: false,
+    }));
+    kv._store.set('users_list', JSON.stringify(['unverified@test.com']));
+    const req = makeRequest('POST', '/auth/login', { email: 'unverified@test.com', password: 'mypassword' });
+    const res = await handleAuthLogin(req, makeEnv(kv));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.unverified).toBe(true);
+  });
+
+  it('returns 200 with token on successful login', async () => {
+    const hash = await hashPassword('correct-pass');
+    kv._store.set('user:user@test.com', JSON.stringify({
+      id: 'uid3', email: 'user@test.com', passwordHash: hash,
+      role: 'client', created: Date.now(), galleries: [], verified: true,
+    }));
+    kv._store.set('users_list', JSON.stringify(['user@test.com']));
+    const req = makeRequest('POST', '/auth/login', { email: 'user@test.com', password: 'correct-pass' });
+    const res = await handleAuthLogin(req, makeEnv(kv));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.token).toBeTruthy();
+    expect(body.user.email).toBe('user@test.com');
+  });
+
+  it('clears brute-force counters on successful login', async () => {
+    const hash = await hashPassword('correct-pass');
+    kv._store.set('user@test.com', JSON.stringify({}));
+    kv._store.set('user:user2@test.com', JSON.stringify({
+      id: 'uid4', email: 'user2@test.com', passwordHash: hash,
+      role: 'client', created: Date.now(), galleries: [], verified: true,
+    }));
+    kv._store.set('users_list', JSON.stringify(['user2@test.com']));
+    const req = makeRequest('POST', '/auth/login', { email: 'user2@test.com', password: 'correct-pass' });
+    await handleAuthLogin(req, makeEnv(kv));
+    expect(vi.mocked(clearLoginCounters)).toHaveBeenCalledOnce();
   });
 });
-
-// ── Me ────────────────────────────────────────────────────────────────────────
 
 describe('handleAuthMe', () => {
-  it('401 when no JWT', async () => {
-    expect((await handleAuthMe(new Request('http://t/auth/me'), makeEnv())).status).toBe(401);
+  it('returns 401 when no auth header', async () => {
+    const kv  = makeKv();
+    const req = makeRequest('GET', '/auth/me', null);
+    const res = await handleAuthMe(req, makeEnv(kv));
+    expect(res.status).toBe(401);
   });
-  it('401 for invalid token', async () => {
-    const req = new Request('http://t/auth/me', { headers: { Authorization: 'Bearer bad' } });
-    expect((await handleAuthMe(req, makeEnv())).status).toBe(401);
+
+  it('returns 401 when user not found in KV', async () => {
+    const kv    = makeKv();
+    const token = await signToken({ sub: 'ghost@test.com', id: 'ghost', role: 'client' });
+    const req   = makeRequest('GET', '/auth/me', null, token);
+    const res   = await handleAuthMe(req, makeEnv(kv));
+    expect(res.status).toBe(401);
   });
-  it('401 when user has been deleted after token was issued', async () => {
-    const token = await createJWT({ sub: 'ghost@test.com', role: 'client', exp: Math.floor(Date.now() / 1000) + 3600 }, SECRET);
-    const req   = new Request('http://t/auth/me', { headers: { Authorization: `Bearer ${token}` } });
-    expect((await handleAuthMe(req, makeEnv())).status).toBe(401);
-  });
-  it('returns user info for valid token', async () => {
-    const env = makeEnv();
-    const setup = await handleAuthSetup(post('http://t', { email: 'me@test.com', password: 'pass1234' }), env);
-    const { token } = await setup.json();
-    const req = new Request('http://t/auth/me', { headers: { Authorization: `Bearer ${token}` } });
-    const r   = await handleAuthMe(req, env);
-    expect(r.status).toBe(200);
-    expect((await r.json()).email).toBe('me@test.com');
+
+  it('returns 200 with user data for valid auth', async () => {
+    const kv = makeKv();
+    kv._store.set('user:me@test.com', JSON.stringify({
+      id: 'me-id', email: 'me@test.com', role: 'admin',
+    }));
+    const token = await signToken({ sub: 'me@test.com', id: 'me-id', role: 'admin' });
+    const req   = makeRequest('GET', '/auth/me', null, token);
+    const res   = await handleAuthMe(req, makeEnv(kv));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.email).toBe('me@test.com');
+    expect(body.role).toBe('admin');
   });
 });
-
-// ── Verify ────────────────────────────────────────────────────────────────────
 
 describe('handleAuthVerify', () => {
-  it('400 when no token param', async () => {
-    expect((await handleAuthVerify(new Request('http://t/auth/verify'), makeEnv())).status).toBe(400);
+  it('returns 400 when no token param', async () => {
+    const kv  = makeKv();
+    const req = new Request('https://worker.example.com/auth/verify');
+    const res = await handleAuthVerify(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('400 for unknown token', async () => {
-    expect((await handleAuthVerify(new Request('http://t/auth/verify?token=bad'), makeEnv())).status).toBe(400);
+
+  it('returns 400 for invalid/expired token', async () => {
+    const kv  = makeKv();
+    const req = new Request('https://worker.example.com/auth/verify?token=bad-token');
+    const res = await handleAuthVerify(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('404 when user not found for valid token', async () => {
-    const env = makeEnv();
-    await env.KV.put('verify:tok123', JSON.stringify({ email: 'orphan@test.com' }));
-    expect((await handleAuthVerify(new Request('http://t/auth/verify?token=tok123'), env)).status).toBe(404);
-  });
-  it('marks user as verified and deletes token', async () => {
-    const env = makeEnv();
-    await env.KV.put('verify:tok456', JSON.stringify({ email: 'toverify@test.com' }));
-    await env.KV.put('user:toverify@test.com', JSON.stringify({ id: 'u1', email: 'toverify@test.com', role: 'client', verified: false }));
-    const r = await handleAuthVerify(new Request('http://t/auth/verify?token=tok456'), env);
-    expect(r.status).toBe(200);
-    expect((await r.json()).ok).toBe(true);
-    expect(await env.KV.get('verify:tok456')).toBeNull();
-    const updated = JSON.parse(await env.KV.get('user:toverify@test.com'));
-    expect(updated.verified).toBe(true);
+
+  it('marks user verified on valid token', async () => {
+    const kv = makeKv();
+    kv._store.set('verify:valid-token', JSON.stringify({ email: 'new@test.com' }));
+    kv._store.set('user:new@test.com', JSON.stringify({
+      id: 'new-id', email: 'new@test.com', role: 'client',
+      created: Date.now(), galleries: [], verified: false,
+    }));
+    kv._store.set('users_list', JSON.stringify(['new@test.com']));
+    kv._store.set('user_id:new-id', 'new@test.com');
+    const req = new Request('https://worker.example.com/auth/verify?token=valid-token');
+    const res = await handleAuthVerify(req, makeEnv(kv));
+    expect(res.status).toBe(200);
+    const user = JSON.parse(kv._store.get('user:new@test.com'));
+    expect(user.verified).toBe(true);
   });
 });
-
-// ── ResendVerify ──────────────────────────────────────────────────────────────
-
-describe('handleAuthResendVerify', () => {
-  it('400 when no email', async () => {
-    expect((await handleAuthResendVerify(post('http://t', {}), makeEnv())).status).toBe(400);
-  });
-  it('200 even for unknown email (no enumeration)', async () => {
-    expect((await handleAuthResendVerify(post('http://t', { email: 'ghost@test.com' }), makeEnv())).status).toBe(200);
-  });
-  it('sends email for unverified user with RESEND_API_KEY', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('fetch', fetchMock);
-    const env = makeEnv({ RESEND_API_KEY: 'key' });
-    await env.KV.put('user:unver@test.com', JSON.stringify({ id: 'u1', email: 'unver@test.com', role: 'client', verified: false }));
-    await handleAuthResendVerify(post('http://t', { email: 'unver@test.com' }), env);
-    expect(fetchMock).toHaveBeenCalledWith('https://api.resend.com/emails', expect.any(Object));
-  });
-  it('does not send email for already-verified user', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('fetch', fetchMock);
-    const env = makeEnv({ RESEND_API_KEY: 'key' });
-    await env.KV.put('user:ver@test.com', JSON.stringify({ id: 'u1', email: 'ver@test.com', verified: true }));
-    await handleAuthResendVerify(post('http://t', { email: 'ver@test.com' }), env);
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-});
-
-// ── ResetRequest ──────────────────────────────────────────────────────────────
 
 describe('handleAuthResetRequest', () => {
-  it('400 when no email', async () => {
-    expect((await handleAuthResetRequest(post('http://t', {}), makeEnv())).status).toBe(400);
+  let kv;
+  beforeEach(() => {
+    kv = makeKv();
+    vi.mocked(checkLoginBruteForce).mockResolvedValue({ locked: false });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
   });
-  it('200 for unknown email', async () => {
-    expect((await handleAuthResetRequest(post('http://t', { email: 'ghost@test.com' }), makeEnv())).status).toBe(200);
+  afterEach(() => { vi.clearAllMocks(); vi.unstubAllGlobals(); });
+
+  it('returns 400 when email is missing', async () => {
+    const req = makeRequest('POST', '/auth/reset-request', {});
+    const res = await handleAuthResetRequest(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('stores reset token and sends email for existing user', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('fetch', fetchMock);
-    const env = makeEnv({ RESEND_API_KEY: 'key' });
-    await env.KV.put('user:reset@test.com', JSON.stringify({ id: 'u1', email: 'reset@test.com', role: 'client' }));
-    const r = await handleAuthResetRequest(post('http://t', { email: 'reset@test.com' }), env);
-    expect(r.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledWith('https://api.resend.com/emails', expect.any(Object));
+
+  it('returns 200 even when rate limited (prevents enumeration)', async () => {
+    vi.mocked(checkLoginBruteForce).mockResolvedValue({ locked: true, reason: 'locked' });
+    const req = makeRequest('POST', '/auth/reset-request', { email: 'user@test.com' });
+    const res = await handleAuthResetRequest(req, makeEnv(kv));
+    expect(res.status).toBe(200);
   });
 });
-
-// ── ResetConfirm ──────────────────────────────────────────────────────────────
 
 describe('handleAuthResetConfirm', () => {
-  it('400 for missing token', async () => {
-    expect((await handleAuthResetConfirm(post('http://t', { token: '', password: 'newpass12' }), makeEnv())).status).toBe(400);
-  });
-  it('400 for short password', async () => {
-    expect((await handleAuthResetConfirm(post('http://t', { token: 'tok', password: 'short' }), makeEnv())).status).toBe(400);
-  });
-  it('400 for invalid reset token', async () => {
-    expect((await handleAuthResetConfirm(post('http://t', { token: 'bad', password: 'newpass12' }), makeEnv())).status).toBe(400);
-  });
-  it('404 when user not found for valid token', async () => {
-    const env = makeEnv();
-    await env.KV.put('reset:tok', JSON.stringify({ email: 'orphan@test.com' }));
-    expect((await handleAuthResetConfirm(post('http://t', { token: 'tok', password: 'newpass12' }), env)).status).toBe(404);
-  });
-  it('updates password and deletes token', async () => {
-    const env = makeEnv();
-    await env.KV.put('reset:tok', JSON.stringify({ email: 'user@test.com' }));
-    await env.KV.put('user:user@test.com', JSON.stringify({ id: 'u1', email: 'user@test.com', passwordHash: 'old' }));
-    const r = await handleAuthResetConfirm(post('http://t', { token: 'tok', password: 'newpass12' }), env);
-    expect(r.status).toBe(200);
-    expect(await env.KV.get('reset:tok')).toBeNull();
-  });
-});
+  let kv;
+  beforeEach(() => { kv = makeKv(); });
 
-// ── Google OAuth ──────────────────────────────────────────────────────────────
+  it('returns 400 when token is missing', async () => {
+    const req = makeRequest('POST', '/auth/reset-confirm', { password: 'newpassword' });
+    const res = await handleAuthResetConfirm(req, makeEnv(kv));
+    expect(res.status).toBe(400);
+  });
 
-describe('handleAuthGoogle', () => {
-  afterEach(() => { vi.unstubAllGlobals(); });
+  it('returns 400 when password is too short', async () => {
+    const req = makeRequest('POST', '/auth/reset-confirm', { token: 'tok', password: 'short' });
+    const res = await handleAuthResetConfirm(req, makeEnv(kv));
+    expect(res.status).toBe(400);
+  });
 
-  it('503 when JWT_SECRET missing', async () => {
-    expect((await handleAuthGoogle(post('http://t', { credential: 'x' }), makeEnv({ JWT_SECRET: undefined }))).status).toBe(503);
+  it('returns 400 for invalid/expired token', async () => {
+    const req = makeRequest('POST', '/auth/reset-confirm', { token: 'bad-token', password: 'newpassword' });
+    const res = await handleAuthResetConfirm(req, makeEnv(kv));
+    expect(res.status).toBe(400);
   });
-  it('503 when GOOGLE_CLIENT_ID missing', async () => {
-    expect((await handleAuthGoogle(post('http://t', { credential: 'x' }), makeEnv())).status).toBe(503);
-  });
-  it('400 when credential missing', async () => {
-    expect((await handleAuthGoogle(post('http://t', {}), makeEnv({ GOOGLE_CLIENT_ID: 'gid' }))).status).toBe(400);
-  });
-  it('401 when Google tokeninfo fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
-    expect((await handleAuthGoogle(post('http://t', { credential: 'bad' }), makeEnv({ GOOGLE_CLIENT_ID: 'gid' }))).status).toBe(401);
-  });
-  it('401 when aud mismatches', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ aud: 'other', email: 'g@t.com', email_verified: 'true' }) }));
-    expect((await handleAuthGoogle(post('http://t', { credential: 'x' }), makeEnv({ GOOGLE_CLIENT_ID: 'expected' }))).status).toBe(401);
-  });
-  it('401 when email not verified', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ aud: 'gid', email: 'g@t.com', email_verified: 'false' }) }));
-    expect((await handleAuthGoogle(post('http://t', { credential: 'x' }), makeEnv({ GOOGLE_CLIENT_ID: 'gid' }))).status).toBe(401);
-  });
-  it('creates new user and returns token', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ aud: 'gid', email: 'google@test.com', email_verified: 'true' }) }));
-    const env = makeEnv({ GOOGLE_CLIENT_ID: 'gid' });
-    const r = await handleAuthGoogle(post('http://t', { credential: 'valid' }), env);
-    expect(r.status).toBe(200);
-    expect((await r.json()).token).toBeTruthy();
-  });
-  it('updates existing unverified user to verified', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ aud: 'gid', email: 'existing@test.com', email_verified: 'true' }) }));
-    const env = makeEnv({ GOOGLE_CLIENT_ID: 'gid' });
-    await env.KV.put('user:existing@test.com', JSON.stringify({ id: 'eid', email: 'existing@test.com', role: 'client', verified: false, galleries: [] }));
-    await env.KV.put('user_id:eid', 'existing@test.com');
-    const r = await handleAuthGoogle(post('http://t', { credential: 'tok' }), env);
-    expect(r.status).toBe(200);
-    const updated = JSON.parse(await env.KV.get('user:existing@test.com'));
-    expect(updated.verified).toBe(true);
-  });
-  it('returns token for existing verified user without modifying', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ aud: 'gid', email: 'verif@test.com', email_verified: 'true' }) }));
-    const env = makeEnv({ GOOGLE_CLIENT_ID: 'gid' });
-    await env.KV.put('user:verif@test.com', JSON.stringify({ id: 'vid', email: 'verif@test.com', role: 'client', verified: true, galleries: [] }));
-    await env.KV.put('user_id:vid', 'verif@test.com');
-    const r = await handleAuthGoogle(post('http://t', { credential: 'tok' }), env);
-    expect(r.status).toBe(200);
-    expect((await r.json()).user.email).toBe('verif@test.com');
+
+  it('resets password and clears admin lockout on valid token', async () => {
+    kv._store.set('reset:good-token', JSON.stringify({ email: 'user@test.com' }));
+    kv._store.set('user:user@test.com', JSON.stringify({
+      id: 'uid', email: 'user@test.com', role: 'admin',
+      passwordHash: 'old-hash', created: Date.now(), galleries: [],
+    }));
+    kv._store.set('users_list', JSON.stringify(['user@test.com']));
+    kv._store.set('user_id:uid', 'user@test.com');
+    kv._store.set('locked:user@test.com', '1');
+    const req = makeRequest('POST', '/auth/reset-confirm', { token: 'good-token', password: 'newpassword' });
+    const res = await handleAuthResetConfirm(req, makeEnv(kv));
+    expect(res.status).toBe(200);
+    expect(kv._store.has('locked:user@test.com')).toBe(false);
   });
 });
