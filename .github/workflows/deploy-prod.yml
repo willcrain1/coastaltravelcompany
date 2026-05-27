@@ -9,82 +9,208 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy-worker:
+  # ── 1. KV ─────────────────────────────────────────────────────────────────────
+  provision-kv:
+    name: Provision KV (CTC_AUTH)
     runs-on: ubuntu-latest
+    outputs:
+      kv_id: ${{ steps.kv.outputs.kv_id }}
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Deploy prod Worker
-        env:
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
-        run: |
-          chmod +x ./worker/deploy-worker.sh
-          ./worker/deploy-worker.sh
-
-      - name: Run D1 migrations (prod)
+      - name: Ensure KV namespace exists
+        id: kv
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          cd worker
-          export CLOUDFLARE_ACCOUNT_ID="$CF_ACCOUNT_ID"
-          export CLOUDFLARE_API_TOKEN="$CF_API_TOKEN"
-          for f in migrations/*.sql; do
-            echo "Applying $f..."
-            npx wrangler d1 execute CTC_PROJECTS --file "$f"
-          done
+          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID"
+          KV_ID=$(curl -sf "$BASE/storage/kv/namespaces?per_page=100" \
+            -H "Authorization: Bearer $CF_API_TOKEN" | \
+            python3 -c "
+          import json,sys
+          ns=[n['id'] for n in json.load(sys.stdin).get('result',[]) if n.get('title')=='CTC_AUTH']
+          print(ns[0] if ns else '')
+          ")
+          if [ -z "$KV_ID" ]; then
+            echo "Creating KV namespace CTC_AUTH..."
+            KV_ID=$(curl -sf -X POST "$BASE/storage/kv/namespaces" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"title":"CTC_AUTH"}' | \
+              python3 -c "import json,sys; print(json.load(sys.stdin)['result']['id'])")
+            echo "Created: $KV_ID"
+          else
+            echo "Existing: $KV_ID"
+          fi
+          echo "kv_id=$KV_ID" >> "$GITHUB_OUTPUT"
 
-  deploy-site:
-    needs: deploy-worker
+  # ── 2. D1 ─────────────────────────────────────────────────────────────────────
+  provision-d1:
+    name: Provision D1 (CTC_PROJECTS)
     runs-on: ubuntu-latest
+    outputs:
+      d1_id: ${{ steps.d1.outputs.d1_id }}
+    steps:
+      - name: Ensure D1 database exists
+        id: d1
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID"
+          D1_ID=$(curl -sf "$BASE/d1/database?per_page=100" \
+            -H "Authorization: Bearer $CF_API_TOKEN" | \
+            python3 -c "
+          import json,sys
+          dbs=[d['uuid'] for d in json.load(sys.stdin).get('result',[]) if d.get('name')=='CTC_PROJECTS']
+          print(dbs[0] if dbs else '')
+          ")
+          if [ -z "$D1_ID" ]; then
+            echo "Creating D1 database CTC_PROJECTS..."
+            D1_ID=$(curl -sf -X POST "$BASE/d1/database" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"CTC_PROJECTS"}' | \
+              python3 -c "import json,sys; print(json.load(sys.stdin)['result']['uuid'])")
+            echo "Created: $D1_ID"
+          else
+            echo "Existing: $D1_ID"
+          fi
+          echo "d1_id=$D1_ID" >> "$GITHUB_OUTPUT"
+
+  # ── 3. Migrations ─────────────────────────────────────────────────────────────
+  run-migrations:
+    name: Run D1 migrations
+    needs: provision-d1
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
     steps:
       - uses: actions/checkout@v5
-
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate wrangler.toml
+        env:
+          D1_ID: ${{ needs.provision-d1.outputs.d1_id }}
+        run: |
+          cat > wrangler.toml <<TOML
+          name = "migrations-only"
+          main = "cloudflare-worker.js"
+          compatibility_date = "2024-09-23"
 
-      - name: Deploy site to Cloudflare Pages
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "CTC_PROJECTS"
+          database_id = "$D1_ID"
+          TOML
+      - name: Apply all migrations (idempotent)
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          cd worker
-          npm install
+          for f in $(ls migrations/*.sql | sort); do
+            echo "Applying $f..."
+            npx wrangler d1 execute CTC_PROJECTS --remote --file "$f"
+          done
+
+  # ── 4. Worker ─────────────────────────────────────────────────────────────────
+  deploy-worker:
+    name: Deploy Worker
+    needs: [provision-kv, provision-d1, run-migrations]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate wrangler.toml
+        env:
+          CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
+          KV_ID: ${{ needs.provision-kv.outputs.kv_id }}
+          D1_ID: ${{ needs.provision-d1.outputs.d1_id }}
+        run: |
+          cat > wrangler.toml <<TOML
+          name = "$CF_WORKER_NAME"
+          main = "cloudflare-worker.js"
+          compatibility_date = "2024-09-23"
+
+          [[kv_namespaces]]
+          binding = "KV"
+          id = "$KV_ID"
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "CTC_PROJECTS"
+          database_id = "$D1_ID"
+
+          [triggers]
+          crons = ["0 * * * *"]
+          TOML
+      - name: Deploy via wrangler
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: npx wrangler deploy
+
+  # ── 5. Site ───────────────────────────────────────────────────────────────────
+  deploy-site:
+    name: Deploy Site (Cloudflare Pages)
+    needs: deploy-worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
           npx wrangler pages deploy ../site \
             --project-name coastaltravelcompany-prod \
             --branch master \
             --commit-dirty=true
 
+  # ── 6. Acceptance tests ───────────────────────────────────────────────────────
   acceptance-tests:
+    name: Playwright acceptance tests
     needs: deploy-site
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install dependencies
         run: npm install
-
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-
       - name: Run acceptance tests
         env:
           BASE_URL: https://coastaltravelcompany.com
           WORKER_URL: https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev
         run: npm test
-
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
