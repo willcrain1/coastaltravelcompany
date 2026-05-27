@@ -62,6 +62,11 @@ const ADMIN_ROUTES = [
   ['GET',    '/admin/walkthroughs',                      'list walkthroughs'],
   ['POST',   '/admin/walkthroughs',                      'create walkthrough'],
   ['POST',   '/admin/galleries/g1/sync-r2',              'sync gallery to R2'],
+  ['GET',    '/admin/cms/pages',                         'list CMS pages'],
+  ['GET',    '/admin/cms/page',                          'get CMS page'],
+  ['PUT',    '/admin/cms/page',                          'update CMS page'],
+  ['GET',    '/admin/cms/history',                       'get CMS history'],
+  ['POST',   '/admin/cms/revert',                        'revert CMS page'],
 ];
 
 const PORTAL_ROUTES = [
