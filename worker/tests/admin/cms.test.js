@@ -35,7 +35,7 @@ function makeEnv({ token = 'ghp_test', noGitHub = false, branch = 'master' } = {
       delete: async k      => { store.delete(k); },
     },
     JWT_SECRET:   SECRET,
-    GITHUB_TOKEN: noGitHub ? undefined : token,
+    CMS_GITHUB_TOKEN: noGitHub ? undefined : token,
     CMS_BRANCH:   branch,
   };
 }
@@ -132,7 +132,7 @@ describe('handleAdminCmsPage GET', () => {
     expect(r.status).toBe(403);
   });
 
-  it('503 when GITHUB_TOKEN is missing', async () => {
+  it('503 when CMS_GITHUB_TOKEN is missing', async () => {
     const r = await handleAdminCmsPage(await adminReq('GET', url), makeEnv({ noGitHub: true }));
     expect(r.status).toBe(503);
   });
@@ -202,7 +202,7 @@ describe('handleAdminCmsPage PUT', () => {
     expect(r.status).toBe(403);
   });
 
-  it('503 when GITHUB_TOKEN is missing', async () => {
+  it('503 when CMS_GITHUB_TOKEN is missing', async () => {
     const r = await handleAdminCmsPage(
       await adminReq('PUT', url, { zones: { 'hero-title': 'New Title' } }),
       makeEnv({ noGitHub: true }),
@@ -302,7 +302,7 @@ describe('handleAdminCmsHistory', () => {
     expect(r.status).toBe(403);
   });
 
-  it('503 when GITHUB_TOKEN is missing', async () => {
+  it('503 when CMS_GITHUB_TOKEN is missing', async () => {
     const r = await handleAdminCmsHistory(await adminReq('GET', url), makeEnv({ noGitHub: true }));
     expect(r.status).toBe(503);
   });
@@ -376,7 +376,7 @@ describe('handleAdminCmsRevert', () => {
     expect(r.status).toBe(403);
   });
 
-  it('503 when GITHUB_TOKEN is missing', async () => {
+  it('503 when CMS_GITHUB_TOKEN is missing', async () => {
     const r = await handleAdminCmsRevert(
       await adminReq('POST', url, { file: 'index.html', sha: 'abc' }),
       makeEnv({ noGitHub: true }),
