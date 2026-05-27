@@ -48,6 +48,12 @@ const ALLOWLIST = new Set([
   'POST /auth/logout',
   // R2 sync endpoint — admin-only; covered by gallery.spec.js R2 hybrid serving tests (item 37)
   'POST /admin/galleries/:id/sync-r2',
+  // CMS endpoints require GITHUB_TOKEN — covered by cms.spec.js mocking the Worker
+  'GET /admin/cms/pages',
+  'GET /admin/cms/page',
+  'PUT /admin/cms/page',
+  'GET /admin/cms/history',
+  'POST /admin/cms/revert',
 ]);
 
 // ── Step 1: Extract routes from router.js ─────────────────────────────────────

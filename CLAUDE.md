@@ -19,3 +19,16 @@ You are the Lead Engineer for the Coastal Travel Company. This is a static, zero
 - **Efficiency:** - Use `read_file` with specific line ranges (avoid dumping full files).
     - If in doubt about a route or API, check the `Route Map` in `DOCS.md` first.
     - If you hit a technical constraint (CORS/NAS APIs), check `Key constraints` in `DOCS.md` before refactoring.
+
+## Content Editor (CMS)
+
+`site/admin/content-editor.html` lets admins edit site copy directly in the browser. It calls the Worker's `/admin/cms/*` endpoints, which read/write files in the GitHub repo via the GitHub Contents API using `CMS_GITHUB_TOKEN`.
+
+### `data-content-id` naming convention
+
+Editable text zones are marked with `data-content-id="ZONE_ID"` on the element that contains the text. Rules:
+- Zone IDs are **kebab-case** strings, globally unique within a page (not globally unique across pages)
+- IDs are defined in the page registry in `worker/src/admin/cms.js` — add the attribute to the HTML **and** add an entry to `PAGES` in `cms.js`
+- Only mark elements that contain **plain text only** (no child elements other than inline text); elements with child tags (e.g. `<a>`, `<strong>`, `<br>`) are not safe to use as zones
+- Pattern: `page-section-field`, e.g. `hero-eyebrow`, `contact-intro-body`, `service-1-title`
+- `CMS_GITHUB_TOKEN` must be set as a Worker secret (fine-grained PAT with `contents: write` scope on this repo only)
