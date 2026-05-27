@@ -391,7 +391,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 18. Admin Content Editor (CMS)
+## ~~18. Admin Content Editor (CMS)~~ ✅ Done
 
 **Goal:** Allow the admin to update text and photos on every public website page directly from the browser — no HTML editing or git knowledge required. Changes commit to the GitHub repo via the API and GitHub Pages deploys automatically within ~2 minutes.
 

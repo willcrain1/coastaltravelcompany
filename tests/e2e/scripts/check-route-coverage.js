@@ -41,6 +41,12 @@ const ALLOWLIST = new Set([
   // Public portal project covered by portal-project.spec.js
   'GET /portal/project/:id',
   'POST /portal/project/:id',
+  // CMS endpoints require GITHUB_TOKEN — covered by cms.spec.js mocking the Worker
+  'GET /admin/cms/pages',
+  'GET /admin/cms/page',
+  'PUT /admin/cms/page',
+  'GET /admin/cms/history',
+  'POST /admin/cms/revert',
 ]);
 
 // ── Step 1: Extract routes from router.js ─────────────────────────────────────

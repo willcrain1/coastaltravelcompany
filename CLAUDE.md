@@ -37,6 +37,41 @@ Requires `worker/.worker-config` (gitignored). Copy from `worker/.worker-config.
 
 There is no local dev server, linter, or test suite. Manual browser testing is the verification method.
 
+## Content Editor (CMS)
+
+`site/admin/content-editor.html` lets admins edit site copy directly in the browser. It calls the Worker's `/admin/cms/*` endpoints, which read/write files in the GitHub repo via the GitHub Contents API using `GITHUB_TOKEN`.
+
+### `data-content-id` naming convention
+
+Editable text zones are marked with `data-content-id="ZONE_ID"` on the element that contains the text. Rules:
+- Zone IDs are **kebab-case** strings, globally unique within a page (not globally unique across pages)
+- IDs are defined in the page registry in `worker/src/admin/cms.js` — add the attribute to the HTML **and** add an entry to `PAGES` in `cms.js`
+- Only mark elements that contain **plain text only** (no child elements other than inline text); elements with child tags (e.g. `<a>`, `<strong>`, `<br>`) are not safe to use as zones
+- Pattern: `page-section-field`, e.g. `hero-eyebrow`, `contact-intro-body`, `service-1-title`
+- `GITHUB_TOKEN` must be set as a Worker secret (fine-grained PAT with `contents: write` scope on this repo only)
+
+### Worker secrets required for CMS
+
+**Secret** (set via `wrangler secret put GITHUB_TOKEN [--env preprod]`):
+- `GITHUB_TOKEN` — fine-grained PAT, `contents: write` scope on this repo only
+
+**Variable** (set in `wrangler.toml` — already documented in `wrangler.toml.example`):
+- `CMS_BRANCH = "master"` for the production Worker
+- `CMS_BRANCH = "preprod"` for the preprod Worker
+
+Saves made through the preprod editor land on the `preprod` branch; saves through the prod editor land on `master`.
+
+**Branch protection bypass (one-time GitHub setup):**
+
+The GitHub Contents API respects branch protection rules. If `master` or `preprod` require PR reviews, direct API writes will be rejected with 422 unless the PAT owner is granted bypass rights:
+
+1. GitHub → repo Settings → Branches → protection rule for `master`
+2. Enable **"Allow specified actors to bypass required pull requests"**
+3. Add the GitHub user account whose PAT is used as `GITHUB_TOKEN`
+4. Repeat for the `preprod` branch protection rule
+
+Use a dedicated bot/machine account for the PAT rather than a personal account so bypass rights are scoped tightly.
+
 ## Architecture
 
 ```
