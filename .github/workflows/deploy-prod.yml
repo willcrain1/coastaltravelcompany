@@ -11,6 +11,7 @@ env:
 jobs:
   deploy-worker:
     runs-on: ubuntu-latest
+    environment: prod
     steps:
       - uses: actions/checkout@v5
 
@@ -36,14 +37,14 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-          CMS_GITHUB_PAT: ${{ secrets.CMS_GITHUB_PAT }}
+          CMS_GITHUB_TOKEN: ${{ secrets.CMS_GITHUB_TOKEN }}
         run: |
           cd worker
           [ -n "$JWT_SECRET" ]              && printf '%s' "$JWT_SECRET"              | npx wrangler secret put JWT_SECRET
           [ -n "$RESEND_API_KEY" ]          && printf '%s' "$RESEND_API_KEY"          | npx wrangler secret put RESEND_API_KEY
           [ -n "$STRIPE_SECRET_KEY" ]       && printf '%s' "$STRIPE_SECRET_KEY"       | npx wrangler secret put STRIPE_SECRET_KEY
           [ -n "$STRIPE_WEBHOOK_SECRET" ]   && printf '%s' "$STRIPE_WEBHOOK_SECRET"   | npx wrangler secret put STRIPE_WEBHOOK_SECRET
-          [ -n "$CMS_GITHUB_PAT" ]          && printf '%s' "$CMS_GITHUB_PAT"          | npx wrangler secret put GITHUB_TOKEN
+          [ -n "$CMS_GITHUB_TOKEN" ]        && printf '%s' "$CMS_GITHUB_TOKEN"        | npx wrangler secret put CMS_GITHUB_TOKEN
 
       - name: Run D1 migrations (prod)
         env:
