@@ -163,7 +163,7 @@ export async function handleAdminCmsPage(request, env) {
   if (!file || !PAGES[file]) return jsonResponse({ error: 'Unknown page' }, 400);
   const cfg = PAGES[file];
 
-  const branch = env.CMS_BRANCH ?? 'master';
+  const branch = (env.ALLOWED_ORIGIN ?? '').includes('preprod') ? 'preprod' : 'master';
 
   // ── GET: read current zone values ─────────────────────────────────────────
   if (request.method === 'GET') {
@@ -222,7 +222,8 @@ export async function handleAdminCmsHistory(request, env) {
   const file = url.searchParams.get('file');
   if (!file || !PAGES[file]) return jsonResponse({ error: 'Unknown page' }, 400);
 
-  const commits = await getFileHistory(file, env.GITHUB_TOKEN, env.CMS_BRANCH ?? 'master');
+  const branch = (env.ALLOWED_ORIGIN ?? '').includes('preprod') ? 'preprod' : 'master';
+  const commits = await getFileHistory(file, env.GITHUB_TOKEN, branch);
   return jsonResponse(commits.map(c => ({
     sha:     c.sha,
     message: c.commit?.message,
@@ -242,7 +243,7 @@ export async function handleAdminCmsRevert(request, env) {
   const { file, sha } = await request.json();
   if (!file || !sha || !PAGES[file]) return jsonResponse({ error: 'Missing file or sha' }, 400);
 
-  const branch = env.CMS_BRANCH ?? 'master';
+  const branch = (env.ALLOWED_ORIGIN ?? '').includes('preprod') ? 'preprod' : 'master';
 
   const historical = await getFileData(file, env.GITHUB_TOKEN, sha, branch);
   if (!historical) return jsonResponse({ error: 'Could not fetch historical version' }, 502);

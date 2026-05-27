@@ -26,7 +26,7 @@ const INDEX_HTML = [
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function makeEnv({ token = 'ghp_test', noGitHub = false, branch = 'master' } = {}) {
+function makeEnv({ token = 'ghp_test', noGitHub = false, preprod = false } = {}) {
   const store = new Map();
   return {
     KV: {
@@ -34,9 +34,9 @@ function makeEnv({ token = 'ghp_test', noGitHub = false, branch = 'master' } = {
       put:    async (k, v) => { store.set(k, v); },
       delete: async k      => { store.delete(k); },
     },
-    JWT_SECRET:   SECRET,
-    GITHUB_TOKEN: noGitHub ? undefined : token,
-    CMS_BRANCH:   branch,
+    JWT_SECRET:    SECRET,
+    GITHUB_TOKEN:  noGitHub ? undefined : token,
+    ALLOWED_ORIGIN: preprod ? 'https://preprod.coastaltravelcompany.com' : undefined,
   };
 }
 
@@ -489,7 +489,7 @@ describe('branch routing', () => {
     expect(calls[0].url).toContain('?ref=master');
   });
 
-  it('GET page sends ?ref=preprod when CMS_BRANCH is preprod', async () => {
+  it('GET page sends ?ref=preprod when ALLOWED_ORIGIN is preprod', async () => {
     const calls = [];
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u, opts = {}) => {
       calls.push({ url: String(u), method: opts.method });
@@ -497,7 +497,7 @@ describe('branch routing', () => {
     }));
     await handleAdminCmsPage(
       await adminReq('GET', 'http://t/admin/cms/page?file=index.html'),
-      makeEnv({ branch: 'preprod' }),
+      makeEnv({ preprod: true }),
     );
     expect(calls[0].url).toContain('?ref=preprod');
   });
@@ -515,7 +515,7 @@ describe('branch routing', () => {
       await adminReq('PUT', 'http://t/admin/cms/page?file=index.html', {
         zones: { 'hero-title': 'Changed Title' },
       }),
-      makeEnv({ branch: 'preprod' }),
+      makeEnv({ preprod: true }),
     );
     expect(bodies[0].branch).toBe('preprod');
   });
@@ -533,7 +533,7 @@ describe('branch routing', () => {
     expect(calls[0]).toContain('&sha=master');
   });
 
-  it('GET history sends &sha=preprod when CMS_BRANCH is preprod', async () => {
+  it('GET history sends &sha=preprod when ALLOWED_ORIGIN is preprod', async () => {
     const calls = [];
     vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u) => {
       calls.push(String(u));
@@ -541,7 +541,7 @@ describe('branch routing', () => {
     }));
     await handleAdminCmsHistory(
       await adminReq('GET', 'http://t/admin/cms/history?file=index.html'),
-      makeEnv({ branch: 'preprod' }),
+      makeEnv({ preprod: true }),
     );
     expect(calls[0]).toContain('&sha=preprod');
   });
@@ -559,7 +559,7 @@ describe('branch routing', () => {
     }));
     await handleAdminCmsRevert(
       await adminReq('POST', 'http://t/admin/cms/revert', { file: 'index.html', sha: 'historicsha' }),
-      makeEnv({ branch: 'preprod' }),
+      makeEnv({ preprod: true }),
     );
     // First GET fetches historical content by commit sha
     expect(getUrls[0]).toContain('?ref=historicsha');
