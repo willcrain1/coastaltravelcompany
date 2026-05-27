@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="admin.css" />
+  <script src="../config.js"></script>
   <style>
     .cms-layout {
       display: flex;
@@ -370,16 +371,7 @@
   </div>
 
   <script>
-    const WORKER = (() => {
-      const hostname = location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:8787';
-      }
-      if (hostname.includes('preprod')) {
-        return 'https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev';
-      }
-      return 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-    })();
+    const WORKER = CTC_CONFIG.workerUrl;
 
     const token = () => localStorage.getItem('ctc_jwt');
     const headers = () => ({

@@ -61,6 +61,11 @@ const ADMIN_ROUTES = [
   ['POST',   '/admin/projects/p1/invoices',              'create invoice'],
   ['GET',    '/admin/walkthroughs',                      'list walkthroughs'],
   ['POST',   '/admin/walkthroughs',                      'create walkthrough'],
+  ['GET',    '/admin/cms/pages',                         'list CMS pages'],
+  ['GET',    '/admin/cms/page',                          'get CMS page'],
+  ['PUT',    '/admin/cms/page',                          'update CMS page'],
+  ['GET',    '/admin/cms/history',                       'get CMS history'],
+  ['POST',   '/admin/cms/revert',                        'revert CMS page'],
 ];
 
 const PORTAL_ROUTES = [
