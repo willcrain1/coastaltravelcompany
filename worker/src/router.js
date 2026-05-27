@@ -70,6 +70,13 @@ import {
   handleAdminWalkthroughById,
 } from './walkthroughs.js';
 
+import {
+  handleAdminCmsPages,
+  handleAdminCmsPage,
+  handleAdminCmsHistory,
+  handleAdminCmsRevert,
+} from './admin/cms.js';
+
 export async function handleRequest(request, env) {
   initCors(env.ALLOWED_ORIGIN);
 
@@ -238,6 +245,13 @@ export async function handleRequest(request, env) {
     return handlePublicInvoice(request, env, publicInvoiceMatch[1]);
   if (method === 'POST' && pathname === '/stripe/webhook')
     return handleStripeWebhook(request, env);
+
+  // ── CMS ───────────────────────────────────────────────────────────────────────
+  if (method === 'GET'  && pathname === '/admin/cms/pages')   return handleAdminCmsPages(request, env);
+  if (pathname === '/admin/cms/page' && (method === 'GET' || method === 'PUT'))
+    return handleAdminCmsPage(request, env);
+  if (method === 'GET'  && pathname === '/admin/cms/history') return handleAdminCmsHistory(request, env);
+  if (method === 'POST' && pathname === '/admin/cms/revert')  return handleAdminCmsRevert(request, env);
 
   // ── Walkthroughs ─────────────────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/public/walkthroughs') return handlePublicWalkthroughs(request, env);
