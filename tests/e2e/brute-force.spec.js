@@ -125,12 +125,17 @@ test.describe('Login brute-force protection', () => {
   test('allows login after lockout clears (Worker returns 200)', async ({ page, context }) => {
     // Simulate lockout on first attempt, then success on next (TTL expired)
     let attempt = 0;
+    let loggedIn = false;
     await mockWorker(context, {
       'GET /auth/setup-status': (r) => r.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify({ configured: true }) }),
-      'GET /auth/me': (r) => r.fulfill({ status: 401, headers: CORS, body: '{}' }),
+      // Return 401 until login succeeds; once logged in, portal.html needs 200 to stay on the page
+      'GET /auth/me': (r) => loggedIn
+        ? r.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify({ id: 'u1', email: 'client@test.com', role: 'client' }) })
+        : r.fulfill({ status: 401, headers: CORS, body: '{}' }),
       'POST /auth/login': async (r) => {
         attempt++;
         if (attempt === 1) return fulfill429(r, 'Too many failed login attempts. Please try again in 15 minutes.');
+        loggedIn = true;
         return fulfill200Auth(r);
       },
     });
@@ -138,6 +143,8 @@ test.describe('Login brute-force protection', () => {
     await page.goto(`${STATIC_BASE}/login.html`);
     await submitLoginForm(page);
     await expect(page.locator('#loginError')).toBeVisible({ timeout: 5_000 });
+    // Wait for button to re-enable before the second submission
+    await page.waitForFunction(() => !document.getElementById('loginBtn').disabled, { timeout: 5_000 });
 
     // Second attempt (simulating TTL expiry — Worker now returns 200)
     await submitLoginForm(page, 'test@example.com', 'correctpassword');
