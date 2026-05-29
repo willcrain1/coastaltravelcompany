@@ -138,6 +138,10 @@ test.describe('Login brute-force protection', () => {
         loggedIn = true;
         return fulfill200Auth(r);
       },
+      // portal.html fetches these after redirect — mock them so the page settles without
+      // hitting the live Worker with a fake JWT (which can delay the load event on preprod)
+      'GET /portal/galleries': (r) => r.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) }),
+      'GET /portal/invoices':  (r) => r.fulfill({ status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify([]) }),
     });
 
     await page.goto(`${STATIC_BASE}/login.html`);
@@ -148,7 +152,7 @@ test.describe('Login brute-force protection', () => {
 
     // Second attempt (simulating TTL expiry — Worker now returns 200)
     await submitLoginForm(page, 'test@example.com', 'correctpassword');
-    await page.waitForURL('**/portal.html', { timeout: 10_000 });
+    await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
     expect(page.url()).toContain('portal.html');
   });
 
