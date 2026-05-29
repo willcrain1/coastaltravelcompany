@@ -231,7 +231,7 @@ test.describe('Password reset rate limiting', () => {
     // The login page ignores the Worker response on reset-request and always shows success
     const success = page.locator('#forgotSuccess');
     await expect(success).toBeVisible({ timeout: 5_000 });
-    await expect(success).toContainText('check your email');
+    await expect(success).toContainText('reset link has been sent');
     // Confirm no error is shown (no enumeration leak)
     await expect(page.locator('#forgotError')).not.toBeVisible();
   });
@@ -298,7 +298,8 @@ test.describe('Gallery brute-force protection', () => {
       'POST /token': async (r) => {
         count++;
         if (count <= 10) {
-          return r.fulfill({ status: 401, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify({ error: 'Gallery session failed' }) });
+          // 502 (NAS unreachable) — not 401, which the client treats as "redirect to login"
+          return r.fulfill({ status: 502, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify({ error: 'Gallery session failed' }) });
         }
         return fulfill429(r, 'Too many failed gallery access attempts from your network. Please try again in 10 minutes.', '600');
       },

@@ -127,9 +127,9 @@ describe('POST /token brute-force — per-IP gallery', () => {
   }
 
   it('returns 429 after 10 failed NAS sessions from the same IP', async () => {
-    // Attempts 1–10: NAS unreachable → handler records failure, returns 401
+    // Attempts 1–10: NAS unreachable → handler records failure, returns 502
     for (let i = 0; i < 10; i++) {
-      expect((await handleRequest(tokenReq(), env)).status).toBe(401);
+      expect((await handleRequest(tokenReq(), env)).status).toBe(502);
     }
     // Attempt 11: IP counter is at threshold → 429 before any NAS call
     const r = await handleRequest(tokenReq(), env);

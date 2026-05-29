@@ -121,7 +121,7 @@ export async function handleTokenExchange(request, env) {
     await getSharingSid(passphrase, gallery.sharePassword || null);
   } catch (err) {
     await recordGalleryUnlockFailure(ip, env.KV);
-    return jsonResponse({ error: 'Gallery session failed: ' + err.message }, 401);
+    return jsonResponse({ error: 'Gallery session failed: ' + err.message }, 502);
   }
   await clearGalleryUnlockCounter(ip, env.KV);
   const sid = crypto.randomUUID();

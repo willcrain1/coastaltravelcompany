@@ -194,14 +194,14 @@ describe('handleTokenExchange', () => {
     expect((await r.json()).sid).toBeTruthy();
   });
 
-  it('401 when getSharingSid throws', async () => {
+  it('502 when getSharingSid throws (NAS unreachable is a gateway error, not an auth error)', async () => {
     const kv = makeKv();
     await kv.put('gallery:g1', JSON.stringify({ id: 'g1', passphrase: 'failpass', assignedUsers: [] }));
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ headers: { get: () => null } }));
     const token = await createJWT({ sub: 'admin@test.com', role: 'admin', exp: Math.floor(Date.now() / 1000) + 3600 }, SECRET);
     const req   = new Request('http://t/token', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: 'galleryId=g1' });
     const r     = await handleTokenExchange(req, { KV: kv, JWT_SECRET: SECRET });
-    expect(r.status).toBe(401);
+    expect(r.status).toBe(502);
   });
 
   it('allows assigned client to exchange token', async () => {
