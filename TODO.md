@@ -306,17 +306,16 @@ The RTX 3070 (8 GB VRAM) is capable of training Gaussian Splatting models for ro
   ns-train splatfacto --data ./colmap_out
   ```
   Default: 30 000 iterations, ~45 min on RTX 3070 for a hotel-room-scale scene. Monitor VRAM in Task Manager; if usage exceeds 7.5 GB, add `--pipeline.model.max-num-gaussians 1500000` to cap the Gaussian count. Output lands in `outputs/<timestamp>/splatfacto/`.
-- [ ] **Export** — convert the trained checkpoint to a file for delivery:
+- [ ] **Export** — convert the trained checkpoint to a PLY for review:
   ```
   ns-export gaussian-splat --load-config outputs/.../config.yml --output-dir ./export
   ```
-  Produces `point_cloud.ply`. This PLY can be loaded directly by the SuperSplat web viewer and served from R2 as-is — no conversion required. A single hotel room typically exports as 80–200 MB PLY.
-- [ ] **Quality check** — drag `point_cloud.ply` into supersplat.playcanvas.com and review the scene; look for:
-  - Floaters (stray Gaussians in mid-air) — trim with SuperSplat's selection tool if severe
+  Produces `point_cloud.ply`. A single hotel room is typically 80–200 MB at this stage.
+- [ ] **Quality check and convert in SuperSplat** — drag `point_cloud.ply` into supersplat.playcanvas.com; review the scene, then use SuperSplat's export to save as `.splat`. The `.splat` format strips spherical harmonics and is 5–10× smaller than the PLY (a 150 MB PLY becomes ~20 MB), making it the standard delivery format. Look for:
+  - Floaters (stray Gaussians in mid-air) — trim with SuperSplat's selection tool before exporting
   - Black patches or missing geometry — indicates insufficient frame coverage; reshoot or supplement with targeted photo pairs
   - Blurry textures — caused by motion blur in capture; reshoot those passes with slower movement
-  - After any edits in SuperSplat, export back out as PLY (or `.splat` if you want a smaller file — the `.splat` format strips spherical harmonics and is 5–10× smaller, worthwhile if the PLY exceeds ~200 MB)
-- [ ] **Upload to NAS** — copy the final file to the NAS watch folder with the correct slug filename; the automated pipeline handles R2 upload from there
+- [ ] **Upload to NAS** — copy the exported `.splat` to the NAS watch folder with the correct slug filename (`YYYY-MM_property_room.splat`); the automated pipeline handles R2 upload from there
 
 #### Scene size limits on RTX 3070
 
@@ -1490,8 +1489,8 @@ No e2e test exercises the Users tab in the admin panel.
   4. Run: `conda run -n nerfstudio ns-process-data images --data .\frames --output-dir .\colmap_out\<slug>`
   5. Run: `conda run -n nerfstudio ns-train splatfacto --data .\colmap_out\<slug>`
   6. Run: `conda run -n nerfstudio ns-export gaussian-splat --load-config .\outputs\...\config.yml --output-dir .\export\<slug>` (the script should glob for the latest `config.yml` under `outputs\`)
-  7. Open `export\<slug>\` in Explorer so the user can review `point_cloud.ply`
-  8. Print next-step instructions: "Drag point_cloud.ply into supersplat.playcanvas.com to review and clean the scene. When satisfied, copy the file to the NAS incoming folder named `YYYY-MM_property_room.ply` (or export as .splat from SuperSplat if the file exceeds ~200 MB)"
+  7. Open `export\<slug>\` in Explorer and open supersplat.playcanvas.com in the browser
+  8. Print next-step instructions: "Drag point_cloud.ply into SuperSplat, review and clean the scene, then File → Export → .splat. Copy the exported .splat to the NAS incoming folder named `YYYY-MM_property_room.splat`"
 - [ ] **Print a completion summary** listing each installed tool and its version, the working directory path, and a reminder of the file naming convention from item 11 (`YYYY-MM_property-slug_room-slug.splat`).
 
 ### Verification checklist (run manually after the script completes)
@@ -1500,4 +1499,4 @@ No e2e test exercises the Users tab in the admin panel.
 - [ ] `ffmpeg -version` — shows build and codec info
 - [ ] `colmap --version` — shows version string
 - [ ] `conda run -n nerfstudio ns-train --help` — nerfstudio CLI responds without error
-- [ ] Drop a 30-second test clip into `incoming\`, run `process-scene.ps1`, confirm `point_cloud.ply` appears in `export\` — full end-to-end smoke test; load it in supersplat.playcanvas.com to confirm the scene renders
+- [ ] Drop a 30-second test clip into `incoming\`, run `process-scene.ps1`, confirm `point_cloud.ply` appears in `export\`; load it in supersplat.playcanvas.com, export as `.splat`, and confirm the file is substantially smaller than the PLY
