@@ -153,7 +153,7 @@ test.describe('Login brute-force protection', () => {
     // Second attempt (simulating TTL expiry — Worker now returns 200)
     await submitLoginForm(page, 'test@example.com', 'correctpassword');
     await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
-    expect(page.url()).toContain('portal.html');
+    expect(page.url()).toMatch(/\/portal(\.html)?$/);
   });
 
   test('simulates 6 rapid failed logins: 6th attempt triggers lockout message', async ({ page, context }) => {
