@@ -346,16 +346,121 @@ The RTX 3070 (8 GB VRAM) is capable of training Gaussian Splatting models for ro
 
 #### Output and delivery
 
-- [ ] Upload approved `.splat` to SuperSplat hosting (or self-host via R2 + the splat viewer iframe from item 37) to get an iframe-embeddable URL
-- [ ] Paste the embed URL into the admin Walkthroughs panel (`admin/galleries.html`) — this populates both the public `/walkthroughs.html` showcase and the client portal's 3D section
+- [ ] Once `scene.splat` passes quality check, copy it to the NAS watch folder with the correct slug filename (see naming convention in the NAS → R2 section below) — the automated pipeline handles everything from there
+- [ ] Within 2 minutes the file will be in R2 and a draft walkthrough record will appear in the admin panel ready to fill in title, property name, and description before publishing
 - [ ] For client portal delivery, set `splat_url` on the gallery record via the admin edit panel so the collapsible "3D Walkthrough" section appears in `client-gallery.html`
 - [ ] Include a note in the client delivery email that the 3D walkthrough requires a desktop or high-end mobile browser (WebGL 2 required; low-end Android may stutter)
 
-### Hosting & Display
-- [x] Hosting approach chosen: iframe-embeddable URLs (Luma AI, SuperSplat) — no self-hosting required; admin pastes the embed URL into the gallery or walkthrough record
-- [x] `/walkthroughs.html` built — fetches from `GET /public/walkthroughs`; card grid opens full-screen iframe modal; shows "check back soon" empty state
-- [x] 3D Walkthrough section added to `client-gallery.html` — collapsible section below the photo grid; iframe lazy-loads on first expand; only visible when `cfg.splat_url` is set
-- [x] `splat_url` (nullable) added to `galleries` D1 table via migration `012_walkthroughs.sql`
+### NAS → R2 Automated Upload Pipeline
+
+After the `.splat` is approved on the local workstation, dropping it into a watched NAS folder triggers a script that uploads it to the `ctc-assets` R2 bucket (key-space: `splats/{slug}/scene.splat` per item 37) and notifies the Worker so the admin panel can immediately link it to a gallery or walkthrough record.
+
+#### One-time setup
+
+- [ ] **Create R2 Access Keys** — Cloudflare dashboard → R2 → Manage API tokens → Create API token (Object Read & Write, scoped to `ctc-assets`). Save `Access Key ID` and `Secret Access Key` — these are different from the full API token used by the Worker.
+- [ ] **Install rclone on the NAS** — DSM uses standard Linux; install the rclone binary directly:
+  ```bash
+  # SSH into NAS, then:
+  curl -fsSL https://rclone.org/install.sh | sudo bash
+  rclone version   # verify
+  ```
+  If SSH is restricted, download the Linux amd64 binary from rclone.org and `scp` it to `/usr/local/bin/rclone` manually.
+- [ ] **Configure rclone R2 remote** — run `rclone config` and create a remote named `r2`:
+  ```
+  Type: s3
+  Provider: Cloudflare
+  access_key_id: <R2 Access Key ID from above>
+  secret_access_key: <R2 Secret Access Key>
+  endpoint: https://<CF_ACCOUNT_ID>.r2.cloudflarestorage.com
+  acl: private
+  ```
+  Store the config at `/volume1/.config/rclone/rclone.conf` — this path survives DSM updates (unlike `/root`).
+  Test: `rclone ls r2:ctc-assets` should list bucket contents without error.
+- [ ] **Create the NAS watch folders** (one-time, via File Station or SSH):
+  ```
+  /volume1/Coastal Travel Company/3d-walkthroughs/splats-incoming/   ← drop .splat files here
+  /volume1/Coastal Travel Company/3d-walkthroughs/splats-uploaded/   ← script moves files here on success
+  /volume1/Coastal Travel Company/3d-walkthroughs/splats-failed/     ← script moves files here on failure
+  ```
+- [ ] **Create the upload script** at `/volume1/scripts/sync-splats.sh`:
+  ```bash
+  #!/bin/bash
+  # Uploads any .splat files dropped in splats-incoming/ to R2 ctc-assets/splats/{slug}/
+  # and calls the Worker to register the new URL.
+  # Designed to run as a Synology Scheduled Task every 2 minutes.
+
+  INCOMING="/volume1/Coastal Travel Company/3d-walkthroughs/splats-incoming"
+  UPLOADED="/volume1/Coastal Travel Company/3d-walkthroughs/splats-uploaded"
+  FAILED="/volume1/Coastal Travel Company/3d-walkthroughs/splats-failed"
+  RCLONE="/usr/local/bin/rclone"
+  BUCKET="r2:ctc-assets"
+  WORKER="https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev"
+  ADMIN_TOKEN="$(cat /volume1/scripts/.ctc-admin-token)"  # store token in this file, chmod 600
+
+  for filepath in "$INCOMING"/*.splat; do
+    [ -f "$filepath" ] || continue
+    filename=$(basename "$filepath")
+    slug="${filename%.splat}"                  # e.g. "2026-05_grand-palms_suite-101"
+    r2_key="splats/$slug/scene.splat"
+
+    "$RCLONE" copyto "$filepath" "$BUCKET/$r2_key" \
+      --config /volume1/.config/rclone/rclone.conf \
+      --stats-one-line --log-level INFO \
+      --log-file /volume1/logs/sync-splats.log
+
+    if [ $? -eq 0 ]; then
+      # Notify Worker so the admin can link without knowing the R2 key manually
+      curl -sf -X POST "$WORKER/admin/splats/notify" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"slug\": \"$slug\", \"r2_key\": \"$r2_key\"}" \
+        >> /volume1/logs/sync-splats.log 2>&1
+
+      mv "$filepath" "$UPLOADED/$(date +%Y%m%d-%H%M%S)_$filename"
+      echo "$(date -Iseconds) OK  $filename → $r2_key" >> /volume1/logs/sync-splats.log
+    else
+      mv "$filepath" "$FAILED/$filename"
+      echo "$(date -Iseconds) ERR $filename — rclone failed; see log above" >> /volume1/logs/sync-splats.log
+    fi
+  done
+  ```
+  `chmod +x /volume1/scripts/sync-splats.sh`
+- [ ] **Store the admin JWT** — log into the admin panel, open DevTools → Application → Local Storage, copy the `jwt` value, save it to `/volume1/scripts/.ctc-admin-token` on the NAS with `chmod 600` so only root can read it. This token is used to authenticate the Worker notification call.
+
+#### Synology Task Scheduler setup
+
+- [ ] DSM → Control Panel → Task Scheduler → Create → **Scheduled Task → User-defined script**:
+  - Task name: `Sync splats to R2`
+  - User: `root`
+  - Schedule: every day, repeat every **2 minutes** from 00:00 to 23:59
+  - Task Settings → Run command: `/bin/bash /volume1/scripts/sync-splats.sh`
+  - Enable "Send run details by email" with your email if you want failure notifications
+- [ ] Test by dropping a small `.splat` file into `splats-incoming/` and waiting 2 minutes; verify it appears in `splats-uploaded/` and at `r2:ctc-assets/splats/{slug}/scene.splat` via `rclone ls`
+
+#### Worker endpoint: `POST /admin/splats/notify`
+
+This endpoint receives the slug and R2 key from the script and creates a pending entry in the `walkthroughs` D1 table so the admin sees a pre-populated "ready to publish" card in the admin panel without typing anything.
+
+- [ ] Add `POST /admin/splats/notify` to `worker/src/router.js` (admin-auth required):
+  - Accepts `{ slug, r2_key }` in the JSON body
+  - Derives the public URL: `https://assets.coastaltravelcompany.com/splats/{slug}/scene.splat` (or the Worker proxy path — see below)
+  - Inserts a row into the `walkthroughs` D1 table with `published = 0`, `embed_url` set to the viewer URL, `title` derived from the slug (replace hyphens/underscores with spaces, title-case)
+  - Returns `{ id, embed_url }` so the log can record the walkthrough ID
+- [ ] Add `assets.coastaltravelcompany.com` as a custom domain on the `ctc-assets` R2 bucket in Cloudflare dashboard (R2 → ctc-assets → Settings → Custom Domains) — this gives a stable CDN URL and avoids exposing the account ID in the URL. Alternatively, route through the Worker at `GET /splats/:slug` for access control.
+
+#### File naming convention (critical — drives the slug)
+
+The filename you drop on the NAS becomes the slug and therefore the R2 key and public URL. Use:
+```
+{YYYY-MM}_{property-slug}_{room-slug}.splat
+```
+Examples:
+- `2026-05_grand-palms_suite-101.splat` → `splats/2026-05_grand-palms_suite-101/scene.splat`
+- `2026-06_azure-resort_lobby.splat`    → `splats/2026-06_azure-resort_lobby/scene.splat`
+
+Keep slugs lowercase, hyphens only (no spaces or underscores in the property/room parts). The script will break on filenames with spaces — the slug must be filename-safe.
+
+#### Hosting & Display
 
 ### Services & Portfolio
 - [x] "3D Property Walkthroughs" added as service #05 to `services.html` — positioned as premium add-on with tags, "See Examples" link to walkthroughs.html, and Inquire CTA
