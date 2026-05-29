@@ -252,19 +252,219 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
 
 ### Capture
-- [ ] Establish a capture workflow: record slow, overlapping video passes of the space (phone or mirrorless — 4K, steady movement, good exposure) or use a dedicated capture app (Luma AI mobile app is the lowest-friction starting point)
-- [ ] Document lighting requirements: even ambient light, no harsh shadows or moving subjects during capture passes
 
-### Processing
-- [ ] Evaluate processing tools: **Luma AI** (cloud, fast, free tier) vs. **Postshot** (local GPU, high quality, paid) vs. **COLMAP + nerfstudio/3DGS** (open source, technical) — Luma AI is the recommended starting point for speed
-- [ ] Output a `.splat` or `.ply` file per scene after processing; upload to Luma AI or SuperSplat to get the iframe-embeddable URL
-- [ ] Establish a naming convention and folder structure on the NAS for raw capture footage and processed splat files
+- [ ] **Camera and settings** — shoot at 4K/30fps minimum; use a gimbal or steady hand movement (no handheld shake); set a fixed exposure (manual mode) so frames don't auto-brighten/darken mid-pass, which confuses COLMAP color consistency. A mirrorless on a gimbal produces better COLMAP registrations than phone footage, but phone 4K is acceptable for most hotel rooms.
+- [ ] **Movement pattern per scene** — plan 3 types of passes per room:
+  1. **Primary orbit** — slow horizontal arc (2 m/s max) around the hero subject (bed, seating, focal feature); keep camera level, overlap each position by ~60%
+  2. **Vertical sweep** — move camera up/down in the corners to capture ceiling and floor detail (COLMAP struggles if all frames are at one height)
+  3. **Detail passes** — slow close-up walks along counters, headboards, and architectural features; these add Gaussian density where the viewer will linger in the final walkthrough
+  Aim for 3–5 min of raw footage per room at steady walking pace; that extracts to ~300–500 frames at 2 fps.
+- [ ] **Lighting requirements** — even ambient light is critical for clean reconstruction:
+  - Turn on all room lights including bedside lamps; open curtains to eliminate harsh window beams
+  - Avoid shooting at dusk or dawn when outdoor light changes rapidly during a pass
+  - Watch for mirrors and glass surfaces — they cause duplicate geometry in COLMAP; angle slightly past them or block reflections where possible
+  - Moving subjects (housekeeping staff, curtains in breeze) will create floaters in the splat — wait for stillness before each pass
+- [ ] **Test shoot first** — do one practice room with the RTX 3070 pipeline before a client shoot so unexpected COLMAP failures (too-dark frames, insufficient overlap) are discovered at home rather than on location
 
-### Hosting & Display
-- [x] Hosting approach chosen: iframe-embeddable URLs (Luma AI, SuperSplat) — no self-hosting required; admin pastes the embed URL into the gallery or walkthrough record
-- [x] `/walkthroughs.html` built — fetches from `GET /public/walkthroughs`; card grid opens full-screen iframe modal; shows "check back soon" empty state
-- [x] 3D Walkthrough section added to `client-gallery.html` — collapsible section below the photo grid; iframe lazy-loads on first expand; only visible when `cfg.splat_url` is set
-- [x] `splat_url` (nullable) added to `galleries` D1 table via migration `012_walkthroughs.sql`
+### Processing — In-House GPU Pipeline (RTX 3070)
+
+The RTX 3070 (8 GB VRAM) is capable of training Gaussian Splatting models for room-scale hotel scenes. Typical training time is 30–60 min per scene at default 30 k iteration count. Larger continuous spaces (grand lobbies, multi-room suites) will need to be split into overlapping sub-scenes or trained at reduced Gaussian count to stay within 8 GB.
+
+#### One-time machine setup
+
+- [ ] **Install prerequisites** on the processing workstation:
+  - CUDA Toolkit 11.8 or 12.x (match the PyTorch build); verify with `nvcc --version`
+  - Anaconda or `uv` for Python environment isolation
+  - Git with Git LFS (for large `.splat` / `.ply` files if stored in the repo)
+  - **COLMAP** (binary from colmap.github.io or `winget install colmap`) — handles Structure-from-Motion; verify GPU feature matching is enabled in COLMAP preferences
+  - **ffmpeg** (via `winget install ffmpeg`) — used to extract still frames from video at a controlled frame rate
+- [ ] **Install nerfstudio** (recommended open-source toolkit — supports `splatfacto`, the 3DGS-compatible trainer):
+  ```
+  conda create -n nerfstudio python=3.10 -y
+  conda activate nerfstudio
+  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+  pip install nerfstudio
+  ```
+  Verify GPU is visible: `python -c "import torch; print(torch.cuda.get_device_name(0))"`
+- [ ] **Install Postshot** as a GUI alternative (paid, ~$50 one-time) — lower friction for jobs where a no-command-line workflow is preferred; evaluate against nerfstudio output quality on 2–3 test scenes before committing
+- [ ] **Install SuperSplat** CLI (`npm install -g supersplat`) — used for compressing and inspecting `.splat` files before upload; also provides the iframe viewer URL
+
+#### Per-scene workflow
+
+- [ ] **Frame extraction from video** — run ffmpeg to pull stills from the capture footage:
+  ```
+  ffmpeg -i shoot.mp4 -vf "fps=3,scale=3840:-1" -q:v 2 frames/%05d.jpg
+  ```
+  `fps=3` gives ~3 frames/sec — enough overlap for a slow walk-through; bump to `fps=5` for fast pans or complex geometry. Target 200–600 frames per scene; fewer causes sparse reconstruction, more slows COLMAP without improving results.
+- [ ] **COLMAP reconstruction** — nerfstudio wraps COLMAP automatically via:
+  ```
+  ns-process-data images --data ./frames --output-dir ./colmap_out
+  ```
+  This runs feature extraction (SIFT), exhaustive or sequential matching, and sparse reconstruction. On RTX 3070, GPU-accelerated SIFT matching handles 400 frames in ~10–15 min. Review the sparse point cloud in COLMAP viewer before training — if fewer than 80% of frames register, reshoot with more overlap or better lighting.
+- [ ] **3DGS training** — launch the splatfacto trainer:
+  ```
+  ns-train splatfacto --data ./colmap_out
+  ```
+  Default: 30 000 iterations, ~45 min on RTX 3070 for a hotel-room-scale scene. Monitor VRAM in Task Manager; if usage exceeds 7.5 GB, add `--pipeline.model.max-num-gaussians 1500000` to cap the Gaussian count. Output lands in `outputs/<timestamp>/splatfacto/`.
+- [ ] **Export** — convert the trained checkpoint to a PLY for review:
+  ```
+  ns-export gaussian-splat --load-config outputs/.../config.yml --output-dir ./export
+  ```
+  Produces `point_cloud.ply`. A single hotel room is typically 80–200 MB at this stage.
+- [ ] **Quality check and convert in SuperSplat** — drag `point_cloud.ply` into supersplat.playcanvas.com; review the scene, then use SuperSplat's export to save as `.splat`. The `.splat` format strips spherical harmonics and is 5–10× smaller than the PLY (a 150 MB PLY becomes ~20 MB), making it the standard delivery format. Look for:
+  - Floaters (stray Gaussians in mid-air) — trim with SuperSplat's selection tool before exporting
+  - Black patches or missing geometry — indicates insufficient frame coverage; reshoot or supplement with targeted photo pairs
+  - Blurry textures — caused by motion blur in capture; reshoot those passes with slower movement
+- [ ] **Save to NAS** — copy both files to the NAS using the slug as the folder name:
+  - `point_cloud.ply` → `.../3d-walkthroughs/{slug}/export/point_cloud.ply` (archive copy, never uploaded to R2)
+  - `scene.splat` → `.../3d-walkthroughs/splats-incoming/{slug}.splat` (triggers the automated R2 upload within 2 minutes)
+  The sync script only watches for `*.splat` files in `splats-incoming/`, so the PLY sits safely on the NAS without ever being picked up for upload.
+
+#### Scene size limits on RTX 3070
+
+| Scene type | Typical frames | Expected training time | VRAM at peak | Notes |
+|---|---|---|---|---|
+| Hotel room / suite | 200–350 | 30–45 min | 4–6 GB | Fits easily |
+| Lobby / common area | 350–600 | 45–75 min | 6–8 GB | Cap Gaussians if OOM |
+| Full floor / multi-room | 600–900 | 75–120 min | > 8 GB | **Split into sub-scenes** and stitch in SuperSplat, or use hierarchical 3DGS flag `--pipeline.model.use-hierarchy True` |
+| Exterior / grounds | 400–700 | 60–90 min | 6–8 GB | Reduce sky Gaussians; add `--pipeline.model.background-color white` |
+
+#### NAS folder structure and naming convention
+
+```
+/Coastal Travel Company/3d-walkthroughs/
+  {YYYY-MM}_{ClientName}_{PropertyName}/
+    raw/                  ← original video files from shoot
+    frames/               ← extracted JPEGs (not archived long-term; regenerate from raw if needed)
+    colmap_out/           ← COLMAP sparse reconstruction output
+    outputs/              ← nerfstudio training checkpoints
+    export/
+      scene.splat         ← final compressed splat (primary deliverable)
+      point_cloud.ply     ← full-precision PLY (keep as archive copy)
+    preview.mp4           ← screen-capture flythrough for client approval before upload
+```
+
+- [ ] Establish the naming convention above and document it in a `3d-walkthroughs/README.txt` on the NAS
+- [ ] Keep raw video and `scene.splat` permanently; prune `frames/`, `colmap_out/`, and `outputs/` after the scene is approved and uploaded (they can be regenerated from raw)
+
+#### Output and delivery
+
+- [ ] Once `scene.splat` passes quality check, copy it to the NAS watch folder with the correct slug filename (see naming convention in the NAS → R2 section below) — the automated pipeline handles everything from there
+- [ ] Within 2 minutes the file will be in R2 and a draft walkthrough record will appear in the admin panel ready to fill in title, property name, and description before publishing
+- [ ] For client portal delivery, set `splat_url` on the gallery record via the admin edit panel so the collapsible "3D Walkthrough" section appears in `client-gallery.html`
+- [ ] Include a note in the client delivery email that the 3D walkthrough requires a desktop or high-end mobile browser (WebGL 2 required; low-end Android may stutter)
+
+### NAS → R2 Automated Upload Pipeline
+
+After the `.splat` is approved on the local workstation, dropping it into a watched NAS folder triggers a script that uploads it to the `ctc-assets` R2 bucket (key-space: `splats/{slug}/scene.splat` per item 37) and notifies the Worker so the admin panel can immediately link it to a gallery or walkthrough record.
+
+#### One-time setup
+
+- [ ] **Create R2 Access Keys** — Cloudflare dashboard → R2 → Manage API tokens → Create API token (Object Read & Write, scoped to `ctc-assets`). Save `Access Key ID` and `Secret Access Key` — these are different from the full API token used by the Worker.
+- [ ] **Install rclone on the NAS** — DSM uses standard Linux; install the rclone binary directly:
+  ```bash
+  # SSH into NAS, then:
+  curl -fsSL https://rclone.org/install.sh | sudo bash
+  rclone version   # verify
+  ```
+  If SSH is restricted, download the Linux amd64 binary from rclone.org and `scp` it to `/usr/local/bin/rclone` manually.
+- [ ] **Configure rclone R2 remote** — run `rclone config` and create a remote named `r2`:
+  ```
+  Type: s3
+  Provider: Cloudflare
+  access_key_id: <R2 Access Key ID from above>
+  secret_access_key: <R2 Secret Access Key>
+  endpoint: https://<CF_ACCOUNT_ID>.r2.cloudflarestorage.com
+  acl: private
+  ```
+  Store the config at `/volume1/.config/rclone/rclone.conf` — this path survives DSM updates (unlike `/root`).
+  Test: `rclone ls r2:ctc-assets` should list bucket contents without error.
+- [ ] **Create the NAS watch folders** (one-time, via File Station or SSH):
+  ```
+  /volume1/Coastal Travel Company/3d-walkthroughs/splats-incoming/   ← drop .splat files here
+  /volume1/Coastal Travel Company/3d-walkthroughs/splats-uploaded/   ← script moves files here on success
+  /volume1/Coastal Travel Company/3d-walkthroughs/splats-failed/     ← script moves files here on failure
+  ```
+- [ ] **Create the upload script** — source lives at `nas/sync-splats.sh` in the repo (version-controlled alongside the other NAS configs in `nas/`); deploy to the NAS by copying to `/volume1/scripts/sync-splats.sh`:
+  ```bash
+  #!/bin/bash
+  # nas/sync-splats.sh
+  # Uploads any .splat files dropped in splats-incoming/ to R2 ctc-assets/splats/{slug}/
+  # and calls the Worker to register the new URL.
+  # Designed to run as a Synology Scheduled Task every 2 minutes.
+
+  INCOMING="/volume1/Coastal Travel Company/3d-walkthroughs/splats-incoming"
+  UPLOADED="/volume1/Coastal Travel Company/3d-walkthroughs/splats-uploaded"
+  FAILED="/volume1/Coastal Travel Company/3d-walkthroughs/splats-failed"
+  RCLONE="/usr/local/bin/rclone"
+  BUCKET="r2:ctc-assets"
+  WORKER="https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev"
+  ADMIN_TOKEN="$(cat /volume1/scripts/.ctc-admin-token)"  # store token in this file, chmod 600
+
+  for filepath in "$INCOMING"/*.splat; do
+    [ -f "$filepath" ] || continue
+    filename=$(basename "$filepath")
+    slug="${filename%.splat}"                  # e.g. "2026-05_grand-palms_suite-101"
+    r2_key="splats/$slug/scene.splat"
+
+    "$RCLONE" copyto "$filepath" "$BUCKET/$r2_key" \
+      --config /volume1/.config/rclone/rclone.conf \
+      --stats-one-line --log-level INFO \
+      --log-file /volume1/logs/sync-splats.log
+
+    if [ $? -eq 0 ]; then
+      # Notify Worker so the admin can link without knowing the R2 key manually
+      curl -sf -X POST "$WORKER/admin/splats/notify" \
+        -H "Authorization: Bearer $ADMIN_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"slug\": \"$slug\", \"r2_key\": \"$r2_key\"}" \
+        >> /volume1/logs/sync-splats.log 2>&1
+
+      mv "$filepath" "$UPLOADED/$(date +%Y%m%d-%H%M%S)_$filename"
+      echo "$(date -Iseconds) OK  $filename → $r2_key" >> /volume1/logs/sync-splats.log
+    else
+      mv "$filepath" "$FAILED/$filename"
+      echo "$(date -Iseconds) ERR $filename — rclone failed; see log above" >> /volume1/logs/sync-splats.log
+    fi
+  done
+  ```
+  After copying to the NAS: `chmod +x /volume1/scripts/sync-splats.sh`
+- [ ] **Store the admin JWT** — log into the admin panel, open DevTools → Application → Local Storage, copy the `jwt` value, save it to `/volume1/scripts/.ctc-admin-token` on the NAS with `chmod 600` so only root can read it. This token is used to authenticate the Worker notification call.
+
+#### Synology Task Scheduler setup
+
+- [ ] DSM → Control Panel → Task Scheduler → Create → **Scheduled Task → User-defined script**:
+  - Task name: `Sync splats to R2`
+  - User: `root`
+  - Schedule: every day, repeat every **2 minutes** from 00:00 to 23:59
+  - Task Settings → Run command: `/bin/bash /volume1/scripts/sync-splats.sh`
+  - Enable "Send run details by email" with your email if you want failure notifications
+- [ ] Test by dropping a small `.splat` file into `splats-incoming/` and waiting 2 minutes; verify it appears in `splats-uploaded/` and at `r2:ctc-assets/splats/{slug}/scene.splat` via `rclone ls`
+
+#### Worker endpoint: `POST /admin/splats/notify`
+
+This endpoint receives the slug and R2 key from the script and creates a pending entry in the `walkthroughs` D1 table so the admin sees a pre-populated "ready to publish" card in the admin panel without typing anything.
+
+- [ ] Add `POST /admin/splats/notify` to `worker/src/router.js` (admin-auth required):
+  - Accepts `{ slug, r2_key }` in the JSON body
+  - Derives the public URL: `https://assets.coastaltravelcompany.com/splats/{slug}/scene.splat` (or the Worker proxy path — see below)
+  - Inserts a row into the `walkthroughs` D1 table with `published = 0`, `embed_url` set to the viewer URL, `title` derived from the slug (replace hyphens/underscores with spaces, title-case)
+  - Returns `{ id, embed_url }` so the log can record the walkthrough ID
+- [ ] Add `assets.coastaltravelcompany.com` as a custom domain on the `ctc-assets` R2 bucket in Cloudflare dashboard (R2 → ctc-assets → Settings → Custom Domains) — this gives a stable CDN URL and avoids exposing the account ID in the URL. Alternatively, route through the Worker at `GET /splats/:slug` for access control.
+
+#### File naming convention (critical — drives the slug)
+
+The filename you drop on the NAS becomes the slug and therefore the R2 key and public URL. Use:
+```
+{YYYY-MM}_{property-slug}_{room-slug}.splat
+```
+Examples:
+- `2026-05_grand-palms_suite-101.splat` → `splats/2026-05_grand-palms_suite-101/scene.splat`
+- `2026-06_azure-resort_lobby.splat`    → `splats/2026-06_azure-resort_lobby/scene.splat`
+
+Keep slugs lowercase, hyphens only (no spaces or underscores in the property/room parts). The script will break on filenames with spaces — the slug must be filename-safe.
+
+#### Hosting & Display
 
 ### Services & Portfolio
 - [x] "3D Property Walkthroughs" added as service #05 to `services.html` — positioned as premium add-on with tags, "See Examples" link to walkthroughs.html, and Inquire CTA
@@ -1228,3 +1428,82 @@ No e2e test exercises the Users tab in the admin panel.
 - [x] Confirm a successful login after the lockout TTL expires (mock KV TTL expiry in the test)
 - [x] Simulate 21 failed logins from the same IP across different accounts; confirm IP-level 429 kicks in
 - [x] Confirm the gallery unlock rate limiter returns 429 after 10 wrong-passphrase attempts from the same IP
+
+---
+
+## ~~45. Windows 11 Splatting Workstation Setup Script~~ ✅ Done
+
+**Goal:** A single PowerShell script (`workstation/splatting/setup-windows.ps1`) that installs and configures the complete free local 3DGS pipeline on a Windows 11 machine with an NVIDIA GPU — CUDA-aware COLMAP, ffmpeg, Miniconda + nerfstudio (splatfacto), and SuperSplat. Run once; takes ~20 minutes; leaves the machine ready to process a scene end-to-end with no paid tools. All workstation scripts live in the `workstation/` directory at the repo root.
+
+### Script: `workstation/splatting/setup-windows.ps1`
+
+- [x] **Preflight checks** — fail fast with a clear message if any of the following are unmet:
+  - PowerShell 5.1 or later (`$PSVersionTable.PSVersion.Major -ge 5`)
+  - `winget` is available — it ships with Windows 11; if missing, print "Install 'App Installer' from the Microsoft Store" and exit
+  - NVIDIA GPU detected — run `nvidia-smi`; if it exits non-zero, print "NVIDIA driver not found — install from nvidia.com/drivers" and exit
+  - Print the detected GPU name, driver version, and VRAM so the user knows before training starts whether the driver needs an update
+  - At least 20 GB free on `C:\` — warn (don't exit) if less, since conda envs and training checkpoints are large
+- [x] **Install base packages via winget** (winget skips already-installed packages, so the script is safe to re-run):
+  ```powershell
+  winget install --id Git.Git            -e --silent --accept-package-agreements
+  winget install --id Gyan.FFmpeg        -e --silent --accept-package-agreements
+  winget install --id OpenJS.NodeJS.LTS  -e --silent --accept-package-agreements
+  winget install --id Anaconda.Miniconda3 -e --silent --accept-package-agreements
+  ```
+  After each `winget` call, refresh `$env:PATH` in the current session using `[System.Environment]::GetEnvironmentVariable("PATH","Machine")` so subsequent commands find the new binaries without requiring a shell restart.
+- [x] **Install COLMAP** — COLMAP has no winget package; download the latest CUDA-enabled Windows release from the GitHub releases API:
+  ```powershell
+  $rel = Invoke-RestMethod "https://api.github.com/repos/colmap/colmap/releases/latest"
+  $tag = $rel.tag_name
+  $asset = $rel.assets | Where-Object { $_.name -like "*windows-cuda*" } | Select-Object -First 1
+  Invoke-WebRequest $asset.browser_download_url -OutFile "$env:TEMP\colmap.zip"
+  Expand-Archive "$env:TEMP\colmap.zip" -DestinationPath "C:\tools\colmap" -Force
+  $colmapBin = (Get-ChildItem "C:\tools\colmap" -Recurse -Filter "colmap.exe" | Select-Object -First 1).DirectoryName
+  [Environment]::SetEnvironmentVariable("PATH", [Environment]::GetEnvironmentVariable("PATH","User") + ";$colmapBin", "User")
+  ```
+  Verify: `colmap --version` should print the version string.
+- [x] **Create nerfstudio conda environment**:
+  ```powershell
+  conda create -n nerfstudio python=3.10 -y
+  # Install PyTorch with CUDA 11.8 wheels (matches CUDA Toolkit ≤ 12.x on the RTX 3070 driver)
+  conda run -n nerfstudio pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+  conda run -n nerfstudio pip install nerfstudio
+  ```
+  After install, verify the GPU is visible inside the env:
+  ```powershell
+  $gpuCheck = conda run -n nerfstudio python -c "import torch; print(torch.cuda.get_device_name(0))"
+  ```
+  If the output contains the GPU name, print "✓ PyTorch sees the GPU — training will use CUDA". If it contains "CPU" or throws, print a remediation message: "PyTorch did not find the GPU. Check that the CUDA driver is ≥ 520 and re-run this script."
+- [x] **SuperSplat** — no install required; it runs in the browser at supersplat.playcanvas.com. The setup script should open that URL in the default browser as a final step so the user can bookmark it. Node.js is still installed (previous step) in case a CLI conversion tool is needed later for batch size reduction, but it is not required for the core pipeline.
+- [x] **Create working directory structure** under `%USERPROFILE%\CTC-Splatting\`:
+  ```
+  CTC-Splatting\
+    incoming\     ← place raw shoot video files here before starting a job
+    frames\       ← ffmpeg frame output (wiped at the start of each job)
+    colmap_out\   ← ns-process-data (COLMAP) output per scene
+    outputs\      ← nerfstudio training checkpoints
+    export\       ← final scene.splat + point_cloud.ply awaiting review
+    done\         ← approved .splat files ready to copy to the NAS incoming folder
+  ```
+  Create all directories with `New-Item -ItemType Directory -Force`.
+- [x] **Write `workstation/splatting/process-scene.ps1`** — a helper the user runs for each job; wraps the full item 11 pipeline into one script:
+  1. Wipe and re-create `frames\`
+  2. Find the first video file in `incoming\`; derive the scene slug from its filename (strip extension)
+  3. Run: `ffmpeg -i <video> -vf "fps=3,scale=3840:-1" -q:v 2 frames\%05d.jpg`
+  4. Run: `conda run -n nerfstudio ns-process-data images --data .\frames --output-dir .\colmap_out\<slug>`
+  5. Run: `conda run -n nerfstudio ns-train splatfacto --data .\colmap_out\<slug>`
+  6. Run: `conda run -n nerfstudio ns-export gaussian-splat --load-config .\outputs\...\config.yml --output-dir .\export\<slug>` (the script should glob for the latest `config.yml` under `outputs\`)
+  7. Open `export\<slug>\` in Explorer and open supersplat.playcanvas.com in the browser
+  8. Print next-step instructions:
+     "1. Drag point_cloud.ply into SuperSplat, review and clean the scene, then File → Export → .splat → save as <slug>.splat in export\<slug>\
+      2. Copy point_cloud.ply    → NAS: 3d-walkthroughs\<slug>\export\point_cloud.ply  (archive)
+      3. Copy <slug>.splat       → NAS: 3d-walkthroughs\splats-incoming\<slug>.splat   (triggers R2 upload)"
+- [x] **Print a completion summary** listing each installed tool and its version, the working directory path, and a reminder of the file naming convention from item 11 (`YYYY-MM_property-slug_room-slug.splat`).
+
+### Verification checklist (run manually after the script completes)
+
+- [ ] `nvidia-smi` — shows GPU name and driver version
+- [ ] `ffmpeg -version` — shows build and codec info
+- [ ] `colmap --version` — shows version string
+- [ ] `conda run -n nerfstudio ns-train --help` — nerfstudio CLI responds without error
+- [ ] Drop a 30-second test clip into `incoming\`, run `workstation/splatting/process-scene.ps1`, confirm `point_cloud.ply` appears in `export\`; load it in supersplat.playcanvas.com, export as `.splat`, and confirm the file is substantially smaller than the PLY
