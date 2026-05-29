@@ -1,8 +1,12 @@
 import { ALLOWED_ORIGIN, JWT_EXPIRY_SECS } from './constants.js';
-import { jsonResponse, authRequired } from './utils.js';
+import { jsonResponse, rateLimitedResponse, authRequired } from './utils.js';
 import { createJWT, getAuth } from './jwt.js';
 import { getUser, putUser } from './kv.js';
 import { hashPassword, verifyPassword } from './crypto.js';
+import {
+  checkLoginBruteForce, recordLoginFailure, clearLoginCounters,
+  checkResetBruteForce, recordResetAttempt,
+} from './brute-force.js';
 
 export async function handleAuthSetupStatus(env) {
   const raw  = await env.KV.get('users_list');
@@ -112,13 +116,21 @@ export async function handleAuthLogin(request, env) {
   if (!env.JWT_SECRET) return jsonResponse({ error: 'JWT_SECRET not configured' }, 503);
   const { email, password } = await request.json();
   if (!email || !password) return jsonResponse({ error: 'Email and password required' }, 400);
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  const { locked, reason } = await checkLoginBruteForce(email.toLowerCase(), ip, env.KV);
+  if (locked) return rateLimitedResponse(reason, 900);
+
   const user = await getUser(email, env.KV);
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  const valid = user && await verifyPassword(password, user.passwordHash);
+  if (!valid) {
+    await recordLoginFailure(email.toLowerCase(), ip, user?.role ?? null, env.KV, env.RESEND_API_KEY);
     return jsonResponse({ error: 'Invalid email or password' }, 401);
   }
   if (user.verified === false) {
     return jsonResponse({ error: 'Please verify your email address before signing in.', unverified: true }, 403);
   }
+  await clearLoginCounters(email.toLowerCase(), ip, env.KV);
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
@@ -165,23 +177,30 @@ export async function handleAuthGoogle(request, env) {
 export async function handleAuthResetRequest(request, env) {
   const { email } = await request.json();
   if (!email) return jsonResponse({ error: 'Email required' }, 400);
-  const user = await getUser(email, env.KV);
-  if (user) {
-    const token    = crypto.randomUUID();
-    const resetUrl = `${ALLOWED_ORIGIN}/login.html?reset=${token}`;
-    await env.KV.put('reset:' + token, JSON.stringify({ email: user.email }), { expirationTtl: 3600 });
-    await fetch('https://api.resend.com/emails', {
-      method:  'POST',
-      headers: { 'Authorization': 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
-        to:      [user.email],
-        subject: 'Reset your password — Coastal Travel Company',
-        html:    `<p style="font-family:sans-serif">Click the link below to reset your password. The link expires in 1 hour.</p>
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  const { locked } = await checkResetBruteForce(email.toLowerCase(), ip, env.KV);
+  // Always return ok: true even when rate-limited — prevents account enumeration
+  if (!locked) {
+    await recordResetAttempt(email.toLowerCase(), ip, env.KV);
+    const user = await getUser(email, env.KV);
+    if (user) {
+      const token    = crypto.randomUUID();
+      const resetUrl = `${ALLOWED_ORIGIN}/login.html?reset=${token}`;
+      await env.KV.put('reset:' + token, JSON.stringify({ email: user.email }), { expirationTtl: 3600 });
+      await fetch('https://api.resend.com/emails', {
+        method:  'POST',
+        headers: { 'Authorization': 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+          to:      [user.email],
+          subject: 'Reset your password — Coastal Travel Company',
+          html:    `<p style="font-family:sans-serif">Click the link below to reset your password. The link expires in 1 hour.</p>
 <p style="font-family:sans-serif"><a href="${resetUrl}">${resetUrl}</a></p>
 <p style="font-family:sans-serif;color:#999">If you didn't request this, you can ignore this email.</p>`,
-      }),
-    });
+        }),
+      });
+    }
   }
   return jsonResponse({ ok: true });
 }
@@ -199,6 +218,8 @@ export async function handleAuthResetConfirm(request, env) {
   user.passwordHash = await hashPassword(password);
   await putUser(user, env.KV);
   await env.KV.delete('reset:' + token);
+  // Clear permanent admin lockout (if set) so they can log in again
+  await env.KV.delete(`locked:${email}`);
   return jsonResponse({ ok: true });
 }
 

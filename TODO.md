@@ -1193,3 +1193,38 @@ No e2e test exercises the Users tab in the admin panel.
 - [x] Allowlist maintained in the script with a required reason comment for each exempt route (e.g. `POST /stripe/webhook` — Stripe CLI; `POST /token` — gallery.spec.js)
 - [x] Static-prefix pattern matching: a spec referencing `/admin/projects` satisfies routes like `GET /admin/projects/:id/notes`
 - [x] Added as a step in the `acceptance-tests` GitHub Actions job — runs before the Playwright suite so uncovered routes are reported immediately
+
+---
+
+## ~~44. Brute-force attack protection~~ ✅ Done
+
+**Goal:** Prevent automated credential stuffing and brute force attacks against all authentication endpoints — login, password reset, and gallery password unlock.
+
+### Login endpoint (`POST /auth/login`)
+
+- [x] Track failed login attempts per email address in KV (`brute:email:{email}` → attempt count, TTL 15 minutes); after 5 consecutive failures lock the account out for 15 minutes and return 429 with a `Retry-After` header
+- [x] Track failed login attempts per IP in KV (`brute:ip:{ip}` → attempt count, TTL 15 minutes); after 20 failures from the same IP within 15 minutes return 429 regardless of which account is targeted — catches credential stuffing across multiple accounts
+- [x] Reset both counters on a successful login
+- [x] Return the same generic error message for both "account not found" and "wrong password" — do not leak which accounts exist
+
+### Password reset endpoint (`POST /auth/reset-request`)
+
+- [x] Rate limit to 3 reset requests per email per hour (`brute:reset:{email}`, TTL 1 hour); excess requests return 429 but still show the "check your email" UI message to avoid account enumeration
+- [x] Rate limit to 10 reset requests per IP per hour (`brute:reset:ip:{ip}`, TTL 1 hour)
+
+### Gallery password unlock (Worker token exchange `POST /token`)
+
+- [x] The existing KV rate limiter (300 requests / 60 s per passphrase) covers volumetric abuse; add a separate per-IP failed-unlock counter: after 10 wrong-passphrase attempts from the same IP within 10 minutes, return 429 for that IP for 10 minutes
+- [x] Wrong-passphrase attempts increment `brute:gallery:ip:{ip}`; correct passphrase resets it
+
+### Admin panel (`POST /auth/login` with admin role)
+
+- [x] After 3 failed login attempts for any account with `role = 'admin'`, send an email alert to `thecoastaltravelcompany@gmail.com` via Resend: "Failed admin login attempts detected for {email} — {n} attempts from {ip}"
+- [x] Lock admin accounts after 5 failures (stricter than the 10-attempt threshold for client accounts); require a password reset to unlock rather than waiting out the TTL
+
+### Acceptance tests
+
+- [x] Simulate 6 rapid failed logins for the same email; confirm the 6th returns 429 and the lockout message
+- [x] Confirm a successful login after the lockout TTL expires (mock KV TTL expiry in the test)
+- [x] Simulate 21 failed logins from the same IP across different accounts; confirm IP-level 429 kicks in
+- [x] Confirm the gallery unlock rate limiter returns 429 after 10 wrong-passphrase attempts from the same IP
