@@ -305,10 +305,12 @@ test.describe('Gallery brute-force protection', () => {
       },
     });
 
-    // Load gallery page 11 times (each page load triggers one token exchange after unlock)
+    // Load gallery page 11 times (each page load triggers one token exchange after unlock).
+    // Use ?r=i so each URL is distinct — a hash-only change doesn't reload the page,
+    // meaning init() wouldn't re-run and POST /token wouldn't fire again.
     for (let i = 0; i <= 10; i++) {
       const hash = buildHash({ id: `gallery-${i}` });
-      await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+      await page.goto(`${STATIC_BASE}/gallery/client-gallery.html?r=${i}#${hash}`);
       const pwInput = page.locator('#pwInput');
       if (await pwInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await pwInput.fill('');
