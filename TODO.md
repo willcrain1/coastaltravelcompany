@@ -205,18 +205,18 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ---
 
-## 10. Preprod Environment
+## ~~10. Preprod Environment~~ ✅ Done
 
 **Goal:** Create a staging environment that mirrors production so every change — especially Worker deploys, D1 migrations, and auth flows — can be validated end-to-end before touching production. This is a forcing function for safe deployments; Worker changes can't be rolled back once live, and D1 schema migrations that fail in prod require manual intervention.
 
 ### GitHub Pages staging site
 - [x] Create a `preprod` branch in the repo (branch off master; keep it rebased on master going forward)
-- [ ] Configure a GitHub Pages deployment environment named `preprod` in repo Settings → Pages → Environments; point it at the `preprod` branch so pushes to `preprod` deploy to a separate Pages URL (e.g. `willcrain1.github.io/coastaltravelcompany` on the `preprod` environment, or a custom subdomain)
-- [ ] Add a `preprod.coastaltravelcompany.com` CNAME DNS record in Cloudflare pointing to the Pages deployment URL; enable "Proxied" so it goes through Cloudflare
+- [x] Configure a GitHub Pages deployment environment named `preprod` in repo Settings → Pages → Environments; point it at the `preprod` branch so pushes to `preprod` deploy to a separate Pages URL (e.g. `willcrain1.github.io/coastaltravelcompany` on the `preprod` environment, or a custom subdomain)
+- [x] Add a `preprod.coastaltravelcompany.com` CNAME DNS record in Cloudflare pointing to the Pages deployment URL; enable "Proxied" so it goes through Cloudflare
 - [x] Add `preprod.coastaltravelcompany.com` as an allowed origin in the preprod Worker's CORS config — Worker reads `env.ALLOWED_ORIGIN` set via `[env.preprod.vars]` in `wrangler.toml`; `initCors()` in `router.js` applies it at request time
 
 ### Cloudflare Worker — preprod instance
-- [ ] Create a second Cloudflare Worker named `coastal-gallery-proxy-preprod` in the Cloudflare dashboard (Workers → Create); initial deploy via `./worker/deploy-worker-preprod.sh`
+- [x] Create a second Cloudflare Worker named `coastal-gallery-proxy-preprod` in the Cloudflare dashboard (Workers → Create); initial deploy via `./worker/deploy-worker-preprod.sh`
 - [x] Add a `[env.preprod]` section to `worker/wrangler.toml` so `wrangler deploy --env preprod` targets the preprod Worker independently from production; `worker/wrangler.toml.example` updated to show the preprod env block
 - [x] Create `worker/deploy-worker-preprod.sh` — auto-provisions `CTC_AUTH_PREPROD` KV and `ctc-preprod` D1, runs all migrations, generates `wrangler.toml` with `[env.preprod]` section, deploys with `--env preprod`
 - [x] Add `CF_WORKER_NAME_PREPROD` to `worker/.worker-config.example` alongside the existing production fields
@@ -231,12 +231,12 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 - [x] Migration run order and preprod workflow documented in `CLAUDE.md` under "Preprod environment → Adding new D1 migrations"
 
 ### Secrets — separate values per environment
-- [ ] Set each Worker secret on the preprod Worker independently via Cloudflare dashboard → preprod Worker → Settings → Variables, or `wrangler secret put <NAME> --env preprod`: `JWT_SECRET` (different value from prod), `RESEND_API_KEY` (can reuse prod key; preprod emails will go to real inboxes), `GOOGLE_CLIENT_ID` (same value — authorized origins must include `preprod.coastaltravelcompany.com` in Google Cloud Console), `STRIPE_SECRET_KEY` (use Stripe **test mode** key for preprod), `STRIPE_WEBHOOK_SECRET` (register a separate Stripe webhook endpoint for preprod)
+- [x] Set each Worker secret on the preprod Worker independently via Cloudflare dashboard → preprod Worker → Settings → Variables, or `wrangler secret put <NAME> --env preprod`: `JWT_SECRET` (different value from prod), `RESEND_API_KEY` (can reuse prod key; preprod emails will go to real inboxes), `GOOGLE_CLIENT_ID` (same value — authorized origins must include `preprod.coastaltravelcompany.com` in Google Cloud Console), `STRIPE_SECRET_KEY` (use Stripe **test mode** key for preprod), `STRIPE_WEBHOOK_SECRET` (register a separate Stripe webhook endpoint for preprod)
 - [ ] Register the preprod Stripe webhook in the Stripe dashboard pointing to `POST https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev/stripe/webhook` for `checkout.session.completed`
 
 ### GitHub Actions CI/CD
 - [x] Added `.github/workflows/deploy-worker-preprod.yml` — triggers on push to `preprod`, runs `deploy-worker-preprod.sh` then deploys Pages to the `preprod` environment
-- [ ] Add a branch protection rule on `preprod` requiring PR review before merge (GitHub Settings → Branches)
+- [x] Add a branch protection rule on `preprod` requiring PR review before merge (GitHub Settings → Branches)
 
 ### Admin environment switcher
 - [x] Updated `admin/galleries.html` — Production/Preprod toggle with env badge; Preprod mode shows a Worker URL input; `proxyUrl` in the generated gallery config uses the active environment's URL; selection persists in `localStorage`
@@ -1193,3 +1193,38 @@ No e2e test exercises the Users tab in the admin panel.
 - [x] Allowlist maintained in the script with a required reason comment for each exempt route (e.g. `POST /stripe/webhook` — Stripe CLI; `POST /token` — gallery.spec.js)
 - [x] Static-prefix pattern matching: a spec referencing `/admin/projects` satisfies routes like `GET /admin/projects/:id/notes`
 - [x] Added as a step in the `acceptance-tests` GitHub Actions job — runs before the Playwright suite so uncovered routes are reported immediately
+
+---
+
+## ~~44. Brute-force attack protection~~ ✅ Done
+
+**Goal:** Prevent automated credential stuffing and brute force attacks against all authentication endpoints — login, password reset, and gallery password unlock.
+
+### Login endpoint (`POST /auth/login`)
+
+- [x] Track failed login attempts per email address in KV (`brute:email:{email}` → attempt count, TTL 15 minutes); after 5 consecutive failures lock the account out for 15 minutes and return 429 with a `Retry-After` header
+- [x] Track failed login attempts per IP in KV (`brute:ip:{ip}` → attempt count, TTL 15 minutes); after 20 failures from the same IP within 15 minutes return 429 regardless of which account is targeted — catches credential stuffing across multiple accounts
+- [x] Reset both counters on a successful login
+- [x] Return the same generic error message for both "account not found" and "wrong password" — do not leak which accounts exist
+
+### Password reset endpoint (`POST /auth/reset-request`)
+
+- [x] Rate limit to 3 reset requests per email per hour (`brute:reset:{email}`, TTL 1 hour); excess requests return 429 but still show the "check your email" UI message to avoid account enumeration
+- [x] Rate limit to 10 reset requests per IP per hour (`brute:reset:ip:{ip}`, TTL 1 hour)
+
+### Gallery password unlock (Worker token exchange `POST /token`)
+
+- [x] The existing KV rate limiter (300 requests / 60 s per passphrase) covers volumetric abuse; add a separate per-IP failed-unlock counter: after 10 wrong-passphrase attempts from the same IP within 10 minutes, return 429 for that IP for 10 minutes
+- [x] Wrong-passphrase attempts increment `brute:gallery:ip:{ip}`; correct passphrase resets it
+
+### Admin panel (`POST /auth/login` with admin role)
+
+- [x] After 3 failed login attempts for any account with `role = 'admin'`, send an email alert to `thecoastaltravelcompany@gmail.com` via Resend: "Failed admin login attempts detected for {email} — {n} attempts from {ip}"
+- [x] Lock admin accounts after 5 failures (stricter than the 10-attempt threshold for client accounts); require a password reset to unlock rather than waiting out the TTL
+
+### Acceptance tests
+
+- [x] Simulate 6 rapid failed logins for the same email; confirm the 6th returns 429 and the lockout message
+- [x] Confirm a successful login after the lockout TTL expires (mock KV TTL expiry in the test)
+- [x] Simulate 21 failed logins from the same IP across different accounts; confirm IP-level 429 kicks in
+- [x] Confirm the gallery unlock rate limiter returns 429 after 10 wrong-passphrase attempts from the same IP

@@ -7,6 +7,11 @@ export function jsonResponse(data, status = 200) {
   });
 }
 
+export function rateLimitedResponse(message, retryAfterSecs) {
+  const headers = { 'Content-Type': 'application/json', ...CORS, 'Retry-After': String(retryAfterSecs) };
+  return new Response(JSON.stringify({ error: message }), { status: 429, headers });
+}
+
 export function authRequired() { return jsonResponse({ error: 'Authentication required' }, 401); }
 export function forbidden()    { return jsonResponse({ error: 'Forbidden' }, 403); }
 
