@@ -315,7 +315,10 @@ The RTX 3070 (8 GB VRAM) is capable of training Gaussian Splatting models for ro
   - Floaters (stray Gaussians in mid-air) — trim with SuperSplat's selection tool before exporting
   - Black patches or missing geometry — indicates insufficient frame coverage; reshoot or supplement with targeted photo pairs
   - Blurry textures — caused by motion blur in capture; reshoot those passes with slower movement
-- [ ] **Upload to NAS** — copy the exported `.splat` to the NAS watch folder with the correct slug filename (`YYYY-MM_property_room.splat`); the automated pipeline handles R2 upload from there
+- [ ] **Save to NAS** — copy both files to the NAS using the slug as the folder name:
+  - `point_cloud.ply` → `.../3d-walkthroughs/{slug}/export/point_cloud.ply` (archive copy, never uploaded to R2)
+  - `scene.splat` → `.../3d-walkthroughs/splats-incoming/{slug}.splat` (triggers the automated R2 upload within 2 minutes)
+  The sync script only watches for `*.splat` files in `splats-incoming/`, so the PLY sits safely on the NAS without ever being picked up for upload.
 
 #### Scene size limits on RTX 3070
 
@@ -1490,7 +1493,10 @@ No e2e test exercises the Users tab in the admin panel.
   5. Run: `conda run -n nerfstudio ns-train splatfacto --data .\colmap_out\<slug>`
   6. Run: `conda run -n nerfstudio ns-export gaussian-splat --load-config .\outputs\...\config.yml --output-dir .\export\<slug>` (the script should glob for the latest `config.yml` under `outputs\`)
   7. Open `export\<slug>\` in Explorer and open supersplat.playcanvas.com in the browser
-  8. Print next-step instructions: "Drag point_cloud.ply into SuperSplat, review and clean the scene, then File → Export → .splat. Copy the exported .splat to the NAS incoming folder named `YYYY-MM_property_room.splat`"
+  8. Print next-step instructions:
+     "1. Drag point_cloud.ply into SuperSplat, review and clean the scene, then File → Export → .splat → save as <slug>.splat in export\<slug>\
+      2. Copy point_cloud.ply    → NAS: 3d-walkthroughs\<slug>\export\point_cloud.ply  (archive)
+      3. Copy <slug>.splat       → NAS: 3d-walkthroughs\splats-incoming\<slug>.splat   (triggers R2 upload)"
 - [ ] **Print a completion summary** listing each installed tool and its version, the working directory path, and a reminder of the file naming convention from item 11 (`YYYY-MM_property-slug_room-slug.splat`).
 
 ### Verification checklist (run manually after the script completes)
