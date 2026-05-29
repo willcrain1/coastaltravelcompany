@@ -1424,3 +1424,91 @@ No e2e test exercises the Users tab in the admin panel.
 - [x] Confirm a successful login after the lockout TTL expires (mock KV TTL expiry in the test)
 - [x] Simulate 21 failed logins from the same IP across different accounts; confirm IP-level 429 kicks in
 - [x] Confirm the gallery unlock rate limiter returns 429 after 10 wrong-passphrase attempts from the same IP
+
+---
+
+## 45. Windows 11 Splatting Workstation Setup Script
+
+**Goal:** A single PowerShell script (`tools/splatting/setup-windows.ps1`) that installs and configures the complete free local 3DGS pipeline on a Windows 11 machine with an NVIDIA GPU — CUDA-aware COLMAP, ffmpeg, Miniconda + nerfstudio (splatfacto), and SuperSplat. Run once; takes ~20 minutes; leaves the machine ready to process a scene end-to-end with no paid tools.
+
+### Script: `tools/splatting/setup-windows.ps1`
+
+- [ ] **Preflight checks** — fail fast with a clear message if any of the following are unmet:
+  - PowerShell 5.1 or later (`$PSVersionTable.PSVersion.Major -ge 5`)
+  - `winget` is available — it ships with Windows 11; if missing, print "Install 'App Installer' from the Microsoft Store" and exit
+  - NVIDIA GPU detected — run `nvidia-smi`; if it exits non-zero, print "NVIDIA driver not found — install from nvidia.com/drivers" and exit
+  - Print the detected GPU name, driver version, and VRAM so the user knows before training starts whether the driver needs an update
+  - At least 20 GB free on `C:\` — warn (don't exit) if less, since conda envs and training checkpoints are large
+- [ ] **Install base packages via winget** (winget skips already-installed packages, so the script is safe to re-run):
+  ```powershell
+  winget install --id Git.Git            -e --silent --accept-package-agreements
+  winget install --id Gyan.FFmpeg        -e --silent --accept-package-agreements
+  winget install --id OpenJS.NodeJS.LTS  -e --silent --accept-package-agreements
+  winget install --id Anaconda.Miniconda3 -e --silent --accept-package-agreements
+  ```
+  After each `winget` call, refresh `$env:PATH` in the current session using `[System.Environment]::GetEnvironmentVariable("PATH","Machine")` so subsequent commands find the new binaries without requiring a shell restart.
+- [ ] **Install COLMAP** — COLMAP has no winget package; download the latest CUDA-enabled Windows release from the GitHub releases API:
+  ```powershell
+  $rel = Invoke-RestMethod "https://api.github.com/repos/colmap/colmap/releases/latest"
+  $tag = $rel.tag_name
+  $asset = $rel.assets | Where-Object { $_.name -like "*windows-cuda*" } | Select-Object -First 1
+  Invoke-WebRequest $asset.browser_download_url -OutFile "$env:TEMP\colmap.zip"
+  Expand-Archive "$env:TEMP\colmap.zip" -DestinationPath "C:\tools\colmap" -Force
+  $colmapBin = (Get-ChildItem "C:\tools\colmap" -Recurse -Filter "colmap.exe" | Select-Object -First 1).DirectoryName
+  [Environment]::SetEnvironmentVariable("PATH", [Environment]::GetEnvironmentVariable("PATH","User") + ";$colmapBin", "User")
+  ```
+  Verify: `colmap --version` should print the version string.
+- [ ] **Create nerfstudio conda environment**:
+  ```powershell
+  conda create -n nerfstudio python=3.10 -y
+  # Install PyTorch with CUDA 11.8 wheels (matches CUDA Toolkit ≤ 12.x on the RTX 3070 driver)
+  conda run -n nerfstudio pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+  conda run -n nerfstudio pip install nerfstudio
+  ```
+  After install, verify the GPU is visible inside the env:
+  ```powershell
+  $gpuCheck = conda run -n nerfstudio python -c "import torch; print(torch.cuda.get_device_name(0))"
+  ```
+  If the output contains the GPU name, print "✓ PyTorch sees the GPU — training will use CUDA". If it contains "CPU" or throws, print a remediation message: "PyTorch did not find the GPU. Check that the CUDA driver is ≥ 520 and re-run this script."
+- [ ] **Install SuperSplat** — SuperSplat (github.com/playcanvas/supersplat) is the free, open-source `.splat` viewer, editor, and compressor. Check the repo for the current npm package name at implementation time; install via npm:
+  ```powershell
+  npm install -g supersplat   # verify exact package name from playcanvas/supersplat README
+  supersplat --version
+  ```
+  If no global CLI package exists at implementation time, fall back to cloning the repo and wiring up a small wrapper script:
+  ```powershell
+  git clone https://github.com/playcanvas/supersplat "C:\tools\supersplat"
+  Push-Location "C:\tools\supersplat"; npm install; Pop-Location
+  # Write a supersplat.cmd shim to C:\tools\bin\ that calls node C:\tools\supersplat\...
+  ```
+- [ ] **Create working directory structure** under `%USERPROFILE%\CTC-Splatting\`:
+  ```
+  CTC-Splatting\
+    incoming\     ← place raw shoot video files here before starting a job
+    frames\       ← ffmpeg frame output (wiped at the start of each job)
+    colmap_out\   ← ns-process-data (COLMAP) output per scene
+    outputs\      ← nerfstudio training checkpoints
+    export\       ← final scene.splat + point_cloud.ply awaiting review
+    done\         ← approved .splat files ready to copy to the NAS incoming folder
+  ```
+  Create all directories with `New-Item -ItemType Directory -Force`.
+- [ ] **Write `CTC-Splatting\process-scene.ps1`** — a helper the user runs for each job; wraps the full item 11 pipeline into one script:
+  1. Wipe and re-create `frames\`
+  2. Find the first video file in `incoming\`; derive the scene slug from its filename (strip extension)
+  3. Run: `ffmpeg -i <video> -vf "fps=3,scale=3840:-1" -q:v 2 frames\%05d.jpg`
+  4. Run: `conda run -n nerfstudio ns-process-data images --data .\frames --output-dir .\colmap_out\<slug>`
+  5. Run: `conda run -n nerfstudio ns-train splatfacto --data .\colmap_out\<slug>`
+  6. Run: `conda run -n nerfstudio ns-export gaussian-splat --load-config .\outputs\...\config.yml --output-dir .\export\<slug>` (the script should glob for the latest config.yml under `outputs\`)
+  7. Convert `export\<slug>\point_cloud.ply` → `export\<slug>\scene.splat` using the SuperSplat CLI
+  8. Open `export\<slug>\` in Explorer so the user can review the output
+  9. Print next-step instructions: "Review scene.splat in SuperSplat web viewer, then copy it to the NAS incoming folder as `YYYY-MM_property_room.splat`"
+- [ ] **Print a completion summary** listing each installed tool and its version, the working directory path, and a reminder of the file naming convention from item 11 (`YYYY-MM_property-slug_room-slug.splat`).
+
+### Verification checklist (run manually after the script completes)
+
+- [ ] `nvidia-smi` — shows GPU name and driver version
+- [ ] `ffmpeg -version` — shows build and codec info
+- [ ] `colmap --version` — shows version string
+- [ ] `conda run -n nerfstudio ns-train --help` — nerfstudio CLI responds without error
+- [ ] SuperSplat CLI `--version` (or equivalent) responds
+- [ ] Drop a 30-second test clip into `incoming\`, run `process-scene.ps1`, confirm `scene.splat` appears in `export\` — full end-to-end smoke test before the first client shoot
