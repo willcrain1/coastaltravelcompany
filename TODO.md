@@ -252,13 +252,104 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
 
 ### Capture
-- [ ] Establish a capture workflow: record slow, overlapping video passes of the space (phone or mirrorless — 4K, steady movement, good exposure) or use a dedicated capture app (Luma AI mobile app is the lowest-friction starting point)
-- [ ] Document lighting requirements: even ambient light, no harsh shadows or moving subjects during capture passes
 
-### Processing
-- [ ] Evaluate processing tools: **Luma AI** (cloud, fast, free tier) vs. **Postshot** (local GPU, high quality, paid) vs. **COLMAP + nerfstudio/3DGS** (open source, technical) — Luma AI is the recommended starting point for speed
-- [ ] Output a `.splat` or `.ply` file per scene after processing; upload to Luma AI or SuperSplat to get the iframe-embeddable URL
-- [ ] Establish a naming convention and folder structure on the NAS for raw capture footage and processed splat files
+- [ ] **Camera and settings** — shoot at 4K/30fps minimum; use a gimbal or steady hand movement (no handheld shake); set a fixed exposure (manual mode) so frames don't auto-brighten/darken mid-pass, which confuses COLMAP color consistency. A mirrorless on a gimbal produces better COLMAP registrations than phone footage, but phone 4K is acceptable for most hotel rooms.
+- [ ] **Movement pattern per scene** — plan 3 types of passes per room:
+  1. **Primary orbit** — slow horizontal arc (2 m/s max) around the hero subject (bed, seating, focal feature); keep camera level, overlap each position by ~60%
+  2. **Vertical sweep** — move camera up/down in the corners to capture ceiling and floor detail (COLMAP struggles if all frames are at one height)
+  3. **Detail passes** — slow close-up walks along counters, headboards, and architectural features; these add Gaussian density where the viewer will linger in the final walkthrough
+  Aim for 3–5 min of raw footage per room at steady walking pace; that extracts to ~300–500 frames at 2 fps.
+- [ ] **Lighting requirements** — even ambient light is critical for clean reconstruction:
+  - Turn on all room lights including bedside lamps; open curtains to eliminate harsh window beams
+  - Avoid shooting at dusk or dawn when outdoor light changes rapidly during a pass
+  - Watch for mirrors and glass surfaces — they cause duplicate geometry in COLMAP; angle slightly past them or block reflections where possible
+  - Moving subjects (housekeeping staff, curtains in breeze) will create floaters in the splat — wait for stillness before each pass
+- [ ] **Test shoot first** — do one practice room with the RTX 3070 pipeline before a client shoot so unexpected COLMAP failures (too-dark frames, insufficient overlap) are discovered at home rather than on location
+
+### Processing — In-House GPU Pipeline (RTX 3070)
+
+The RTX 3070 (8 GB VRAM) is capable of training Gaussian Splatting models for room-scale hotel scenes. Typical training time is 30–60 min per scene at default 30 k iteration count. Larger continuous spaces (grand lobbies, multi-room suites) will need to be split into overlapping sub-scenes or trained at reduced Gaussian count to stay within 8 GB.
+
+#### One-time machine setup
+
+- [ ] **Install prerequisites** on the processing workstation:
+  - CUDA Toolkit 11.8 or 12.x (match the PyTorch build); verify with `nvcc --version`
+  - Anaconda or `uv` for Python environment isolation
+  - Git with Git LFS (for large `.splat` / `.ply` files if stored in the repo)
+  - **COLMAP** (binary from colmap.github.io or `winget install colmap`) — handles Structure-from-Motion; verify GPU feature matching is enabled in COLMAP preferences
+  - **ffmpeg** (via `winget install ffmpeg`) — used to extract still frames from video at a controlled frame rate
+- [ ] **Install nerfstudio** (recommended open-source toolkit — supports `splatfacto`, the 3DGS-compatible trainer):
+  ```
+  conda create -n nerfstudio python=3.10 -y
+  conda activate nerfstudio
+  pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+  pip install nerfstudio
+  ```
+  Verify GPU is visible: `python -c "import torch; print(torch.cuda.get_device_name(0))"`
+- [ ] **Install Postshot** as a GUI alternative (paid, ~$50 one-time) — lower friction for jobs where a no-command-line workflow is preferred; evaluate against nerfstudio output quality on 2–3 test scenes before committing
+- [ ] **Install SuperSplat** CLI (`npm install -g supersplat`) — used for compressing and inspecting `.splat` files before upload; also provides the iframe viewer URL
+
+#### Per-scene workflow
+
+- [ ] **Frame extraction from video** — run ffmpeg to pull stills from the capture footage:
+  ```
+  ffmpeg -i shoot.mp4 -vf "fps=3,scale=3840:-1" -q:v 2 frames/%05d.jpg
+  ```
+  `fps=3` gives ~3 frames/sec — enough overlap for a slow walk-through; bump to `fps=5` for fast pans or complex geometry. Target 200–600 frames per scene; fewer causes sparse reconstruction, more slows COLMAP without improving results.
+- [ ] **COLMAP reconstruction** — nerfstudio wraps COLMAP automatically via:
+  ```
+  ns-process-data images --data ./frames --output-dir ./colmap_out
+  ```
+  This runs feature extraction (SIFT), exhaustive or sequential matching, and sparse reconstruction. On RTX 3070, GPU-accelerated SIFT matching handles 400 frames in ~10–15 min. Review the sparse point cloud in COLMAP viewer before training — if fewer than 80% of frames register, reshoot with more overlap or better lighting.
+- [ ] **3DGS training** — launch the splatfacto trainer:
+  ```
+  ns-train splatfacto --data ./colmap_out
+  ```
+  Default: 30 000 iterations, ~45 min on RTX 3070 for a hotel-room-scale scene. Monitor VRAM in Task Manager; if usage exceeds 7.5 GB, add `--pipeline.model.max-num-gaussians 1500000` to cap the Gaussian count. Output lands in `outputs/<timestamp>/splatfacto/`.
+- [ ] **Export to `.splat`** — convert the trained checkpoint to a browser-viewable splat file:
+  ```
+  ns-export gaussian-splat --load-config outputs/.../config.yml --output-dir ./export
+  ```
+  Produces `point_cloud.ply`; convert to compressed `.splat` format via SuperSplat: `supersplat convert point_cloud.ply scene.splat`
+- [ ] **Quality check** — open `scene.splat` in the SuperSplat web viewer before delivering to client; look for:
+  - Floaters (stray Gaussians in mid-air) — trim with SuperSplat's selection tool if severe
+  - Black patches or missing geometry — indicates insufficient frame coverage in that area; reshoot or supplement with targeted photo pairs
+  - Blurry textures — caused by motion blur in capture; reshoot those passes with slower movement
+- [ ] **Compression and upload to NAS** — target file size ≤ 80 MB for a single hotel room (well within the SuperSplat iframe limit); store the `.splat` on the NAS under the folder structure below, then paste the hosted viewer URL into the admin walkthroughs panel
+
+#### Scene size limits on RTX 3070
+
+| Scene type | Typical frames | Expected training time | VRAM at peak | Notes |
+|---|---|---|---|---|
+| Hotel room / suite | 200–350 | 30–45 min | 4–6 GB | Fits easily |
+| Lobby / common area | 350–600 | 45–75 min | 6–8 GB | Cap Gaussians if OOM |
+| Full floor / multi-room | 600–900 | 75–120 min | > 8 GB | **Split into sub-scenes** and stitch in SuperSplat, or use hierarchical 3DGS flag `--pipeline.model.use-hierarchy True` |
+| Exterior / grounds | 400–700 | 60–90 min | 6–8 GB | Reduce sky Gaussians; add `--pipeline.model.background-color white` |
+
+#### NAS folder structure and naming convention
+
+```
+/Coastal Travel Company/3d-walkthroughs/
+  {YYYY-MM}_{ClientName}_{PropertyName}/
+    raw/                  ← original video files from shoot
+    frames/               ← extracted JPEGs (not archived long-term; regenerate from raw if needed)
+    colmap_out/           ← COLMAP sparse reconstruction output
+    outputs/              ← nerfstudio training checkpoints
+    export/
+      scene.splat         ← final compressed splat (primary deliverable)
+      point_cloud.ply     ← full-precision PLY (keep as archive copy)
+    preview.mp4           ← screen-capture flythrough for client approval before upload
+```
+
+- [ ] Establish the naming convention above and document it in a `3d-walkthroughs/README.txt` on the NAS
+- [ ] Keep raw video and `scene.splat` permanently; prune `frames/`, `colmap_out/`, and `outputs/` after the scene is approved and uploaded (they can be regenerated from raw)
+
+#### Output and delivery
+
+- [ ] Upload approved `.splat` to SuperSplat hosting (or self-host via R2 + the splat viewer iframe from item 37) to get an iframe-embeddable URL
+- [ ] Paste the embed URL into the admin Walkthroughs panel (`admin/galleries.html`) — this populates both the public `/walkthroughs.html` showcase and the client portal's 3D section
+- [ ] For client portal delivery, set `splat_url` on the gallery record via the admin edit panel so the collapsible "3D Walkthrough" section appears in `client-gallery.html`
+- [ ] Include a note in the client delivery email that the 3D walkthrough requires a desktop or high-end mobile browser (WebGL 2 required; low-end Android may stutter)
 
 ### Hosting & Display
 - [x] Hosting approach chosen: iframe-embeddable URLs (Luma AI, SuperSplat) — no self-hosting required; admin pastes the embed URL into the gallery or walkthrough record
