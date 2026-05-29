@@ -1431,19 +1431,19 @@ No e2e test exercises the Users tab in the admin panel.
 
 ---
 
-## 45. Windows 11 Splatting Workstation Setup Script
+## ~~45. Windows 11 Splatting Workstation Setup Script~~ ✅ Done
 
 **Goal:** A single PowerShell script (`workstation/splatting/setup-windows.ps1`) that installs and configures the complete free local 3DGS pipeline on a Windows 11 machine with an NVIDIA GPU — CUDA-aware COLMAP, ffmpeg, Miniconda + nerfstudio (splatfacto), and SuperSplat. Run once; takes ~20 minutes; leaves the machine ready to process a scene end-to-end with no paid tools. All workstation scripts live in the `workstation/` directory at the repo root.
 
 ### Script: `workstation/splatting/setup-windows.ps1`
 
-- [ ] **Preflight checks** — fail fast with a clear message if any of the following are unmet:
+- [x] **Preflight checks** — fail fast with a clear message if any of the following are unmet:
   - PowerShell 5.1 or later (`$PSVersionTable.PSVersion.Major -ge 5`)
   - `winget` is available — it ships with Windows 11; if missing, print "Install 'App Installer' from the Microsoft Store" and exit
   - NVIDIA GPU detected — run `nvidia-smi`; if it exits non-zero, print "NVIDIA driver not found — install from nvidia.com/drivers" and exit
   - Print the detected GPU name, driver version, and VRAM so the user knows before training starts whether the driver needs an update
   - At least 20 GB free on `C:\` — warn (don't exit) if less, since conda envs and training checkpoints are large
-- [ ] **Install base packages via winget** (winget skips already-installed packages, so the script is safe to re-run):
+- [x] **Install base packages via winget** (winget skips already-installed packages, so the script is safe to re-run):
   ```powershell
   winget install --id Git.Git            -e --silent --accept-package-agreements
   winget install --id Gyan.FFmpeg        -e --silent --accept-package-agreements
@@ -1451,7 +1451,7 @@ No e2e test exercises the Users tab in the admin panel.
   winget install --id Anaconda.Miniconda3 -e --silent --accept-package-agreements
   ```
   After each `winget` call, refresh `$env:PATH` in the current session using `[System.Environment]::GetEnvironmentVariable("PATH","Machine")` so subsequent commands find the new binaries without requiring a shell restart.
-- [ ] **Install COLMAP** — COLMAP has no winget package; download the latest CUDA-enabled Windows release from the GitHub releases API:
+- [x] **Install COLMAP** — COLMAP has no winget package; download the latest CUDA-enabled Windows release from the GitHub releases API:
   ```powershell
   $rel = Invoke-RestMethod "https://api.github.com/repos/colmap/colmap/releases/latest"
   $tag = $rel.tag_name
@@ -1462,7 +1462,7 @@ No e2e test exercises the Users tab in the admin panel.
   [Environment]::SetEnvironmentVariable("PATH", [Environment]::GetEnvironmentVariable("PATH","User") + ";$colmapBin", "User")
   ```
   Verify: `colmap --version` should print the version string.
-- [ ] **Create nerfstudio conda environment**:
+- [x] **Create nerfstudio conda environment**:
   ```powershell
   conda create -n nerfstudio python=3.10 -y
   # Install PyTorch with CUDA 11.8 wheels (matches CUDA Toolkit ≤ 12.x on the RTX 3070 driver)
@@ -1474,8 +1474,8 @@ No e2e test exercises the Users tab in the admin panel.
   $gpuCheck = conda run -n nerfstudio python -c "import torch; print(torch.cuda.get_device_name(0))"
   ```
   If the output contains the GPU name, print "✓ PyTorch sees the GPU — training will use CUDA". If it contains "CPU" or throws, print a remediation message: "PyTorch did not find the GPU. Check that the CUDA driver is ≥ 520 and re-run this script."
-- [ ] **SuperSplat** — no install required; it runs in the browser at supersplat.playcanvas.com. The setup script should open that URL in the default browser as a final step so the user can bookmark it. Node.js is still installed (previous step) in case a CLI conversion tool is needed later for batch size reduction, but it is not required for the core pipeline.
-- [ ] **Create working directory structure** under `%USERPROFILE%\CTC-Splatting\`:
+- [x] **SuperSplat** — no install required; it runs in the browser at supersplat.playcanvas.com. The setup script should open that URL in the default browser as a final step so the user can bookmark it. Node.js is still installed (previous step) in case a CLI conversion tool is needed later for batch size reduction, but it is not required for the core pipeline.
+- [x] **Create working directory structure** under `%USERPROFILE%\CTC-Splatting\`:
   ```
   CTC-Splatting\
     incoming\     ← place raw shoot video files here before starting a job
@@ -1486,7 +1486,7 @@ No e2e test exercises the Users tab in the admin panel.
     done\         ← approved .splat files ready to copy to the NAS incoming folder
   ```
   Create all directories with `New-Item -ItemType Directory -Force`.
-- [ ] **Write `workstation/splatting/process-scene.ps1`** — a helper the user runs for each job; wraps the full item 11 pipeline into one script:
+- [x] **Write `workstation/splatting/process-scene.ps1`** — a helper the user runs for each job; wraps the full item 11 pipeline into one script:
   1. Wipe and re-create `frames\`
   2. Find the first video file in `incoming\`; derive the scene slug from its filename (strip extension)
   3. Run: `ffmpeg -i <video> -vf "fps=3,scale=3840:-1" -q:v 2 frames\%05d.jpg`
@@ -1498,7 +1498,7 @@ No e2e test exercises the Users tab in the admin panel.
      "1. Drag point_cloud.ply into SuperSplat, review and clean the scene, then File → Export → .splat → save as <slug>.splat in export\<slug>\
       2. Copy point_cloud.ply    → NAS: 3d-walkthroughs\<slug>\export\point_cloud.ply  (archive)
       3. Copy <slug>.splat       → NAS: 3d-walkthroughs\splats-incoming\<slug>.splat   (triggers R2 upload)"
-- [ ] **Print a completion summary** listing each installed tool and its version, the working directory path, and a reminder of the file naming convention from item 11 (`YYYY-MM_property-slug_room-slug.splat`).
+- [x] **Print a completion summary** listing each installed tool and its version, the working directory path, and a reminder of the file naming convention from item 11 (`YYYY-MM_property-slug_room-slug.splat`).
 
 ### Verification checklist (run manually after the script completes)
 
