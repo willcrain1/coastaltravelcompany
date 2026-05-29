@@ -385,9 +385,10 @@ After the `.splat` is approved on the local workstation, dropping it into a watc
   /volume1/Coastal Travel Company/3d-walkthroughs/splats-uploaded/   ← script moves files here on success
   /volume1/Coastal Travel Company/3d-walkthroughs/splats-failed/     ← script moves files here on failure
   ```
-- [ ] **Create the upload script** at `/volume1/scripts/sync-splats.sh`:
+- [ ] **Create the upload script** — source lives at `nas/sync-splats.sh` in the repo (version-controlled alongside the other NAS configs in `nas/`); deploy to the NAS by copying to `/volume1/scripts/sync-splats.sh`:
   ```bash
   #!/bin/bash
+  # nas/sync-splats.sh
   # Uploads any .splat files dropped in splats-incoming/ to R2 ctc-assets/splats/{slug}/
   # and calls the Worker to register the new URL.
   # Designed to run as a Synology Scheduled Task every 2 minutes.
@@ -427,7 +428,7 @@ After the `.splat` is approved on the local workstation, dropping it into a watc
     fi
   done
   ```
-  `chmod +x /volume1/scripts/sync-splats.sh`
+  After copying to the NAS: `chmod +x /volume1/scripts/sync-splats.sh`
 - [ ] **Store the admin JWT** — log into the admin panel, open DevTools → Application → Local Storage, copy the `jwt` value, save it to `/volume1/scripts/.ctc-admin-token` on the NAS with `chmod 600` so only root can read it. This token is used to authenticate the Worker notification call.
 
 #### Synology Task Scheduler setup
@@ -1432,9 +1433,9 @@ No e2e test exercises the Users tab in the admin panel.
 
 ## 45. Windows 11 Splatting Workstation Setup Script
 
-**Goal:** A single PowerShell script (`tools/splatting/setup-windows.ps1`) that installs and configures the complete free local 3DGS pipeline on a Windows 11 machine with an NVIDIA GPU — CUDA-aware COLMAP, ffmpeg, Miniconda + nerfstudio (splatfacto), and SuperSplat. Run once; takes ~20 minutes; leaves the machine ready to process a scene end-to-end with no paid tools.
+**Goal:** A single PowerShell script (`workstation/splatting/setup-windows.ps1`) that installs and configures the complete free local 3DGS pipeline on a Windows 11 machine with an NVIDIA GPU — CUDA-aware COLMAP, ffmpeg, Miniconda + nerfstudio (splatfacto), and SuperSplat. Run once; takes ~20 minutes; leaves the machine ready to process a scene end-to-end with no paid tools. All workstation scripts live in the `workstation/` directory at the repo root.
 
-### Script: `tools/splatting/setup-windows.ps1`
+### Script: `workstation/splatting/setup-windows.ps1`
 
 - [ ] **Preflight checks** — fail fast with a clear message if any of the following are unmet:
   - PowerShell 5.1 or later (`$PSVersionTable.PSVersion.Major -ge 5`)
@@ -1485,7 +1486,7 @@ No e2e test exercises the Users tab in the admin panel.
     done\         ← approved .splat files ready to copy to the NAS incoming folder
   ```
   Create all directories with `New-Item -ItemType Directory -Force`.
-- [ ] **Write `CTC-Splatting\process-scene.ps1`** — a helper the user runs for each job; wraps the full item 11 pipeline into one script:
+- [ ] **Write `workstation/splatting/process-scene.ps1`** — a helper the user runs for each job; wraps the full item 11 pipeline into one script:
   1. Wipe and re-create `frames\`
   2. Find the first video file in `incoming\`; derive the scene slug from its filename (strip extension)
   3. Run: `ffmpeg -i <video> -vf "fps=3,scale=3840:-1" -q:v 2 frames\%05d.jpg`
@@ -1505,4 +1506,4 @@ No e2e test exercises the Users tab in the admin panel.
 - [ ] `ffmpeg -version` — shows build and codec info
 - [ ] `colmap --version` — shows version string
 - [ ] `conda run -n nerfstudio ns-train --help` — nerfstudio CLI responds without error
-- [ ] Drop a 30-second test clip into `incoming\`, run `process-scene.ps1`, confirm `point_cloud.ply` appears in `export\`; load it in supersplat.playcanvas.com, export as `.splat`, and confirm the file is substantially smaller than the PLY
+- [ ] Drop a 30-second test clip into `incoming\`, run `workstation/splatting/process-scene.ps1`, confirm `point_cloud.ply` appears in `export\`; load it in supersplat.playcanvas.com, export as `.splat`, and confirm the file is substantially smaller than the PLY
