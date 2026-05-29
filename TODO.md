@@ -306,16 +306,17 @@ The RTX 3070 (8 GB VRAM) is capable of training Gaussian Splatting models for ro
   ns-train splatfacto --data ./colmap_out
   ```
   Default: 30 000 iterations, ~45 min on RTX 3070 for a hotel-room-scale scene. Monitor VRAM in Task Manager; if usage exceeds 7.5 GB, add `--pipeline.model.max-num-gaussians 1500000` to cap the Gaussian count. Output lands in `outputs/<timestamp>/splatfacto/`.
-- [ ] **Export to `.splat`** — convert the trained checkpoint to a browser-viewable splat file:
+- [ ] **Export** — convert the trained checkpoint to a file for delivery:
   ```
   ns-export gaussian-splat --load-config outputs/.../config.yml --output-dir ./export
   ```
-  Produces `point_cloud.ply`; convert to compressed `.splat` format via SuperSplat: `supersplat convert point_cloud.ply scene.splat`
-- [ ] **Quality check** — open `scene.splat` in the SuperSplat web viewer before delivering to client; look for:
+  Produces `point_cloud.ply`. This PLY can be loaded directly by the SuperSplat web viewer and served from R2 as-is — no conversion required. A single hotel room typically exports as 80–200 MB PLY.
+- [ ] **Quality check** — drag `point_cloud.ply` into supersplat.playcanvas.com and review the scene; look for:
   - Floaters (stray Gaussians in mid-air) — trim with SuperSplat's selection tool if severe
-  - Black patches or missing geometry — indicates insufficient frame coverage in that area; reshoot or supplement with targeted photo pairs
+  - Black patches or missing geometry — indicates insufficient frame coverage; reshoot or supplement with targeted photo pairs
   - Blurry textures — caused by motion blur in capture; reshoot those passes with slower movement
-- [ ] **Compression and upload to NAS** — target file size ≤ 80 MB for a single hotel room (well within the SuperSplat iframe limit); store the `.splat` on the NAS under the folder structure below, then paste the hosted viewer URL into the admin walkthroughs panel
+  - After any edits in SuperSplat, export back out as PLY (or `.splat` if you want a smaller file — the `.splat` format strips spherical harmonics and is 5–10× smaller, worthwhile if the PLY exceeds ~200 MB)
+- [ ] **Upload to NAS** — copy the final file to the NAS watch folder with the correct slug filename; the automated pipeline handles R2 upload from there
 
 #### Scene size limits on RTX 3070
 
@@ -1470,17 +1471,7 @@ No e2e test exercises the Users tab in the admin panel.
   $gpuCheck = conda run -n nerfstudio python -c "import torch; print(torch.cuda.get_device_name(0))"
   ```
   If the output contains the GPU name, print "✓ PyTorch sees the GPU — training will use CUDA". If it contains "CPU" or throws, print a remediation message: "PyTorch did not find the GPU. Check that the CUDA driver is ≥ 520 and re-run this script."
-- [ ] **Install SuperSplat** — SuperSplat (github.com/playcanvas/supersplat) is the free, open-source `.splat` viewer, editor, and compressor. Check the repo for the current npm package name at implementation time; install via npm:
-  ```powershell
-  npm install -g supersplat   # verify exact package name from playcanvas/supersplat README
-  supersplat --version
-  ```
-  If no global CLI package exists at implementation time, fall back to cloning the repo and wiring up a small wrapper script:
-  ```powershell
-  git clone https://github.com/playcanvas/supersplat "C:\tools\supersplat"
-  Push-Location "C:\tools\supersplat"; npm install; Pop-Location
-  # Write a supersplat.cmd shim to C:\tools\bin\ that calls node C:\tools\supersplat\...
-  ```
+- [ ] **SuperSplat** — no install required; it runs in the browser at supersplat.playcanvas.com. The setup script should open that URL in the default browser as a final step so the user can bookmark it. Node.js is still installed (previous step) in case a CLI conversion tool is needed later for batch size reduction, but it is not required for the core pipeline.
 - [ ] **Create working directory structure** under `%USERPROFILE%\CTC-Splatting\`:
   ```
   CTC-Splatting\
@@ -1498,10 +1489,9 @@ No e2e test exercises the Users tab in the admin panel.
   3. Run: `ffmpeg -i <video> -vf "fps=3,scale=3840:-1" -q:v 2 frames\%05d.jpg`
   4. Run: `conda run -n nerfstudio ns-process-data images --data .\frames --output-dir .\colmap_out\<slug>`
   5. Run: `conda run -n nerfstudio ns-train splatfacto --data .\colmap_out\<slug>`
-  6. Run: `conda run -n nerfstudio ns-export gaussian-splat --load-config .\outputs\...\config.yml --output-dir .\export\<slug>` (the script should glob for the latest config.yml under `outputs\`)
-  7. Convert `export\<slug>\point_cloud.ply` → `export\<slug>\scene.splat` using the SuperSplat CLI
-  8. Open `export\<slug>\` in Explorer so the user can review the output
-  9. Print next-step instructions: "Review scene.splat in SuperSplat web viewer, then copy it to the NAS incoming folder as `YYYY-MM_property_room.splat`"
+  6. Run: `conda run -n nerfstudio ns-export gaussian-splat --load-config .\outputs\...\config.yml --output-dir .\export\<slug>` (the script should glob for the latest `config.yml` under `outputs\`)
+  7. Open `export\<slug>\` in Explorer so the user can review `point_cloud.ply`
+  8. Print next-step instructions: "Drag point_cloud.ply into supersplat.playcanvas.com to review and clean the scene. When satisfied, copy the file to the NAS incoming folder named `YYYY-MM_property_room.ply` (or export as .splat from SuperSplat if the file exceeds ~200 MB)"
 - [ ] **Print a completion summary** listing each installed tool and its version, the working directory path, and a reminder of the file naming convention from item 11 (`YYYY-MM_property-slug_room-slug.splat`).
 
 ### Verification checklist (run manually after the script completes)
@@ -1510,5 +1500,4 @@ No e2e test exercises the Users tab in the admin panel.
 - [ ] `ffmpeg -version` — shows build and codec info
 - [ ] `colmap --version` — shows version string
 - [ ] `conda run -n nerfstudio ns-train --help` — nerfstudio CLI responds without error
-- [ ] SuperSplat CLI `--version` (or equivalent) responds
-- [ ] Drop a 30-second test clip into `incoming\`, run `process-scene.ps1`, confirm `scene.splat` appears in `export\` — full end-to-end smoke test before the first client shoot
+- [ ] Drop a 30-second test clip into `incoming\`, run `process-scene.ps1`, confirm `point_cloud.ply` appears in `export\` — full end-to-end smoke test; load it in supersplat.playcanvas.com to confirm the scene renders
