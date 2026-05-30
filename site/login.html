@@ -392,8 +392,13 @@
   }
 
   function redirect(user) {
-    const dest = user.role === 'admin' ? '/admin/pipeline.html' : '/portal.html';
-    window.location.href = dest;
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('redirect');
+    if (returnTo && returnTo.startsWith('/')) {
+      window.location.href = returnTo;
+      return;
+    }
+    window.location.href = user.role === 'admin' ? '/admin/pipeline.html' : '/portal.html';
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────

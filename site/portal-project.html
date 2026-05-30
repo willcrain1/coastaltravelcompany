@@ -402,7 +402,18 @@
   async function load() {
     if (!token) { showError('No portal link found. Please use the link from your email.'); return; }
     try {
-      const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers: { Origin: location.origin } });
+      const jwt = localStorage.getItem('ctc_jwt');
+      const headers = { Origin: location.origin };
+      if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
+      const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers });
+      if (res.status === 401) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(location.href);
+        return;
+      }
+      if (res.status === 403) {
+        showError('This project portal is linked to a different account. Please sign in with the correct email address.');
+        return;
+      }
       if (!res.ok) { showError('Portal not found. Please use the link you received by email.'); return; }
       projectData = await res.json();
       localStorage.setItem('ctc_project_token', token);
@@ -496,9 +507,12 @@
     if (!content) return;
     btn.disabled = true;
     try {
+      const jwt = localStorage.getItem('ctc_jwt');
+      const msgHeaders = { 'Content-Type': 'application/json', Origin: location.origin };
+      if (jwt) msgHeaders['Authorization'] = 'Bearer ' + jwt;
       const res = await fetch(WORKER_URL + '/portal/project/' + token, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Origin: location.origin },
+        headers: msgHeaders,
         body: JSON.stringify({ content }),
       });
       if (res.ok) {
