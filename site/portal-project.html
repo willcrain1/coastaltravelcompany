@@ -258,6 +258,30 @@
     }
     .pp-error { color: #c00; }
     .pp-loading { color: #888; }
+
+    /* ── Portal tab nav ── */
+    .portal-tab-nav {
+      display: flex;
+      border-bottom: 2px solid var(--linen);
+      margin: 0 auto 40px;
+      max-width: 800px;
+      padding: 0 24px;
+    }
+    .portal-tab-link {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      padding: 12px 20px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .portal-tab-link:hover { color: var(--green); }
+    .portal-tab-link.active { color: var(--green); border-bottom-color: var(--green); }
   </style>
 </head>
 <body>
@@ -288,6 +312,11 @@
 </div>
 
 <main>
+  <nav class="portal-tab-nav">
+    <a class="portal-tab-link" href="/portal.html">My Account</a>
+    <a class="portal-tab-link active" href="#">My Project</a>
+  </nav>
+
   <div id="ppLoading" class="pp-loading">Loading your project portal…</div>
   <div id="ppError"   class="pp-error"   style="display:none"></div>
   <div id="ppWrap"   class="pp-wrap"    style="display:none">
@@ -345,6 +374,7 @@
       const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers: { Origin: location.origin } });
       if (!res.ok) { showError('Portal not found. Please use the link you received by email.'); return; }
       projectData = await res.json();
+      localStorage.setItem('ctc_project_token', token);
       render();
       hide('ppLoading'); show('ppWrap');
     } catch {
