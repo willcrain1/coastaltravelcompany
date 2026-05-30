@@ -424,6 +424,7 @@
   <div class="portal-tabs" aria-label="Portal sections">
     <a class="portal-tab-link" id="accountTabLink" href="/portal.html">My Account</a>
     <a class="portal-tab-link active" id="projectTabLink" href="#">My Project</a>
+    <a class="portal-tab-link" id="profileTabLink" href="/profile.html">My Profile</a>
   </div>
   <div class="nav-right">
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
@@ -540,6 +541,7 @@
       const jwt = localStorage.getItem(JWT_KEY);
       document.getElementById('accountTabLink').href = portalHref('/portal.html');
       document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
+      document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
       if (isAdminPreview && jwt) {
         const meRes = await fetch(WORKER_URL + '/auth/me', {
@@ -696,6 +698,7 @@
     }
 
     document.getElementById('accountTabLink').href = portalHref('/portal.html');
+    document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
     try {
       const res = await fetch(WORKER_URL + '/portal/my-project', {

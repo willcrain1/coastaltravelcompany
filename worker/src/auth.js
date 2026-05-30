@@ -229,5 +229,27 @@ export async function handleAuthMe(request, env) {
   if (!payload) return authRequired();
   const user = await getUser(payload.sub, env.KV);
   if (!user) return authRequired();
-  return jsonResponse({ id: user.id, email: user.email, role: user.role });
+  return jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
+}
+
+export async function handleAuthUpdateMe(request, env) {
+  const payload = await getAuth(request, env);
+  if (!payload) return authRequired();
+  const user = await getUser(payload.sub, env.KV);
+  if (!user) return authRequired();
+  let body; try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
+
+  if (body.name !== undefined) user.name = body.name.trim();
+
+  if (body.newPassword) {
+    if (!body.currentPassword) return jsonResponse({ error: 'Current password required' }, 400);
+    if (body.newPassword.length < 8) return jsonResponse({ error: 'New password must be at least 8 characters' }, 400);
+    if (!user.passwordHash) return jsonResponse({ error: 'No password set on this account' }, 400);
+    const valid = await verifyPassword(body.currentPassword, user.passwordHash);
+    if (!valid) return jsonResponse({ error: 'Current password is incorrect' }, 400);
+    user.passwordHash = await hashPassword(body.newPassword);
+  }
+
+  await putUser(user, env.KV);
+  return jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
 }
