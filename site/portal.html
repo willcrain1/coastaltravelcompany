@@ -31,14 +31,15 @@
     }
 
     /* ── Nav ── */
-    nav {
+    .portal-shell-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       background: var(--cream);
       border-bottom: 1px solid var(--linen);
       padding: 18px 48px;
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
       align-items: center;
-      justify-content: space-between;
+      gap: 24px;
     }
     .logo-wrap { line-height: 1; }
     .logo-main {
@@ -58,12 +59,8 @@
     .nav-right {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 20px;
-    }
-    .user-email {
-      font-size: 11px;
-      color: var(--mid);
-      letter-spacing: 0.04em;
     }
     .sign-out-btn {
       font-family: 'Montserrat', sans-serif;
@@ -207,10 +204,10 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Portal tab nav ── */
-    .portal-tab-nav {
+    .portal-tabs {
       display: flex;
-      border-bottom: 2px solid var(--linen);
-      margin-bottom: 40px;
+      justify-content: center;
+      gap: 8px;
     }
     .portal-tab-link {
       font-family: 'Montserrat', sans-serif;
@@ -220,9 +217,8 @@
       text-transform: uppercase;
       color: var(--mid);
       text-decoration: none;
-      padding: 12px 20px;
+      padding: 10px 14px;
       border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
       transition: color 0.2s, border-color 0.2s;
     }
     .portal-tab-link:hover { color: var(--green); }
@@ -327,23 +323,31 @@
     }
 
     @media (max-width: 640px) {
-      nav { padding: 16px 20px; }
-      main { padding: 100px 20px 60px; }
-      .user-email { display: none; }
+      .portal-shell-nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 14px 20px;
+        gap: 12px;
+      }
+      .nav-right { justify-content: center; }
+      main { padding: 168px 20px 60px; }
     }
   </style>
 </head>
 <body>
 
-<nav>
+<nav class="portal-shell-nav">
   <a href="/" style="text-decoration:none">
     <div class="logo-wrap">
       <span class="logo-main">Coastal</span>
       <span class="logo-script">Travel Company</span>
     </div>
   </a>
+  <div class="portal-tabs" aria-label="Portal sections">
+    <a class="portal-tab-link active" id="accountTabLink" href="/portal.html">My Account</a>
+    <a class="portal-tab-link disabled" id="projectTabLink" href="/portal-project.html">My Project</a>
+  </div>
   <div class="nav-right">
-    <span class="user-email" id="userEmail"></span>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -353,11 +357,6 @@
     <p class="eyebrow">Client Portal</p>
     <h1 class="page-title">My Account</h1>
   </div>
-
-  <nav class="portal-tab-nav">
-    <a class="portal-tab-link active" id="accountTabLink" href="/portal.html">My Account</a>
-    <a class="portal-tab-link disabled" id="projectTabLink" href="/portal-project.html">My Project</a>
-  </nav>
 
   <!-- Galleries -->
   <h2 class="section-heading">Galleries</h2>
@@ -535,8 +534,6 @@
     }
 
     const user = await meRes.json();
-    document.getElementById('userEmail').textContent = user.email;
-
     // Admins have a dedicated admin panel; redirect unless previewing the customer view
     if (user.role === 'admin' && !isAdminPreview) {
       window.location.href = '/admin/pipeline.html';
@@ -547,8 +544,8 @@
       banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
       banner.innerHTML = 'Admin Preview — this is how clients see the portal &nbsp;·&nbsp; <a href="/admin/galleries.html" style="color:#000;text-decoration:underline;">Back to Admin</a>';
       document.body.prepend(banner);
-      document.querySelector('nav').style.top = '33px';
-      document.querySelector('main').style.paddingTop = '153px';
+      document.querySelector('.portal-shell-nav').style.top = '33px';
+      document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '153px';
     }
 
     document.getElementById('accountTabLink').href = portalHref('/portal.html');

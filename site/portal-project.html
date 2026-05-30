@@ -26,14 +26,17 @@
       color: var(--text);
       min-height: 100vh;
     }
-    header {
+    .portal-shell-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       background: var(--cream);
       border-bottom: 1px solid var(--linen);
-      padding: 20px 48px;
-      display: flex;
+      padding: 18px 48px;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
       align-items: center;
-      justify-content: space-between;
+      gap: 24px;
     }
+    .logo-wrap { line-height: 1; }
     .logo-main {
       display: block;
       font-family: 'Gilda Display', serif;
@@ -48,15 +51,27 @@
       color: var(--green);
       line-height: 1;
     }
-    .header-tagline {
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      color: var(--mid);
-      text-transform: uppercase;
+    .nav-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
     }
-    @media (max-width: 600px) {
-      header { padding: 16px 20px; }
-      .header-tagline { display: none; }
+    .sign-out-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--linen);
+      color: var(--mid);
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sign-out-btn:hover { border-color: var(--teal); color: var(--green); }
+    main {
+      padding-top: 92px;
     }
     .pp-wrap {
       max-width: 800px;
@@ -308,12 +323,10 @@
     .pp-loading { color: #888; }
 
     /* ── Portal tab nav ── */
-    .portal-tab-nav {
+    .portal-tabs {
       display: flex;
-      border-bottom: 2px solid var(--linen);
-      margin: 0 auto 40px;
-      max-width: 800px;
-      padding: 0 24px;
+      justify-content: center;
+      gap: 8px;
     }
     .portal-tab-link {
       font-family: 'Montserrat', sans-serif;
@@ -323,31 +336,43 @@
       text-transform: uppercase;
       color: var(--mid);
       text-decoration: none;
-      padding: 12px 20px;
+      padding: 10px 14px;
       border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
       transition: color 0.2s, border-color 0.2s;
     }
     .portal-tab-link:hover { color: var(--green); }
     .portal-tab-link.active { color: var(--green); border-bottom-color: var(--green); }
+    @media (max-width: 640px) {
+      .portal-shell-nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 14px 20px;
+        gap: 12px;
+      }
+      .nav-right { justify-content: center; }
+      main { padding-top: 168px; }
+    }
   </style>
 </head>
 <body>
 
-<header>
+<nav class="portal-shell-nav">
   <a href="/" style="text-decoration:none">
-    <span class="logo-main">Coastal</span>
-    <span class="logo-script">Travel Company</span>
+    <div class="logo-wrap">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </div>
   </a>
-  <span class="header-tagline">Project Portal</span>
-</header>
+  <div class="portal-tabs" aria-label="Portal sections">
+    <a class="portal-tab-link" id="accountTabLink" href="/portal.html">My Account</a>
+    <a class="portal-tab-link active" id="projectTabLink" href="#">My Project</a>
+  </div>
+  <div class="nav-right">
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+</nav>
 
 <main>
-  <nav class="portal-tab-nav">
-    <a class="portal-tab-link" id="accountTabLink" href="/portal.html">My Account</a>
-    <a class="portal-tab-link active" href="#">My Project</a>
-  </nav>
-
   <div id="ppLoading" class="pp-loading">Loading your project portal…</div>
   <div id="ppError"   class="pp-error"   style="display:none"></div>
   <div id="ppWrap"   class="pp-wrap"    style="display:none">
@@ -394,6 +419,8 @@
 <script src="config.js"></script>
 <script>
   const WORKER_URL = CTC_CONFIG.workerUrl;
+  const JWT_KEY = 'ctc_jwt';
+  const USER_KEY = 'ctc_user';
   const token = location.hash.slice(1);
   const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
   let projectData = null;
@@ -409,14 +436,22 @@
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
     banner.innerHTML = 'Admin Preview &mdash; this is how clients see the portal &nbsp;&middot;&nbsp; <a href="/admin/galleries.html" style="color:#000;text-decoration:underline;">Back to Admin</a>';
     document.body.prepend(banner);
-    document.querySelector('header').style.marginTop = '33px';
+    document.querySelector('.portal-shell-nav').style.top = '33px';
+    document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '125px';
+  }
+
+  function signOut() {
+    localStorage.removeItem(JWT_KEY);
+    localStorage.removeItem(USER_KEY);
+    window.location.href = '/login.html';
   }
 
   async function load() {
     if (!token) { showError('No portal link found. Please use the link from your email.'); return; }
     try {
-      const jwt = localStorage.getItem('ctc_jwt');
+      const jwt = localStorage.getItem(JWT_KEY);
       document.getElementById('accountTabLink').href = portalHref('/portal.html');
+      document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
 
       if (isAdminPreview && jwt) {
         const meRes = await fetch(WORKER_URL + '/auth/me', {
