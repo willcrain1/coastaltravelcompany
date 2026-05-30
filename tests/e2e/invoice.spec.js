@@ -486,7 +486,7 @@ test.describe('Client Portal — Invoice History', () => {
 
     await page.goto(`${STATIC_BASE}/portal.html`);
     // Give the page time to finish loading
-    await expect(page.locator('#content')).not.toContainText('Loading', { timeout: 10_000 });
+    await expect(page.locator('#galleries-content')).not.toContainText('Loading', { timeout: 10_000 });
     await expect(page.locator('#invoices-section')).not.toBeVisible();
   });
 });
