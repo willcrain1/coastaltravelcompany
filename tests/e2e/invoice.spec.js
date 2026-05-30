@@ -375,6 +375,7 @@ test.describe('Admin Pipeline — Invoice Section', () => {
     const price2 = page.locator('#pd-invoice-items-container input[placeholder="0.00"]').nth(1);
     await price2.fill('250');
 
+    await page.fill('#pd-invoice-tax', '0');
     await page.fill('#pd-invoice-due', '2026-06-15');
     await page.click('button:has-text("Create Invoice")');
 

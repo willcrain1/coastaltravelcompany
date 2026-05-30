@@ -255,8 +255,8 @@
             <div class="note-add-form">
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
                 <div>
-                  <label>Tax ($)</label>
-                  <input type="number" id="pd-invoice-tax" placeholder="0.00" min="0" step="0.01" style="width:90px;" />
+                  <label>Tax (%)</label>
+                  <input type="number" id="pd-invoice-tax" value="7" min="0" max="100" step="0.01" style="width:70px;" />
                 </div>
                 <div>
                   <label>Due Date</label>
@@ -1162,14 +1162,16 @@
         unit_price_cents: Math.round((parseFloat(i.unit_price) || 0) * 100),
       }));
     if (!lineItems.length) { toast('Add at least one line item with a description', true); return; }
-    const tax_cents = Math.round((parseFloat(document.getElementById('pd-invoice-tax').value) || 0) * 100);
+    const subtotal  = lineItems.reduce((s, i) => s + Math.round(i.quantity * i.unit_price_cents), 0);
+    const taxRate   = parseFloat(document.getElementById('pd-invoice-tax').value) || 0;
+    const tax_cents = Math.round(subtotal * taxRate / 100);
     const due_date  = document.getElementById('pd-invoice-due').value;
     const notes     = document.getElementById('pd-invoice-notes').value.trim();
     const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/invoices', {
       method: 'POST', body: { line_items: lineItems, tax_cents, due_date, notes },
     });
     if (!ok) { toast(data?.error || 'Failed to create invoice', true); return; }
-    document.getElementById('pd-invoice-tax').value   = '';
+    document.getElementById('pd-invoice-tax').value   = '7';
     document.getElementById('pd-invoice-due').value   = '';
     document.getElementById('pd-invoice-notes').value = '';
     invoiceLineItems = [{ description: '', quantity: 1, unit_price: '' }];
