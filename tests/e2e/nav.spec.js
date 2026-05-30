@@ -90,11 +90,11 @@ test.describe('Client portal tab nav', () => {
     });
 
     await page.goto(`${STATIC_BASE}/portal.html`);
-    // Wait for auth to resolve (page redirects away if auth fails)
-    await expect(page).toHaveURL(/portal\.html/, { timeout: 10_000 });
-
-    const tabs = page.locator('.portal-tab-nav .portal-tab-link');
-    await expect(tabs).toHaveText(PORTAL_TABS);
+    // .portal-tab-link elements are in static HTML; toHaveText also confirms auth
+    // succeeded (a redirect to /login.html would leave 0 elements → test fails).
+    // Use .portal-tab-link directly — the container class differs between branches.
+    const tabs = page.locator('.portal-tab-link');
+    await expect(tabs).toHaveText(PORTAL_TABS, { timeout: 10_000 });
   });
 
   test(`portal-project.html tab nav shows exactly: ${PORTAL_TABS.join(', ')}`, async ({ page, context }) => {
@@ -112,10 +112,8 @@ test.describe('Client portal tab nav', () => {
     });
 
     await page.goto(`${STATIC_BASE}/portal-project.html#${TOKEN}`);
-    await expect(page).toHaveURL(/portal-project\.html/, { timeout: 10_000 });
-
-    const tabs = page.locator('.portal-tab-nav .portal-tab-link');
-    await expect(tabs).toHaveText(PORTAL_TABS);
+    const tabs = page.locator('.portal-tab-link');
+    await expect(tabs).toHaveText(PORTAL_TABS, { timeout: 10_000 });
   });
 });
 
