@@ -111,7 +111,10 @@
     <p style="font-family:'Montserrat',sans-serif;font-size:0.85rem;color:#555;margin:0 0 20px;">
       Set the days and hours clients can book discovery calls and shoot dates. Blocked dates override weekly windows.
     </p>
-    <div class="pd-notes-title" style="margin-bottom:12px;">Weekly Availability</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="pd-notes-title" style="margin:0;">Weekly Availability</div>
+      <button class="btn btn-primary btn-sm" onclick="saveAvailabilityWindows()">Save</button>
+    </div>
     <div id="availabilityWindows" style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;">
       <div class="fg">
@@ -434,9 +437,9 @@ This Agreement shall be governed by the laws of the State of Florida."></textare
       return;
     }
     el.innerHTML = availabilityData.windows.map((w, i) => `
-      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#f8f8f8;border-radius:4px;">
-        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;font-weight:600;min-width:90px;">${esc(DAY_NAMES[w.day_of_week])}</span>
-        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;">${esc(w.start_time)} – ${esc(w.end_time)}</span>
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(255,255,255,0.06);border-radius:4px;">
+        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;font-weight:600;min-width:90px;color:rgba(255,255,255,0.82);">${esc(DAY_NAMES[w.day_of_week])}</span>
+        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;color:rgba(255,255,255,0.65);">${esc(w.start_time)} – ${esc(w.end_time)}</span>
         <button class="btn btn-danger btn-sm" style="margin-left:auto;padding:4px 10px;" onclick="removeAvailabilityWindow(${i})">Remove</button>
       </div>`).join('');
   }
@@ -470,9 +473,9 @@ This Agreement shall be governed by the laws of the State of Florida."></textare
       return;
     }
     el.innerHTML = availabilityData.blocked_dates.map(b => `
-      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:#fff3cd;border-radius:4px;">
-        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;font-weight:600;">${esc(b.date)}</span>
-        ${b.reason ? `<span style="font-family:'Montserrat',sans-serif;font-size:0.82rem;color:#666;">${esc(b.reason)}</span>` : ''}
+      <div style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(255,193,7,0.1);border-radius:4px;border:1px solid rgba(255,193,7,0.2);">
+        <span style="font-family:'Montserrat',sans-serif;font-size:0.85rem;font-weight:600;color:rgba(255,255,255,0.82);">${esc(b.date)}</span>
+        ${b.reason ? `<span style="font-family:'Montserrat',sans-serif;font-size:0.82rem;color:rgba(255,255,255,0.5);">${esc(b.reason)}</span>` : ''}
         <button class="btn btn-danger btn-sm" style="margin-left:auto;padding:4px 10px;" onclick="removeBlockedDate('${esc(b.id)}')">Remove</button>
       </div>`).join('');
   }
