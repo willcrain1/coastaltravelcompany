@@ -482,13 +482,13 @@ test.describe('Client Portal — Invoice History', () => {
     await expect(page.locator('.badge-paid')).toBeVisible();
   });
 
-  test('invoice section is hidden when no invoices exist', async ({ page, context }) => {
+  test('invoice section shows empty state when no invoices exist', async ({ page, context }) => {
     await mockPortal(context, { invoices: [] });
 
     await page.goto(`${STATIC_BASE}/portal.html`);
-    // Give the page time to finish loading
     await expect(page.locator('#galleries-content')).not.toContainText('Loading', { timeout: 10_000 });
-    await expect(page.locator('#invoices-section')).not.toBeVisible();
+    await expect(page.locator('#invoices-section')).toBeVisible();
+    await expect(page.locator('#invoices-content')).toContainText('No invoices have been sent yet');
   });
 
   test('documents section shows an unsigned contract with a Sign button', async ({ page, context }) => {
@@ -512,11 +512,12 @@ test.describe('Client Portal — Invoice History', () => {
     await expect(page.locator('.doc-sign-btn')).toBeVisible();
   });
 
-  test('documents section is hidden when no contracts exist', async ({ page, context }) => {
+  test('documents section shows empty state when no contracts exist', async ({ page, context }) => {
     await mockPortal(context, { contracts: [] });
 
     await page.goto(`${STATIC_BASE}/portal.html`);
     await expect(page.locator('#galleries-content')).not.toContainText('Loading', { timeout: 10_000 });
-    await expect(page.locator('#documents-section')).not.toBeVisible();
+    await expect(page.locator('#documents-section')).toBeVisible();
+    await expect(page.locator('#documents-content')).toContainText('No documents have been sent yet');
   });
 });
