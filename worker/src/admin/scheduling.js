@@ -29,13 +29,15 @@ export async function handleAdminAvailability(request, method, env) {
   if (method === 'PUT') {
     const { windows } = await request.json();
     if (!Array.isArray(windows)) return jsonResponse({ error: 'windows array required' }, 400);
-    await env.DB.prepare('DELETE FROM availability_windows').run();
-    const now = new Date().toISOString();
+    const stmts = [env.DB.prepare('DELETE FROM availability_windows')];
     for (const w of windows) {
-      await env.DB.prepare(
-        'INSERT INTO availability_windows (id,day_of_week,start_time,end_time,active,created_at) VALUES (?,?,?,?,?,?)'
-      ).bind(crypto.randomUUID(), Number(w.day_of_week), w.start_time, w.end_time, w.active ? 1 : 0, now).run();
+      stmts.push(
+        env.DB.prepare(
+          'INSERT INTO availability_windows (id,day_of_week,start_time,end_time,active) VALUES (?,?,?,?,?)'
+        ).bind(crypto.randomUUID(), Number(w.day_of_week), w.start_time, w.end_time, w.active ? 1 : 0)
+      );
     }
+    await env.DB.batch(stmts);
     const { results } = await env.DB.prepare('SELECT * FROM availability_windows ORDER BY day_of_week, start_time').all();
     return jsonResponse(results);
   }

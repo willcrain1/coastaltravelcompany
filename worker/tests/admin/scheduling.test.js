@@ -15,7 +15,7 @@ function makeDb(rows = []) {
     first: vi.fn().mockResolvedValue(rows[0] ?? null),
   };
   stmt.bind.mockReturnValue(stmt);
-  return { prepare: vi.fn().mockReturnValue(stmt) };
+  return { prepare: vi.fn().mockReturnValue(stmt), batch: vi.fn().mockResolvedValue([]) };
 }
 
 async function adminReq(method, body) {
