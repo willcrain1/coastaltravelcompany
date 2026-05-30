@@ -60,6 +60,16 @@
       align-items: center;
       gap: 20px;
     }
+    .nav-account-link {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-account-link:hover { color: var(--green); }
     .user-email {
       font-size: 11px;
       color: var(--mid);
@@ -272,7 +282,7 @@
     @media (max-width: 640px) {
       nav { padding: 16px 20px; }
       main { padding: 100px 20px 60px; }
-      .user-email { display: none; }
+      .nav-account-link { display: none; }
     }
   </style>
 </head>
@@ -286,7 +296,7 @@
     </div>
   </a>
   <div class="nav-right">
-    <span class="user-email" id="userEmail"></span>
+    <a href="profile.html" class="nav-account-link" id="navAccountLink"></a>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -415,7 +425,9 @@
     }
 
     const user = await meRes.json();
-    document.getElementById('userEmail').textContent = user.email;
+    const accountLink = document.getElementById('navAccountLink');
+    accountLink.textContent = user.name || user.email;
+    accountLink.title = user.email;
 
     // Admins have a dedicated admin panel; redirect if they land here
     if (user.role === 'admin') {
