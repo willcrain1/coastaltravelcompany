@@ -108,6 +108,91 @@ export async function handlePublicProjectPortal(request, method, env, token) {
   }
 }
 
+export async function handlePortalMyProject(request, method, env) {
+  const payload = await getAuth(request, env);
+  if (!payload) return authRequired();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+
+  if (method === 'GET') {
+    const { results: projects } = await env.DB.prepare(
+      'SELECT * FROM projects WHERE client_email = ? ORDER BY created_at DESC LIMIT 1'
+    ).bind(payload.sub).all();
+
+    if (!projects.length) return jsonResponse({ project: null });
+
+    const proj = projects[0];
+    const { results: tokens } = await env.DB.prepare(
+      'SELECT * FROM project_portal_tokens WHERE project_id = ? ORDER BY created_at DESC LIMIT 1'
+    ).bind(proj.id).all();
+
+    let tokenId;
+    if (tokens.length) {
+      tokenId = tokens[0].id;
+    } else {
+      tokenId = crypto.randomUUID();
+      const now = new Date().toISOString();
+      await env.DB.prepare('INSERT INTO project_portal_tokens (id,project_id,expires_at,created_at) VALUES (?,?,?,?)')
+        .bind(tokenId, proj.id, '', now).run();
+    }
+
+    return jsonResponse({
+      token: tokenId,
+      project: { id: proj.id, client_name: proj.client_name, property: proj.property, location: proj.location, collection: proj.collection, shoot_date: proj.shoot_date, stage: proj.stage },
+    });
+  }
+
+  if (method === 'POST') {
+    const { results: existing } = await env.DB.prepare(
+      'SELECT id FROM projects WHERE client_email = ? LIMIT 1'
+    ).bind(payload.sub).all();
+    if (existing.length) return jsonResponse({ error: 'A project already exists for your account.' }, 409);
+
+    let body; try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
+    const { property, location, message } = body;
+    if (!property?.trim()) return jsonResponse({ error: 'Property name is required' }, 400);
+
+    const user = env.KV ? await getUser(payload.sub, env.KV) : null;
+    const clientName = (user?.name || payload.sub).trim();
+
+    const projId  = crypto.randomUUID();
+    const tokenId = crypto.randomUUID();
+    const now     = new Date().toISOString();
+
+    await env.DB.prepare(
+      'INSERT INTO projects (id,stage,client_name,client_email,property,location,collection,shoot_date,message,source,labels,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
+    ).bind(projId, 'Inquiry', clientName, payload.sub, property.trim(), location?.trim() || '', '', '', message?.trim() || '', 'client-portal', '', now, now).run();
+
+    await env.DB.prepare('INSERT INTO project_portal_tokens (id,project_id,expires_at,created_at) VALUES (?,?,?,?)')
+      .bind(tokenId, projId, '', now).run();
+
+    if (message?.trim()) {
+      const msgId = crypto.randomUUID();
+      await env.DB.prepare('INSERT INTO project_messages (id,project_id,sender,sender_name,content,created_at) VALUES (?,?,?,?,?,?)')
+        .bind(msgId, projId, 'client', clientName, message.trim(), now).run();
+    }
+
+    if (env.RESEND_API_KEY) {
+      const locPart = location?.trim() ? `<p style="font-family:sans-serif"><strong>Location:</strong> ${escHtml(location.trim())}</p>` : '';
+      const msgPart = message?.trim() ? `<blockquote style="font-family:sans-serif;border-left:3px solid #2A5C45;padding-left:12px;margin-left:0">${escHtml(message.trim())}</blockquote>` : '';
+      fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+          to:      [CONTACT_TO],
+          subject: `New project inquiry — ${clientName}`,
+          html:    `<p style="font-family:sans-serif"><strong>${escHtml(clientName)}</strong> (${escHtml(payload.sub)}) submitted a new project inquiry:</p><p style="font-family:sans-serif"><strong>Property:</strong> ${escHtml(property.trim())}</p>${locPart}${msgPart}<p style="font-family:sans-serif"><a href="${ALLOWED_ORIGIN}/admin/pipeline.html">View in Pipeline →</a></p>`,
+        }),
+      }).catch(() => {});
+    }
+
+    return jsonResponse({
+      token: tokenId,
+      project: { id: projId, client_name: clientName, property: property.trim(), location: location?.trim() || '', collection: '', shoot_date: '', stage: 'Inquiry' },
+    }, 201);
+  }
+}
+
 export async function handleAdminProjectMessages(request, method, env, projectId) {
   const p = await getAuth(request, env);
   if (!p) return authRequired();
