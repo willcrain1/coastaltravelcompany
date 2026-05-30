@@ -38,6 +38,11 @@
       <div class="form-grid">
 
         <div class="fg">
+          <label>Name</label>
+          <input type="text" id="userName" required placeholder="Jane Smith" />
+        </div>
+
+        <div class="fg">
           <label>Email</label>
           <input type="email" id="userEmail" required placeholder="client@example.com" />
         </div>
@@ -121,6 +126,7 @@
     const btn = document.getElementById('createUserBtn');
     btn.disabled = true; btn.textContent = 'Creating…';
 
+    const name     = document.getElementById('userName').value.trim();
     const email    = document.getElementById('userEmail').value.trim();
     const password = document.getElementById('userPassword').value || undefined;
     const role     = document.getElementById('userRole').value;
@@ -129,7 +135,7 @@
 
     const { ok, data } = await apiFetch('/admin/users', {
       method: 'POST',
-      body:   { email, password, role, galleries: selected },
+      body:   { name, email, password, role, galleries: selected },
     });
 
     btn.disabled = false; btn.textContent = 'Create Account';
@@ -216,7 +222,7 @@
           <div class="user-header">
             <div class="ur-info" onclick="toggleUserDetail('${esc(u.id)}')">
               <div class="ur-email">
-                ${esc(u.email)}
+                ${u.name ? esc(u.name) + ' — ' : ''}${esc(u.email)}
                 <span class="ur-chevron" id="uchev-${esc(u.id)}">▾</span>
               </div>
               <div class="ur-meta">

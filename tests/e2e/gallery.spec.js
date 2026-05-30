@@ -245,7 +245,6 @@ test.describe('Gallery Admin', () => {
     await page.fill('#shareUrl',      SHARE_URL);
     await page.fill('#sharePassword', 'test-share-pass');
     await page.fill('#eventName',     'CI Test Gallery');
-    await page.fill('#clientName',    'CI Test Client');
     await page.click('#createBtn');
     await page.waitForSelector('#resultBox.show');
 
@@ -256,7 +255,7 @@ test.describe('Gallery Admin', () => {
 
     expect(decoded.id).toBeTruthy();
     expect(decoded.eventName).toBe('CI Test Gallery');
-    expect(decoded.clientName).toBe('CI Test Client');
+    expect(decoded.clientName || '').toBe('');
     expect(decoded.watermark).toBe(false);
     expect(decoded.proxyUrl).toBe(WORKER_URL);
     // Passphrase and password hash are now server-side only — never in the client URL
@@ -271,7 +270,6 @@ test.describe('Gallery Admin', () => {
     await page.fill('#shareUrl',      SHARE_URL);
     await page.fill('#sharePassword', 'test-share-pass');
     await page.fill('#eventName',     'Watermark Test Gallery');
-    await page.fill('#clientName',    'Watermark Test Client');
     await page.check('#watermark');
     await page.click('#createBtn');
     await page.waitForSelector('#resultBox.show');

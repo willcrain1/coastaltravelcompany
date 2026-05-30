@@ -80,11 +80,6 @@
           <input type="text" id="eventName" required placeholder="Rivera Wedding · May 2024" />
         </div>
 
-        <div class="fg">
-          <label>Client Name</label>
-          <input type="text" id="clientName" required placeholder="Rivera Family" />
-        </div>
-
         <div class="fg full">
           <label>Internal Notes (not visible to client)</label>
           <input type="text" id="notes" placeholder="e.g. 200 photos delivered, client approved." />
@@ -284,7 +279,6 @@
     const shareRaw      = document.getElementById('shareUrl').value.trim();
     const sharePassword = document.getElementById('sharePassword').value.trim();
     const eventName     = document.getElementById('eventName').value.trim();
-    const clientName    = document.getElementById('clientName').value.trim();
     const notes         = document.getElementById('notes').value.trim();
     const watermark     = document.getElementById('watermark').checked;
 
@@ -308,7 +302,7 @@
 
     const gallery = {
       id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: activeProxyUrl,
-      passphrase: parsed.passphrase, sharePassword, eventName, clientName,
+      passphrase: parsed.passphrase, sharePassword, eventName,
       created, notes, watermark, assignedUsers: [],
     };
 

@@ -39,7 +39,7 @@ export async function handleAuthSetup(request, env) {
 
 export async function handleAuthRegister(request, env) {
   if (!env.JWT_SECRET) return jsonResponse({ error: 'JWT_SECRET not configured' }, 503);
-  const { email, password } = await request.json();
+  const { email, password, name } = await request.json();
   if (!email || !password || password.length < 8) {
     return jsonResponse({ error: 'Email and password (min 8 chars) required' }, 400);
   }
@@ -50,6 +50,7 @@ export async function handleAuthRegister(request, env) {
   const verifyToken = crypto.randomUUID();
   const user = {
     id, email: email.toLowerCase(),
+    name: name ? name.trim() : '',
     passwordHash: await hashPassword(password),
     role: 'client', created: Date.now(), galleries: [],
     verified: false,
