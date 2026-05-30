@@ -341,13 +341,13 @@
   </div>
 
   <!-- Documents -->
-  <div class="portal-section" id="documents-section" style="display:none">
+  <div class="portal-section" id="documents-section">
     <h2 class="section-heading">Documents</h2>
     <div id="documents-content"></div>
   </div>
 
   <!-- Invoices -->
-  <div class="portal-section" id="invoices-section" style="display:none">
+  <div class="portal-section" id="invoices-section">
     <h2 class="section-heading">Invoices</h2>
     <div id="invoices-content"></div>
   </div>
@@ -412,11 +412,10 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function renderContracts(contracts, preview) {
+  function renderContracts(contracts) {
     const section = document.getElementById('documents-section');
     const content = document.getElementById('documents-content');
     if (!contracts.length) {
-      if (!preview) { section.style.display = 'none'; return; }
       section.style.display = '';
       content.innerHTML = '<div class="state-empty">No documents have been sent yet.</div>';
       return;
@@ -451,11 +450,10 @@
     }).join('');
   }
 
-  function renderInvoices(invoices, preview) {
+  function renderInvoices(invoices) {
     const section = document.getElementById('invoices-section');
     const content = document.getElementById('invoices-content');
     if (!invoices.length) {
-      if (!preview) { section.style.display = 'none'; return; }
       section.style.display = '';
       content.innerHTML = '<div class="state-empty">No invoices have been sent yet.</div>';
       return;
@@ -537,9 +535,9 @@
 
     renderGalleries(await galRes.json());
 
-    if (conRes && conRes.ok) renderContracts(await conRes.json(), isAdminPreview);
+    if (conRes && conRes.ok) renderContracts(await conRes.json());
 
-    if (invRes && invRes.ok) renderInvoices(await invRes.json(), isAdminPreview);
+    if (invRes && invRes.ok) renderInvoices(await invRes.json());
   }
 
   load();
