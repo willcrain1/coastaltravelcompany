@@ -3,6 +3,24 @@ import { jsonResponse, authRequired, forbidden, escHtml } from './utils.js';
 import { getAuth } from './jwt.js';
 import { getUser, getGallery, stripGallery } from './kv.js';
 
+export async function handlePortalContracts(request, env) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const { results } = await env.DB.prepare(
+    `SELECT c.id, c.title, c.status, c.client_signed_at, c.admin_signed_at, c.signing_token, c.created_at,
+            proj.property, proj.collection
+     FROM contracts c
+     JOIN projects proj ON c.project_id = proj.id
+     WHERE c.client_email = ?
+     ORDER BY c.created_at DESC`
+  ).bind(p.sub).all();
+  return jsonResponse(results.map(r => ({
+    ...r,
+    public_url: `${ALLOWED_ORIGIN}/contract.html#${r.signing_token}`,
+  })));
+}
+
 export async function handlePortalGalleries(request, env) {
   const payload = await getAuth(request, env);
   if (!payload) return authRequired();
