@@ -53,7 +53,7 @@ export async function handlePublicProjectPortal(request, method, env, token) {
   if (!projRows.length) return jsonResponse({ error: 'Project not found' }, 404);
   const proj = projRows[0];
 
-  const clientUser = proj.client_email ? await getUser(proj.client_email, env.KV) : null;
+  const clientUser = env.KV && proj.client_email ? await getUser(proj.client_email, env.KV) : null;
 
   if (clientUser) {
     // Client has an account — require authentication as that email
