@@ -412,10 +412,15 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function renderContracts(contracts) {
+  function renderContracts(contracts, preview) {
     const section = document.getElementById('documents-section');
     const content = document.getElementById('documents-content');
-    if (!contracts.length) { section.style.display = 'none'; return; }
+    if (!contracts.length) {
+      if (!preview) { section.style.display = 'none'; return; }
+      section.style.display = '';
+      content.innerHTML = '<div class="state-empty">No documents have been sent yet.</div>';
+      return;
+    }
     section.style.display = '';
     content.innerHTML = contracts.map(c => {
       const context = [c.collection, c.property].filter(Boolean).join(' · ');
@@ -446,10 +451,15 @@
     }).join('');
   }
 
-  function renderInvoices(invoices) {
+  function renderInvoices(invoices, preview) {
     const section = document.getElementById('invoices-section');
     const content = document.getElementById('invoices-content');
-    if (!invoices.length) { section.style.display = 'none'; return; }
+    if (!invoices.length) {
+      if (!preview) { section.style.display = 'none'; return; }
+      section.style.display = '';
+      content.innerHTML = '<div class="state-empty">No invoices have been sent yet.</div>';
+      return;
+    }
     section.style.display = '';
     content.innerHTML = invoices.map(inv => {
       const total = '$' + (inv.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -527,9 +537,9 @@
 
     renderGalleries(await galRes.json());
 
-    if (conRes && conRes.ok) renderContracts(await conRes.json());
+    if (conRes && conRes.ok) renderContracts(await conRes.json(), isAdminPreview);
 
-    if (invRes && invRes.ok) renderInvoices(await invRes.json());
+    if (invRes && invRes.ok) renderInvoices(await invRes.json(), isAdminPreview);
   }
 
   load();
