@@ -53,14 +53,20 @@ export async function handlePublicProjectPortal(request, method, env, token) {
   if (!projRows.length) return jsonResponse({ error: 'Project not found' }, 404);
   const proj = projRows[0];
 
-  // If the client has an account, require them to be authenticated as that email
-  if (proj.client_email) {
-    const clientUser = await getUser(proj.client_email, env.KV);
-    if (clientUser) {
-      const p = await getAuth(request, env);
-      if (!p) return authRequired();
-      if (p.sub !== proj.client_email) return forbidden();
+  const clientUser = proj.client_email ? await getUser(proj.client_email, env.KV) : null;
+
+  if (clientUser) {
+    // Client has an account — require authentication as that email
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.sub !== proj.client_email) return forbidden();
+    // Project complete — read-only; block new messages
+    if (proj.stage === 'Complete' && method === 'POST') {
+      return jsonResponse({ error: 'This project is complete and no longer accepts new messages.' }, 403);
     }
+  } else if (proj.stage === 'Complete') {
+    // No account — deactivate portal when project is complete
+    return jsonResponse({ error: 'project_complete' }, 410);
   }
 
   if (method === 'GET') {

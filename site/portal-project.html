@@ -383,6 +383,10 @@
         showError('This project portal is linked to a different account. Please sign in with the correct email address.');
         return;
       }
+      if (res.status === 410) {
+        showError('This project has been completed. The portal is no longer active.');
+        return;
+      }
       if (!res.ok) { showError('Portal not found. Please use the link you received by email.'); return; }
       projectData = await res.json();
       localStorage.setItem('ctc_project_token', token);
@@ -404,6 +408,14 @@
     renderDocs(documents, proposals);
     renderQuestionnaires(questionnaires);
     renderMessages(messages);
+
+    if (project.stage === 'Complete') {
+      document.querySelector('.msg-form').style.display = 'none';
+      const note = document.createElement('p');
+      note.style.cssText = 'font-family:Montserrat,sans-serif;font-size:0.8rem;color:#aaa;font-style:italic;text-align:center;padding:12px 0;';
+      note.textContent = 'This project is complete — messaging is now closed.';
+      document.getElementById('ppMessages').after(note);
+    }
   }
 
   function renderTimeline(currentStage) {
