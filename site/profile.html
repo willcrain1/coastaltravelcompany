@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile — Coastal Travel Company</title>
+  <title>Account — Coastal Travel Company</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,19 +27,15 @@
       background: var(--cream);
       color: var(--text);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 120px 20px 40px;
       -webkit-font-smoothing: antialiased;
     }
 
+    /* ── Nav ── */
     nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       background: var(--cream);
       border-bottom: 1px solid var(--linen);
-      padding: 28px 48px;
+      padding: 18px 48px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -60,7 +56,17 @@
       line-height: 1;
     }
     .nav-right { display: flex; align-items: center; gap: 20px; }
-    .user-email { font-size: 11px; color: var(--mid); letter-spacing: 0.04em; }
+    .nav-link {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--green); }
+    .user-display { font-size: 11px; color: var(--light); letter-spacing: 0.04em; }
     .sign-out-btn {
       font-family: 'Montserrat', sans-serif;
       font-size: 9px;
@@ -76,102 +82,202 @@
     }
     .sign-out-btn:hover { border-color: var(--teal); color: var(--green); }
 
+    /* ── Layout ── */
+    main {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 110px 24px 80px;
+    }
+
+    .page-header { margin-bottom: 36px; }
+    .eyebrow {
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 10px;
+    }
+    .page-title {
+      font-family: 'Gilda Display', serif;
+      font-size: 32px;
+      color: var(--black);
+      font-weight: 400;
+    }
+
+    /* ── Cards ── */
     .card {
       background: #fff;
-      width: 100%;
-      max-width: 400px;
-      padding: 40px 36px;
-      box-shadow: 0 2px 24px rgba(0,0,0,0.07);
+      padding: 32px 36px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
     }
-
-    /* ── Logged-out state ── */
     .card-title {
-      font-family: 'Gilda Display', serif;
-      font-size: 22px;
-      color: var(--black);
-      margin-bottom: 6px;
-    }
-    .card-sub {
-      font-size: 12px;
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.38em;
+      text-transform: uppercase;
       color: var(--light);
-      margin-bottom: 28px;
-      line-height: 1.6;
+      margin-bottom: 24px;
     }
 
-    /* ── Logged-in state ── */
+    /* ── Avatar row ── */
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--linen);
+    }
     .avatar {
-      width: 56px;
-      height: 56px;
+      width: 52px;
+      height: 52px;
       border-radius: 50%;
       background: var(--green);
       color: #fff;
       font-family: 'Gilda Display', serif;
-      font-size: 22px;
+      font-size: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 20px;
+      flex-shrink: 0;
     }
-    .profile-email {
-      text-align: center;
-      font-size: 14px;
+    .identity-info { flex: 1; min-width: 0; }
+    .identity-name {
+      font-size: 15px;
       font-weight: 500;
       color: var(--black);
-      margin-bottom: 6px;
-      word-break: break-all;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .identity-email {
+      font-size: 11px;
+      color: var(--light);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .role-badge {
-      display: block;
-      text-align: center;
+      display: inline-block;
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--teal);
+      border: 1px solid rgba(143,191,190,0.5);
+      padding: 3px 10px;
+      flex-shrink: 0;
+    }
+
+    /* ── Forms ── */
+    .fg {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    label {
       font-size: 9px;
       font-weight: 600;
       letter-spacing: 0.38em;
       text-transform: uppercase;
-      color: var(--teal);
-      margin-bottom: 28px;
+      color: var(--light);
     }
-    .divider {
-      height: 1px;
-      background: var(--linen);
-      margin: 24px 0;
+    input[type=text], input[type=password] {
+      background: var(--cream);
+      border: 1px solid var(--linen);
+      padding: 11px 14px;
+      color: var(--text);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13.5px;
+      font-weight: 300;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--teal); }
+    input::placeholder { color: rgba(28,28,28,0.3); }
+    input:read-only {
+      color: var(--light);
+      cursor: default;
     }
 
+    .field-hint {
+      font-size: 11px;
+      color: var(--light);
+      line-height: 1.5;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
     .btn {
-      display: block;
-      width: 100%;
-      padding: 13px;
       font-family: 'Montserrat', sans-serif;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 600;
-      letter-spacing: 0.3em;
+      letter-spacing: 0.28em;
       text-transform: uppercase;
-      text-align: center;
-      text-decoration: none;
+      padding: 11px 24px;
       border: none;
       cursor: pointer;
       transition: background 0.2s, border-color 0.2s, color 0.2s;
-      margin-top: 10px;
     }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-primary { background: var(--green); color: #fff; }
-    .btn-primary:hover { background: #1e4532; }
-    .btn-ghost {
-      background: transparent;
-      color: var(--mid);
-      border: 1px solid var(--linen);
+    .btn-primary:hover:not(:disabled) { background: #1e4532; }
+
+    /* ── Feedback messages ── */
+    .msg {
+      font-size: 12px;
+      padding: 10px 14px;
+      margin-bottom: 16px;
+      line-height: 1.5;
+      display: none;
     }
-    .btn-ghost:hover { border-color: var(--teal); color: var(--green); }
+    .msg.show { display: block; }
+    .msg-error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+    .msg-ok    { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
 
-    .hidden { display: none !important; }
+    /* ── Google-only note ── */
+    .auth-note {
+      font-size: 12px;
+      color: var(--mid);
+      line-height: 1.6;
+      padding: 14px;
+      background: var(--cream);
+      border-left: 3px solid var(--linen);
+    }
 
+    /* ── Loading / redirect states ── */
+    .spinner-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 70px);
+    }
     .spinner {
       width: 28px; height: 28px;
       border: 2px solid var(--linen);
       border-top-color: var(--green);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
-      margin: 20px auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 560px) {
+      nav { padding: 16px 20px; }
+      main { padding: 100px 16px 60px; }
+      .card { padding: 24px 20px; }
+      .identity { flex-wrap: wrap; }
+    }
   </style>
 </head>
 <body>
@@ -184,81 +290,232 @@
     </div>
   </a>
   <div class="nav-right">
-    <span class="user-email" id="userEmail"></span>
+    <a href="portal.html" class="nav-link">My Galleries</a>
+    <span class="user-display" id="navDisplay"></span>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
 
-<!-- ── Loading ── -->
-<div class="card" id="loadingCard">
+<div class="spinner-wrap" id="loadingState">
   <div class="spinner"></div>
 </div>
 
-<!-- ── Logged out ── -->
-<div class="card hidden" id="loggedOutCard">
-  <h1 class="card-title">Your Profile</h1>
-  <p class="card-sub">Sign in to access your client galleries and account details.</p>
-  <a href="login.html" class="btn btn-primary">Sign In</a>
-  <a href="register.html" class="btn btn-ghost">Create Account</a>
-</div>
+<main id="mainContent" class="hidden">
+  <div class="page-header">
+    <p class="eyebrow">Settings</p>
+    <h1 class="page-title">Your Account</h1>
+  </div>
 
-<!-- ── Logged in ── -->
-<div class="card hidden" id="loggedInCard">
-  <div class="avatar" id="avatarInitial"></div>
-  <p class="profile-email" id="profileEmail"></p>
-  <span class="role-badge" id="profileRole"></span>
-  <a href="#" class="btn btn-primary" id="portalBtn"></a>
-  <div class="divider"></div>
-  <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
-</div>
+  <!-- ── Profile card ── -->
+  <div class="card">
+    <p class="card-title">Profile</p>
+
+    <div class="identity">
+      <div class="avatar" id="avatarInitial"></div>
+      <div class="identity-info">
+        <div class="identity-name" id="identityName"></div>
+        <div class="identity-email" id="identityEmail"></div>
+      </div>
+      <span class="role-badge" id="roleBadge"></span>
+    </div>
+
+    <div class="msg msg-error" id="profileError"></div>
+    <div class="msg msg-ok"    id="profileOk"></div>
+
+    <form id="profileForm" autocomplete="off">
+      <div class="fg">
+        <label for="inputName">Display Name</label>
+        <input type="text" id="inputName" placeholder="Jane Smith" autocomplete="name" />
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input type="text" value="" id="inputEmail" readonly tabindex="-1" />
+        <p class="field-hint">Email cannot be changed here. Contact support if you need to update it.</p>
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn btn-primary" id="profileBtn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Security card ── -->
+  <div class="card">
+    <p class="card-title">Security</p>
+
+    <div class="msg msg-error" id="pwError"></div>
+    <div class="msg msg-ok"    id="pwOk"></div>
+
+    <div id="passwordForm">
+      <form id="pwForm" autocomplete="off">
+        <div class="fg">
+          <label for="inputCurrent">Current Password</label>
+          <input type="password" id="inputCurrent" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <div class="fg">
+          <label for="inputNew">New Password</label>
+          <input type="password" id="inputNew" placeholder="Min 8 characters" minlength="8" autocomplete="new-password" />
+        </div>
+        <div class="fg">
+          <label for="inputConfirm">Confirm New Password</label>
+          <input type="password" id="inputConfirm" placeholder="••••••••" minlength="8" autocomplete="new-password" />
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary" id="pwBtn">Update Password</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="auth-note hidden" id="googleNote">
+      Your account uses Google Sign-In — no password is set. To add password login, use the password reset flow from the sign-in page.
+    </div>
+  </div>
+</main>
 
 <script>
   const WORKER_URL = CTC_CONFIG.workerUrl;
+  const JWT_KEY    = 'ctc_jwt';
+  const USER_KEY   = 'ctc_user';
 
-  const JWT_KEY  = 'ctc_jwt';
-  const USER_KEY = 'ctc_user';
-
-  function show(id) {
-    ['loadingCard', 'loggedOutCard', 'loggedInCard'].forEach(c => {
-      document.getElementById(c).classList.toggle('hidden', c !== id);
-    });
-  }
+  let currentUser = null;
 
   function signOut() {
     localStorage.removeItem(JWT_KEY);
     localStorage.removeItem(USER_KEY);
-    show('loggedOutCard');
+    window.location.href = '/login.html';
   }
 
-  async function init() {
-    const token = localStorage.getItem(JWT_KEY);
-    if (!token) { show('loggedOutCard'); return; }
+  function getToken() { return localStorage.getItem(JWT_KEY); }
 
-    const res = await fetch(WORKER_URL + '/auth/me', {
-      headers: { 'Authorization': 'Bearer ' + token },
+  async function apiFetch(path, opts = {}) {
+    const token = getToken();
+    const res = await fetch(WORKER_URL + path, {
+      method:  opts.method || 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
     }).catch(() => null);
+    if (!res) return { ok: false, data: { error: 'Could not reach server' } };
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, data };
+  }
 
-    if (!res || !res.ok) {
-      localStorage.removeItem(JWT_KEY);
-      localStorage.removeItem(USER_KEY);
-      show('loggedOutCard');
+  function avatarLetter(user) {
+    if (user.name) return user.name.trim()[0].toUpperCase();
+    return (user.email || '?')[0].toUpperCase();
+  }
+
+  function displayName(user) {
+    return user.name || user.email;
+  }
+
+  function renderUser(user) {
+    currentUser = user;
+    document.getElementById('avatarInitial').textContent = avatarLetter(user);
+    document.getElementById('identityName').textContent  = displayName(user);
+    document.getElementById('identityEmail').textContent = user.email;
+    document.getElementById('roleBadge').textContent     = user.role === 'admin' ? 'Administrator' : 'Client';
+    document.getElementById('navDisplay').textContent    = user.name || user.email;
+
+    document.getElementById('inputName').value  = user.name || '';
+    document.getElementById('inputEmail').value = user.email;
+
+    if (user.hasPassword) {
+      document.getElementById('passwordForm').classList.remove('hidden');
+      document.getElementById('googleNote').classList.add('hidden');
+    } else {
+      document.getElementById('passwordForm').classList.add('hidden');
+      document.getElementById('googleNote').classList.remove('hidden');
+    }
+  }
+
+  function showMsg(idOk, idErr, isOk, text) {
+    const ok  = document.getElementById(idOk);
+    const err = document.getElementById(idErr);
+    ok.classList.remove('show');
+    err.classList.remove('show');
+    if (isOk) { ok.textContent  = text; ok.classList.add('show'); }
+    else       { err.textContent = text; err.classList.add('show'); }
+  }
+
+  // ── Profile form ─────────────────────────────────────────────────────────────
+  document.getElementById('profileForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn  = document.getElementById('profileBtn');
+    const name = document.getElementById('inputName').value.trim();
+
+    btn.disabled    = true;
+    btn.textContent = 'Saving…';
+
+    const { ok, data } = await apiFetch('/auth/me', { method: 'PATCH', body: { name } });
+
+    btn.disabled    = false;
+    btn.textContent = 'Save Changes';
+
+    if (!ok) {
+      showMsg('profileOk', 'profileError', false, data.error || 'Save failed. Please try again.');
       return;
     }
 
-    const user = await res.json();
-    const initial = (user.email || '?')[0].toUpperCase();
-    const isAdmin = user.role === 'admin';
+    renderUser(data);
+    localStorage.setItem(USER_KEY, JSON.stringify(data));
+    showMsg('profileOk', 'profileError', true, 'Profile updated.');
+  });
 
-    document.getElementById('avatarInitial').textContent = initial;
-    document.getElementById('profileEmail').textContent  = user.email;
-    document.getElementById('profileRole').textContent   = isAdmin ? 'Administrator' : 'Client';
+  // ── Password form ─────────────────────────────────────────────────────────────
+  document.getElementById('pwForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn     = document.getElementById('pwBtn');
+    const current = document.getElementById('inputCurrent').value;
+    const newPw   = document.getElementById('inputNew').value;
+    const confirm = document.getElementById('inputConfirm').value;
 
-    const btn = document.getElementById('portalBtn');
-    btn.textContent = isAdmin ? 'Admin Panel' : 'My Galleries';
-    btn.href        = isAdmin ? '/admin/pipeline.html' : '/portal.html';
+    if (newPw !== confirm) {
+      showMsg('pwOk', 'pwError', false, 'New passwords do not match.');
+      return;
+    }
 
-    document.getElementById('userEmail').textContent = user.email;
-    show('loggedInCard');
+    btn.disabled    = true;
+    btn.textContent = 'Updating…';
+
+    const { ok, data } = await apiFetch('/auth/me', {
+      method: 'PATCH',
+      body:   { currentPassword: current, newPassword: newPw },
+    });
+
+    btn.disabled    = false;
+    btn.textContent = 'Update Password';
+
+    if (!ok) {
+      showMsg('pwOk', 'pwError', false, data.error || 'Password update failed.');
+      return;
+    }
+
+    document.getElementById('pwForm').reset();
+    showMsg('pwOk', 'pwError', true, 'Password updated successfully.');
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────────
+  async function init() {
+    const token = getToken();
+    if (!token) {
+      window.location.href = '/login.html?redirect=/profile.html';
+      return;
+    }
+
+    const { ok, data } = await apiFetch('/auth/me');
+
+    if (!ok) {
+      localStorage.removeItem(JWT_KEY);
+      localStorage.removeItem(USER_KEY);
+      window.location.href = '/login.html?redirect=/profile.html';
+      return;
+    }
+
+    renderUser(data);
+    document.getElementById('loadingState').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
   }
 
   init();
