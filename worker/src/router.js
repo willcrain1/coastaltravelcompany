@@ -13,7 +13,7 @@ import { handleContact } from './contact.js';
 
 import {
   handlePortalContracts, handlePortalGalleries, handleAdminProjectPortalLink,
-  handlePublicProjectPortal, handleAdminProjectMessages,
+  handlePublicProjectPortal, handleAdminProjectMessages, handlePortalMyProject,
 } from './portal.js';
 
 import {
@@ -151,6 +151,8 @@ export async function handleRequest(request, env) {
   if (method === 'GET' && pathname === '/portal/galleries')  return handlePortalGalleries(request, env);
   if (method === 'GET' && pathname === '/portal/invoices')   return handlePortalInvoices(request, env);
   if (method === 'GET' && pathname === '/portal/contracts')  return handlePortalContracts(request, env);
+  if (pathname === '/portal/my-project' && (method === 'GET' || method === 'POST'))
+    return handlePortalMyProject(request, method, env);
 
   // ── Questionnaire instances ──────────────────────────────────────────────────
   const projectQuestionnairesMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/questionnaires$/);
