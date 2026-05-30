@@ -41,6 +41,9 @@ const ALLOWLIST = new Set([
   // Public portal project covered by portal-project.spec.js
   'GET /portal/project/:id',
   'POST /portal/project/:id',
+  // Public availability endpoint — availability calendar removed from contact page;
+  // endpoint is covered by worker unit tests (scheduling.test.js)
+  'GET /public/availability',
 ]);
 
 // ── Step 1: Extract routes from router.js ─────────────────────────────────────
