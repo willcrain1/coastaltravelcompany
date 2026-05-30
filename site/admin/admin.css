@@ -79,7 +79,7 @@ a.logo-wrap { text-decoration: none; }
 .sign-out-btn:hover { border-color: var(--border-hover); color: var(--white); }
 
 /* ── Layout ── */
-.main { max-width: 860px; margin: 0 auto; padding: 52px 40px 100px; }
+.main { max-width: 1400px; margin: 0 auto; padding: 52px 48px 100px; }
 
 /* ── Section heading ── */
 .sh {
@@ -411,10 +411,10 @@ select option { background: #2a2a2a; }
 .pd-subtitle { font-size: 12px; color: var(--dim); }
 .pd-close { font-size: 16px; color: var(--dim); background: none; border: none; cursor: pointer; padding: 4px 8px; flex-shrink: 0; }
 .pd-close:hover { color: var(--white); }
-.pd-body { display: grid; grid-template-columns: 1fr 280px; gap: 32px; }
+.pd-body { display: flex; flex-direction: column; gap: 32px; }
 .pd-fields { display: flex; flex-direction: column; gap: 16px; }
-.pd-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.pd-field-full { grid-column: span 2; }
+.pd-field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.pd-field-full { grid-column: span 3; }
 .pd-notes { display: flex; flex-direction: column; }
 .pd-notes-title {
   font-size: 9px; font-weight: 600; letter-spacing: 0.34em;
@@ -498,7 +498,6 @@ select option { background: #2a2a2a; }
   .full { grid-column: span 1; }
   .gr-header, .user-header { grid-template-columns: 1fr; }
   .ud-grid { grid-template-columns: 1fr 1fr; }
-  .pd-body { grid-template-columns: 1fr; }
   .pd-field-grid { grid-template-columns: 1fr; }
   .pd-field-full { grid-column: span 1; }
 }
