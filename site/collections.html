@@ -4,12 +4,132 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Collections — Coastal Travel Company</title>
-  <meta name="description" content="Three signature collections for luxury hotel editorial photography. The Editorial Stay, The Fashioned Weekend, The Signature Story." />
+  <meta name="description" content="Three signature collections for luxury hotel editorial photography. The Fashioned Weekend, The Editorial Stay, The Signature Story." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <style>
+    .coll-includes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 32px;
+      margin-bottom: 28px;
+    }
+    .coll-include-item {
+      font-size: 13px;
+      color: var(--text-mid);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .coll-include-item-dark {
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .coll-include-dash {
+      color: var(--sage-teal);
+      flex-shrink: 0;
+      font-weight: 600;
+    }
+    .coll-spec-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid rgba(0,0,0,0.08);
+      margin-bottom: 32px;
+    }
+    .coll-spec-grid-dark {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid rgba(255,255,255,0.12);
+      margin-bottom: 32px;
+    }
+    .coll-spec-cell {
+      padding: 16px 0;
+      border-right: 1px solid rgba(0,0,0,0.08);
+    }
+    .coll-spec-cell:last-child { border-right: none; }
+    .coll-spec-cell-dark {
+      padding: 16px 0;
+      border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .coll-spec-cell-dark:last-child { border-right: none; }
+    .coll-spec-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-bottom: 5px;
+    }
+    .coll-spec-label-dark {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 5px;
+    }
+    .coll-spec-value {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--black);
+      line-height: 1.4;
+    }
+    .coll-spec-value-dark {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.4;
+    }
+    .coll-right-for-you {
+      background: var(--cream);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .coll-right-for-you-label {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-bottom: 10px;
+    }
+    .coll-price {
+      font-family: 'Gilda Display', serif;
+      font-size: clamp(20px, 2.4vw, 26px);
+      color: var(--forest-green);
+      margin-bottom: 24px;
+    }
+    .coll-price-dark {
+      font-family: 'Gilda Display', serif;
+      font-size: clamp(20px, 2.4vw, 26px);
+      color: var(--sage-teal);
+      margin-bottom: 24px;
+    }
+    .coll-right-for-you-linen {
+      background: rgba(0,0,0,0.04);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .coll-includes-dark {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 32px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) {
+      .coll-includes, .coll-includes-dark { grid-template-columns: 1fr; }
+      .coll-spec-grid, .coll-spec-grid-dark { grid-template-columns: repeat(2, 1fr); }
+      .coll-spec-cell:nth-child(even), .coll-spec-cell-dark:nth-child(even) { border-right: none; }
+    }
+  </style>
 </head>
 <body>
 
@@ -55,84 +175,132 @@
     </div>
   </section>
 
-  <!-- ── Collection 01 ──────────────────────────────────── -->
-  <section class="section bg-white" id="editorial-stay">
+  <!-- ── Collection 01 — The Fashioned Weekend ─────────── -->
+  <section class="section bg-white" id="fashioned-weekend">
     <div class="container">
-      <div class="grid-2" style="gap: 80px; align-items: center;">
+      <div class="grid-2" style="gap: 80px; align-items: start;">
         <div style="height: 600px;" class="fade-up">
-          <div class="img-overflow" style="height: 100%;">
-            <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=900&q=80" alt="The Editorial Stay" style="height: 100%;" />
-          </div>
-        </div>
-        <div class="fade-up delay-2">
-          <span class="eyebrow">Collection 01</span>
-          <span class="script" style="font-size: clamp(40px, 5.5vw, 68px); color: var(--forest-green); display: block; line-height: 1.1; margin-bottom: 16px;">The Editorial Stay</span>
-          <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--text-light); margin-bottom: 28px;">Immersive &amp; Complete</p>
-          <p class="body-sm mb-24">
-            Our most comprehensive offering. A multi-day on-property engagement that captures the full breadth of your hotel — architecture, interiors, landscape, lifestyle, food &amp; beverage, and ambient film. Designed for properties preparing for a major launch, rebrand, or campaign season.
-          </p>
-          <p class="body-sm mb-32">
-            The result is a complete, campaign-ready visual library that positions your property for desire across every platform and touchpoint.
-          </p>
-          <div class="divider"></div>
-          <div style="margin-bottom: 32px;">
-            <p style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-light); margin-bottom: 16px;">Includes</p>
-            <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Full editorial photography library (200+ selects)</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Lifestyle &amp; talent direction</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Short-form video (3–5 Reels)</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Ambient property film (60–90 sec)</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Full retouching &amp; color grading</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>3–4 day on-property engagement</li>
-            </ul>
-          </div>
-          <a href="contact.html" class="btn btn-dark">Inquire About This Collection</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Collection 02 ──────────────────────────────────── -->
-  <section class="section bg-linen" id="fashioned-weekend">
-    <div class="container">
-      <div class="grid-2" style="gap: 80px; align-items: center;">
-        <div class="fade-up">
-          <span class="eyebrow">Collection 02</span>
-          <span class="script" style="font-size: clamp(40px, 5.5vw, 68px); color: var(--forest-green); display: block; line-height: 1.1; margin-bottom: 16px;">The Fashioned Weekend</span>
-          <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--text-light); margin-bottom: 28px;">Style-Forward &amp; Curated</p>
-          <p class="body-sm mb-24">
-            A focused two-day shoot centered on lifestyle, fashion-forward human presence, and short-form video. Ideal for properties that already have a strong architectural library and need to inject personality, warmth, and movement into their visual identity.
-          </p>
-          <p class="body-sm mb-32">
-            Think golden-hour poolside moments, morning coffee on a terrace, a couple wandering cobblestone streets at dusk. The feeling of a perfect weekend, captured.
-          </p>
-          <div class="divider"></div>
-          <div style="margin-bottom: 32px;">
-            <p style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-light); margin-bottom: 16px;">Includes</p>
-            <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Curated lifestyle photography (80–100 selects)</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>On-camera talent &amp; styling direction</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Short-form video (2–3 Reels)</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Detail &amp; amenity capture</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Full retouching &amp; color grading</li>
-              <li style="font-size: 13px; color: var(--text-mid); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>2 day on-property engagement</li>
-            </ul>
-          </div>
-          <a href="contact.html" class="btn btn-dark">Inquire About This Collection</a>
-        </div>
-        <div style="height: 600px;" class="fade-up delay-2">
           <div class="img-overflow" style="height: 100%;">
             <img src="https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=900&q=80" alt="The Fashioned Weekend" style="height: 100%;" />
           </div>
         </div>
+        <div class="fade-up delay-2">
+          <span class="eyebrow">Collection 01</span>
+          <span class="script" style="font-size: clamp(40px, 5.5vw, 68px); color: var(--forest-green); display: block; line-height: 1.1; margin-bottom: 8px;">The Fashioned Weekend</span>
+          <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--text-light); margin-bottom: 20px;">lifestyle-forward &nbsp;·&nbsp; style-rich &nbsp;·&nbsp; social-ready</p>
+          <p class="coll-price">Starting from $1,200</p>
+
+          <div class="coll-right-for-you">
+            <p class="coll-right-for-you-label">Right for you if…</p>
+            <p class="body-sm">You want beautiful lifestyle content and social-ready video without a full multi-day commitment. Perfect for Airbnb Super Hosts, boutique hotels, and properties looking to refresh their Instagram and listing photos.</p>
+          </div>
+
+          <p class="body-sm mb-24">A focused one-to-two day shoot built around lifestyle, fashion-forward human moments, and short-form video. We capture the feeling of a perfect weekend at your property — golden-hour poolside moments, a beautifully styled morning tray, the details that make your space worth booking.</p>
+
+          <div class="divider"></div>
+
+          <p style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-light); margin-bottom: 16px;">What's Included</p>
+          <div class="coll-includes">
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>40–60 edited lifestyle photos</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>2–3 vertical Reels / TikTok clips</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Detail &amp; amenity capture</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Full retouching &amp; color grading</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Social + website usage rights</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Private Coastal Travel Company gallery delivery</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Multiple size exports (1:1, 4:5, 16:9)</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>1 round of revisions included</div>
+          </div>
+
+          <div class="coll-spec-grid">
+            <div class="coll-spec-cell">
+              <p class="coll-spec-label">Duration</p>
+              <p class="coll-spec-value">1–2 days</p>
+            </div>
+            <div class="coll-spec-cell" style="padding-left: 16px;">
+              <p class="coll-spec-label">Delivery</p>
+              <p class="coll-spec-value">7–10 business days</p>
+            </div>
+            <div class="coll-spec-cell" style="padding-left: 16px;">
+              <p class="coll-spec-label">Deposit</p>
+              <p class="coll-spec-value">50% to book</p>
+            </div>
+            <div class="coll-spec-cell" style="padding-left: 16px;">
+              <p class="coll-spec-label">Lead Time</p>
+              <p class="coll-spec-value">2–4 weeks</p>
+            </div>
+          </div>
+
+          <a href="contact.html" class="btn btn-dark">Inquire About This Collection</a>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ── Collection 03 ──────────────────────────────────── -->
+  <!-- ── Collection 02 — The Editorial Stay ────────────── -->
+  <section class="section bg-linen" id="editorial-stay">
+    <div class="container">
+      <div class="grid-2" style="gap: 80px; align-items: start;">
+        <div class="fade-up">
+          <span class="eyebrow">Collection 02</span>
+          <span class="script" style="font-size: clamp(40px, 5.5vw, 68px); color: var(--forest-green); display: block; line-height: 1.1; margin-bottom: 8px;">The Editorial Stay</span>
+          <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: var(--text-light); margin-bottom: 20px;">immersive &nbsp;·&nbsp; complete &nbsp;·&nbsp; campaign-ready</p>
+          <p class="coll-price">Starting from $2,500</p>
+
+          <div class="coll-right-for-you-linen">
+            <p class="coll-right-for-you-label">Right for you if…</p>
+            <p class="body-sm">You need a complete visual library — architecture, interiors, lifestyle, food and beverage, and video. Ideal for boutique hotels, properties launching or rebranding, or any property ready to invest in content for a full season.</p>
+          </div>
+
+          <p class="body-sm mb-24">Our most comprehensive two-to-three day engagement. We capture the full breadth of your property — sweeping architectural exteriors, refined interior compositions, lifestyle moments, food and beverage, amenity details, and cinematic video. The result is a complete, campaign-ready visual library.</p>
+
+          <div class="divider"></div>
+
+          <p style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-light); margin-bottom: 16px;">What's Included</p>
+          <div class="coll-includes">
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>100–150 edited photos (full property)</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>3–5 vertical Reels / TikTok clips</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Architecture, interiors &amp; lifestyle</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Food, beverage &amp; amenity detail</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Ambient property clip (30–60 sec)</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Full retouching &amp; color grading</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Social + website + OTA usage rights</div>
+            <div class="coll-include-item"><span class="coll-include-dash">—</span>Private Coastal Travel Company gallery delivery, all formats</div>
+          </div>
+
+          <div class="coll-spec-grid">
+            <div class="coll-spec-cell">
+              <p class="coll-spec-label">Duration</p>
+              <p class="coll-spec-value">2–3 days</p>
+            </div>
+            <div class="coll-spec-cell" style="padding-left: 16px;">
+              <p class="coll-spec-label">Delivery</p>
+              <p class="coll-spec-value">10–14 business days</p>
+            </div>
+            <div class="coll-spec-cell" style="padding-left: 16px;">
+              <p class="coll-spec-label">Deposit</p>
+              <p class="coll-spec-value">50% to book</p>
+            </div>
+            <div class="coll-spec-cell" style="padding-left: 16px;">
+              <p class="coll-spec-label">Lead Time</p>
+              <p class="coll-spec-value">4–6 weeks</p>
+            </div>
+          </div>
+
+          <a href="contact.html" class="btn btn-dark">Inquire About This Collection</a>
+        </div>
+        <div style="height: 600px;" class="fade-up delay-2">
+          <div class="img-overflow" style="height: 100%;">
+            <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=900&q=80" alt="The Editorial Stay" style="height: 100%;" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Collection 03 — The Signature Story ───────────── -->
   <section class="section bg-black" id="signature-story">
     <div class="container">
-      <div class="grid-2" style="gap: 80px; align-items: center;">
+      <div class="grid-2" style="gap: 80px; align-items: start;">
         <div style="height: 600px;" class="fade-up">
           <div class="img-overflow" style="height: 100%;">
             <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=900&q=80" alt="The Signature Story" style="height: 100%;" />
@@ -140,27 +308,95 @@
         </div>
         <div class="fade-up delay-2">
           <span class="eyebrow">Collection 03</span>
-          <span class="script" style="font-size: clamp(40px, 5.5vw, 68px); color: var(--sage-teal); display: block; line-height: 1.1; margin-bottom: 16px;">The Signature Story</span>
-          <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 28px;">Brand-Defining &amp; Aspirational</p>
-          <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.6); margin-bottom: 24px;">
-            A campaign-level engagement built to define or redefine how the world perceives your property. A deep, narrative-driven project — combining photography, film, and styled editorial sequences into a single, powerful brand story.
-          </p>
-          <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.6); margin-bottom: 32px;">
-            Suited for luxury properties with significant creative ambition: flagship campaigns, international media features, or a complete brand repositioning.
-          </p>
-          <div style="width: 52px; height: 1px; background: var(--sage-teal); margin-bottom: 32px;"></div>
-          <div style="margin-bottom: 32px;">
-            <p style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 16px;">Includes</p>
-            <ul style="list-style: none; display: flex; flex-direction: column; gap: 10px;">
-              <li style="font-size: 13px; color: rgba(255,255,255,0.55); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Full editorial photography library (300+ selects)</li>
-              <li style="font-size: 13px; color: rgba(255,255,255,0.55); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Campaign-level talent &amp; wardrobe styling</li>
-              <li style="font-size: 13px; color: rgba(255,255,255,0.55); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Short-form video series (5+ Reels)</li>
-              <li style="font-size: 13px; color: rgba(255,255,255,0.55); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Hero brand film (2–3 min)</li>
-              <li style="font-size: 13px; color: rgba(255,255,255,0.55); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>Full post-production &amp; color suite</li>
-              <li style="font-size: 13px; color: rgba(255,255,255,0.55); display: flex; align-items: center; gap: 12px;"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--sage-teal); flex-shrink: 0; display: inline-block;"></span>4–5 day on-property engagement</li>
-            </ul>
+          <span class="script" style="font-size: clamp(40px, 5.5vw, 68px); color: var(--sage-teal); display: block; line-height: 1.1; margin-bottom: 8px;">The Signature Story</span>
+          <p style="font-size: 11px; font-weight: 500; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 20px;">brand-defining &nbsp;·&nbsp; campaign-level &nbsp;·&nbsp; aspirational</p>
+          <p class="coll-price-dark">Custom quoted from $4,500</p>
+
+          <div style="background: rgba(255,255,255,0.05); padding: 20px 24px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.08);">
+            <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.32em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px;">Right for you if…</p>
+            <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.6);">You are launching, rebranding, or positioning your property at a national or international level. For luxury boutique hotels and resorts ready to invest in brand-defining imagery for campaigns, press features, or investor materials.</p>
           </div>
+
+          <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.6); margin-bottom: 24px;">A campaign-level creative engagement. Photography, film, and styled editorial sequences unified into a single, powerful brand story. We function as your creative team on the ground — handling direction, styling, shot sequencing, and full post-production.</p>
+
+          <div style="width: 52px; height: 1px; background: var(--sage-teal); margin-bottom: 32px;"></div>
+
+          <p style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-bottom: 16px;">What's Included</p>
+          <div class="coll-includes-dark">
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>200+ edited photos (full library)</div>
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>5+ vertical Reels / TikTok series</div>
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>Hero brand film (60–90 sec)</div>
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>Campaign-level styling direction</div>
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>Full post-production suite</div>
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>All-channel rights incl. paid ads</div>
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>Press &amp; publication usage</div>
+            <div class="coll-include-item-dark"><span class="coll-include-dash">—</span>Priority delivery + 2 revision rounds</div>
+          </div>
+
+          <div class="coll-spec-grid-dark">
+            <div class="coll-spec-cell-dark">
+              <p class="coll-spec-label-dark">Duration</p>
+              <p class="coll-spec-value-dark">4–5 days</p>
+            </div>
+            <div class="coll-spec-cell-dark" style="padding-left: 16px;">
+              <p class="coll-spec-label-dark">Delivery</p>
+              <p class="coll-spec-value-dark">14–21 business days</p>
+            </div>
+            <div class="coll-spec-cell-dark" style="padding-left: 16px;">
+              <p class="coll-spec-label-dark">Deposit</p>
+              <p class="coll-spec-value-dark">50% to book</p>
+            </div>
+            <div class="coll-spec-cell-dark" style="padding-left: 16px;">
+              <p class="coll-spec-label-dark">Lead Time</p>
+              <p class="coll-spec-value-dark">6–8 weeks</p>
+            </div>
+          </div>
+
           <a href="contact.html" class="btn btn-white-outline">Inquire About This Collection</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Airbnb & Vacation Rental Packages ─────────────── -->
+  <section class="section bg-cream" id="airbnb-packages">
+    <div class="container">
+      <div class="text-center mb-48 fade-up">
+        <span class="eyebrow">Also Available</span>
+        <h2 style="font-size: clamp(28px, 4vw, 50px); margin-bottom: 16px;">Airbnb &amp; Vacation Rental Packages</h2>
+        <span class="script" style="font-size: clamp(22px, 3vw, 38px); color: var(--forest-green); display: block; margin-bottom: 24px;">Better photos. More bookings. Higher nightly rates.</span>
+        <p class="body-sm" style="max-width: 580px; margin: 0 auto;">
+          High-quality listing photography is one of the highest-ROI investments a vacation rental host can make. Properties with professional photography see significantly more views on Airbnb, command higher nightly rates, and convert more browsers into bookings.
+        </p>
+      </div>
+
+      <div class="grid-2" style="gap: 64px; align-items: start;" >
+        <div class="fade-up">
+          <p class="body-sm mb-24">
+            We offer a streamlined content package specifically designed for Airbnb Super Hosts and short-term vacation rentals — delivering the photography and short-form video your listing needs to compete at the top of its market.
+          </p>
+          <div style="background: var(--white); padding: 44px 40px; margin-top: 8px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+              <span style="font-family: 'Gilda Display', serif; font-size: clamp(20px, 2.5vw, 26px); color: var(--black);">The Listing Upgrade</span>
+              <span style="font-family: 'Gilda Display', serif; font-size: clamp(18px, 2vw, 22px); color: var(--forest-green);">Starting from $400</span>
+            </div>
+            <div class="coll-includes" style="margin-bottom: 24px;">
+              <div class="coll-include-item"><span class="coll-include-dash">—</span>15–25 edited listing photos covering every key space</div>
+              <div class="coll-include-item"><span class="coll-include-dash">—</span>1–2 short video clips for social or listing use</div>
+              <div class="coll-include-item"><span class="coll-include-dash">—</span>Full Airbnb / VRBO / booking platform usage rights</div>
+              <div class="coll-include-item"><span class="coll-include-dash">—</span>Private Coastal Travel Company gallery delivery within 7 business days</div>
+              <div class="coll-include-item" style="grid-column: span 2;"><span class="coll-include-dash">—</span>Sized and exported for all major listing platforms</div>
+            </div>
+            <p style="font-size: 12px; font-style: italic; color: var(--text-mid); line-height: 1.75; margin-bottom: 28px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.07);">
+              Right for you if: You are a Super Host, you manage 1–5 properties, and you are ready to invest in content that earns its cost back in the first week of improved bookings.
+            </p>
+            <a href="contact.html" class="btn btn-dark">Inquire About This Package</a>
+          </div>
+        </div>
+        <div style="height: 520px;" class="fade-up delay-2">
+          <div class="img-overflow" style="height: 100%;">
+            <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=900&q=80" alt="Airbnb vacation rental photography" style="height: 100%;" />
+          </div>
         </div>
       </div>
     </div>
@@ -221,13 +457,14 @@
   </section>
 
   <!-- ── CTA ────────────────────────────────────────────── -->
-  <section style="position: relative; height: 400px; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center;">
+  <section style="position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; padding: 100px 40px;">
     <div style="position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1800&q=80'); background-size: cover; background-position: center;"></div>
     <div style="position: absolute; inset: 0; background: rgba(28,28,28,0.6);"></div>
-    <div style="position: relative; z-index: 2; color: var(--white); padding: 0 40px;" class="fade-up">
-      <span style="font-family: 'Pinyon Script', cursive; font-size: clamp(36px, 5vw, 62px); color: var(--sage-teal); display: block; margin-bottom: 12px;">not sure where to start?</span>
-      <h2 style="font-size: clamp(22px, 3.2vw, 40px); margin-bottom: 32px;">Tell us about your property and we'll guide you to the right collection.</h2>
-      <a href="contact.html" class="btn btn-white-outline">Start the Conversation</a>
+    <div style="position: relative; z-index: 2; color: var(--white); max-width: 660px;" class="fade-up">
+      <p style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 20px;">not sure where to start?</p>
+      <h2 style="font-size: clamp(26px, 3.8vw, 48px); font-family: 'Gilda Display', serif; font-weight: 400; line-height: 1.25; margin-bottom: 24px;">Tell us about your property.<br>We'll find the right fit together.</h2>
+      <p style="font-size: 15px; line-height: 1.8; color: rgba(255,255,255,0.7); margin-bottom: 36px;">Every property is different. If you are not sure which collection matches your goals or budget, just reach out — we are happy to talk through what you need and point you in the right direction. No pressure, no obligation.</p>
+      <a href="/contact.html" class="btn btn-white-outline">Start the Conversation</a>
     </div>
   </section>
 
@@ -254,9 +491,10 @@
         <div class="footer-col">
           <h5>Collections</h5>
           <ul>
-            <li><a href="collections.html#editorial-stay">The Editorial Stay</a></li>
             <li><a href="collections.html#fashioned-weekend">The Fashioned Weekend</a></li>
+            <li><a href="collections.html#editorial-stay">The Editorial Stay</a></li>
             <li><a href="collections.html#signature-story">The Signature Story</a></li>
+            <li><a href="collections.html#airbnb-packages">Airbnb &amp; Rental Packages</a></li>
           </ul>
         </div>
         <div class="footer-col">
@@ -271,7 +509,7 @@
       </div>
       <div class="footer-bottom">
         <p>&copy; 2026 Coastal Travel Company. All rights reserved.</p>
-        <p style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+        <p><a href="privacy.html" style="color:rgba(255,255,255,0.45);text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp; <span style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</span></p>
       </div>
     </div>
   </footer>

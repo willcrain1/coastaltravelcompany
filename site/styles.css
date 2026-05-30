@@ -705,7 +705,7 @@ nav.scrolled .nav-toggle span {
 
 .approach-item {
   padding: 36px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   display: flex;
   gap: 28px;
   align-items: flex-start;
@@ -727,13 +727,13 @@ nav.scrolled .nav-toggle span {
 .approach-item h4 {
   font-family: 'Gilda Display', serif;
   font-size: 20px;
-  color: var(--white);
+  color: var(--black);
   margin-bottom: 8px;
 }
 
 .approach-item p {
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-mid);
   line-height: 1.75;
 }
 

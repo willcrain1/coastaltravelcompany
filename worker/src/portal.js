@@ -3,6 +3,24 @@ import { jsonResponse, authRequired, forbidden, escHtml } from './utils.js';
 import { getAuth } from './jwt.js';
 import { getUser, getGallery, stripGallery } from './kv.js';
 
+export async function handlePortalContracts(request, env) {
+  const p = await getAuth(request, env);
+  if (!p) return authRequired();
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const { results } = await env.DB.prepare(
+    `SELECT c.id, c.title, c.status, c.client_signed_at, c.admin_signed_at, c.signing_token, c.created_at,
+            proj.property, proj.collection
+     FROM contracts c
+     JOIN projects proj ON c.project_id = proj.id
+     WHERE c.client_email = ?
+     ORDER BY c.created_at DESC`
+  ).bind(p.sub).all();
+  return jsonResponse(results.map(r => ({
+    ...r,
+    public_url: `${ALLOWED_ORIGIN}/contract.html#${r.signing_token}`,
+  })));
+}
+
 export async function handlePortalGalleries(request, env) {
   const payload = await getAuth(request, env);
   if (!payload) return authRequired();
@@ -34,6 +52,22 @@ export async function handlePublicProjectPortal(request, method, env, token) {
   const { results: projRows } = await env.DB.prepare('SELECT * FROM projects WHERE id = ?').bind(projectId).all();
   if (!projRows.length) return jsonResponse({ error: 'Project not found' }, 404);
   const proj = projRows[0];
+
+  const clientUser = env.KV && proj.client_email ? await getUser(proj.client_email, env.KV) : null;
+
+  if (clientUser) {
+    // Client has an account — require authentication as that email
+    const p = await getAuth(request, env);
+    if (!p) return authRequired();
+    if (p.sub !== proj.client_email) return forbidden();
+    // Project complete — read-only; block new messages
+    if (proj.stage === 'Complete' && method === 'POST') {
+      return jsonResponse({ error: 'This project is complete and no longer accepts new messages.' }, 403);
+    }
+  } else if (proj.stage === 'Complete') {
+    // No account — deactivate portal when project is complete
+    return jsonResponse({ error: 'project_complete' }, 410);
+  }
 
   if (method === 'GET') {
     const [docsRes, propsRes, msgsRes, questRes] = await Promise.all([

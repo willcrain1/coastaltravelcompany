@@ -31,14 +31,15 @@
     }
 
     /* ── Nav ── */
-    nav {
+    .portal-shell-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       background: var(--cream);
       border-bottom: 1px solid var(--linen);
       padding: 18px 48px;
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
       align-items: center;
-      justify-content: space-between;
+      gap: 24px;
     }
     .logo-wrap { line-height: 1; }
     .logo-main {
@@ -58,6 +59,7 @@
     .nav-right {
       display: flex;
       align-items: center;
+      justify-content: flex-end;
       gap: 20px;
     }
     .nav-account-link {
@@ -70,11 +72,6 @@
       transition: color 0.2s;
     }
     .nav-account-link:hover { color: var(--green); }
-    .user-email {
-      font-size: 11px;
-      color: var(--mid);
-      letter-spacing: 0.04em;
-    }
     .sign-out-btn {
       font-family: 'Montserrat', sans-serif;
       font-size: 9px;
@@ -216,8 +213,30 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Invoices section ── */
-    .invoices-section {
+    /* ── Portal tab nav ── */
+    .portal-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .portal-tab-link {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      padding: 10px 14px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .portal-tab-link:hover { color: var(--green); }
+    .portal-tab-link.active { color: var(--green); border-bottom-color: var(--green); }
+    .portal-tab-link.disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+    /* ── Portal sections ── */
+    .portal-section {
       margin-top: 56px;
       border-top: 1px solid var(--linen);
       padding-top: 40px;
@@ -279,22 +298,66 @@
     }
     .invoice-view-link:hover { text-decoration: underline; }
 
+    /* ── Document rows ── */
+    .doc-row {
+      background: #fff;
+      border: 1px solid var(--linen);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .doc-row-left { flex: 1; min-width: 160px; }
+    .doc-title { font-size: 14px; font-weight: 500; color: var(--black); }
+    .doc-meta { font-size: 12px; color: var(--mid); margin-top: 3px; }
+    .badge-awaiting { background: #fff7e6; color: #92580a; }
+    .badge-pending  { background: #e8f4fd; color: #0d47a1; }
+    .badge-executed { background: #d1f0e3; color: #145a35; }
+    .doc-sign-btn {
+      display: inline-block;
+      background: var(--green);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 9px 18px;
+      text-decoration: none;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
     @media (max-width: 640px) {
-      nav { padding: 16px 20px; }
-      main { padding: 100px 20px 60px; }
+      .portal-shell-nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 14px 20px;
+        gap: 12px;
+      }
+      .nav-right { justify-content: center; }
+      main { padding: 168px 20px 60px; }
       .nav-account-link { display: none; }
     }
   </style>
 </head>
 <body>
 
-<nav>
+<nav class="portal-shell-nav">
   <a href="/" style="text-decoration:none">
     <div class="logo-wrap">
       <span class="logo-main">Coastal</span>
       <span class="logo-script">Travel Company</span>
     </div>
   </a>
+  <div class="portal-tabs" aria-label="Portal sections">
+    <a class="portal-tab-link active" id="accountTabLink" href="/portal.html">My Account</a>
+    <a class="portal-tab-link disabled" id="projectTabLink" href="/portal-project.html">My Project</a>
+  </div>
   <div class="nav-right">
     <a href="profile.html" class="nav-account-link" id="navAccountLink"></a>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
@@ -304,15 +367,26 @@
 <main>
   <div class="page-header">
     <p class="eyebrow">Client Portal</p>
-    <h1 class="page-title">My Galleries</h1>
+    <h1 class="page-title">My Account</h1>
   </div>
-  <div id="content">
+
+  <!-- Galleries -->
+  <h2 class="section-heading">Galleries</h2>
+  <div id="galleries-content">
     <div class="state-loading">
       <div class="spinner"></div>
       Loading your galleries…
     </div>
   </div>
-  <div class="invoices-section" id="invoices-section" style="display:none">
+
+  <!-- Documents -->
+  <div class="portal-section" id="documents-section">
+    <h2 class="section-heading">Documents</h2>
+    <div id="documents-content"></div>
+  </div>
+
+  <!-- Invoices -->
+  <div class="portal-section" id="invoices-section">
     <h2 class="section-heading">Invoices</h2>
     <div id="invoices-content"></div>
   </div>
@@ -323,6 +397,11 @@
 
   const JWT_KEY  = 'ctc_jwt';
   const USER_KEY = 'ctc_user';
+  const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
+
+  function portalHref(path, hash = '') {
+    return path + (isAdminPreview ? '?preview=1' : '') + hash;
+  }
 
   function signOut() {
     localStorage.removeItem(JWT_KEY);
@@ -347,7 +426,7 @@
   }
 
   function renderGalleries(galleries) {
-    const el = document.getElementById('content');
+    const el = document.getElementById('galleries-content');
     if (!galleries.length) {
       el.innerHTML = `<div class="state-empty">
         No galleries have been assigned to your account yet.<br>
@@ -377,10 +456,52 @@
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  function renderContracts(contracts) {
+    const section = document.getElementById('documents-section');
+    const content = document.getElementById('documents-content');
+    if (!contracts.length) {
+      section.style.display = '';
+      content.innerHTML = '<div class="state-empty">No documents have been sent yet.</div>';
+      return;
+    }
+    section.style.display = '';
+    content.innerHTML = contracts.map(c => {
+      const context = [c.collection, c.property].filter(Boolean).join(' · ');
+      const created = c.created_at
+        ? new Date(c.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
+      let badgeCls, badgeLabel, action;
+      if (c.status === 'fully_executed') {
+        badgeCls = 'badge-executed'; badgeLabel = 'Fully Executed';
+        action = `<a class="invoice-view-link" href="${esc(c.public_url)}">View →</a>`;
+      } else if (c.status === 'client_signed') {
+        badgeCls = 'badge-pending'; badgeLabel = 'Awaiting Countersignature';
+        action = `<a class="invoice-view-link" href="${esc(c.public_url)}">View →</a>`;
+      } else {
+        badgeCls = 'badge-awaiting'; badgeLabel = 'Signature Required';
+        action = `<a class="doc-sign-btn" href="${esc(c.public_url)}">Review &amp; Sign</a>`;
+      }
+      return `<div class="doc-row">
+        <div class="doc-row-left">
+          <div class="doc-title">${esc(c.title)}</div>
+          <div class="doc-meta">
+            <span class="invoice-badge ${badgeCls}">${badgeLabel}</span>
+            ${esc(created)}${context ? ' · ' + esc(context) : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">${action}</div>
+      </div>`;
+    }).join('');
+  }
+
   function renderInvoices(invoices) {
     const section = document.getElementById('invoices-section');
     const content = document.getElementById('invoices-content');
-    if (!invoices.length) { section.style.display = 'none'; return; }
+    if (!invoices.length) {
+      section.style.display = '';
+      content.innerHTML = '<div class="state-empty">No invoices have been sent yet.</div>';
+      return;
+    }
     section.style.display = '';
     content.innerHTML = invoices.map(inv => {
       const total = '$' + (inv.total_cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -429,34 +550,52 @@
     accountLink.textContent = user.name || user.email;
     accountLink.title = user.email;
 
-    // Admins have a dedicated admin panel; redirect if they land here
-    if (user.role === 'admin') {
+    // Admins have a dedicated admin panel; redirect unless previewing the customer view
+    if (user.role === 'admin' && !isAdminPreview) {
       window.location.href = '/admin/pipeline.html';
       return;
     }
+    if (user.role === 'admin' && isAdminPreview) {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
+      banner.innerHTML = 'Admin Preview — this is how clients see the portal &nbsp;·&nbsp; <a href="/admin/galleries.html" style="color:#000;text-decoration:underline;">Back to Admin</a>';
+      document.body.prepend(banner);
+      document.querySelector('.portal-shell-nav').style.top = '33px';
+      document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '153px';
+    }
 
-    // Fetch galleries and invoices in parallel
-    const [galRes, invRes] = await Promise.all([
-      fetch(WORKER_URL + '/portal/galleries', { headers: { 'Authorization': 'Bearer ' + token } }).catch(() => null),
-      fetch(WORKER_URL + '/portal/invoices',  { headers: { 'Authorization': 'Bearer ' + token } }).catch(() => null),
+    document.getElementById('accountTabLink').href = portalHref('/portal.html');
+
+    // Fetch galleries, contracts, and invoices in parallel
+    const headers = { 'Authorization': 'Bearer ' + token };
+    const [galRes, conRes, invRes] = await Promise.all([
+      fetch(WORKER_URL + '/portal/galleries',  { headers }).catch(() => null),
+      fetch(WORKER_URL + '/portal/contracts',  { headers }).catch(() => null),
+      fetch(WORKER_URL + '/portal/invoices',   { headers }).catch(() => null),
     ]);
 
     if (!galRes || !galRes.ok) {
-      document.getElementById('content').innerHTML =
+      document.getElementById('galleries-content').innerHTML =
         '<div class="state-error">Could not load galleries. Please try again later.</div>';
       return;
     }
 
-    const galleries = await galRes.json();
-    renderGalleries(galleries);
-
-    if (invRes && invRes.ok) {
-      const invoices = await invRes.json();
-      renderInvoices(invoices);
+    const projectToken = localStorage.getItem('ctc_project_token');
+    if (projectToken) {
+      const link = document.getElementById('projectTabLink');
+      link.href = portalHref('/portal-project.html', '#' + projectToken);
+      link.classList.remove('disabled');
     }
+
+    renderGalleries(await galRes.json());
+
+    if (conRes && conRes.ok) renderContracts(await conRes.json());
+
+    if (invRes && invRes.ok) renderInvoices(await invRes.json());
   }
 
   load();
 </script>
+<p style="text-align:center;margin:32px 0 24px;font-size:11px;"><a href="/privacy.html" style="color:rgba(0,0,0,0.35);text-decoration:none;">Privacy Policy</a></p>
 </body>
 </html>

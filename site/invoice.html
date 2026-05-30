@@ -394,8 +394,11 @@
     const totalsEl = document.getElementById('inv-totals');
     let totalsHtml = '';
     if (inv.tax_cents > 0) {
+      const taxPct = inv.subtotal_cents > 0
+        ? (inv.tax_cents / inv.subtotal_cents * 100).toFixed(2).replace(/\.?0+$/, '') + '%'
+        : '';
       totalsHtml += `<div class="totals-row"><span class="label">Subtotal</span><span class="amount">${fmt(inv.subtotal_cents)}</span></div>`;
-      totalsHtml += `<div class="totals-row"><span class="label">Tax</span><span class="amount">${fmt(inv.tax_cents)}</span></div>`;
+      totalsHtml += `<div class="totals-row"><span class="label">Tax${taxPct ? ' (' + taxPct + ')' : ''}</span><span class="amount">${fmt(inv.tax_cents)}</span></div>`;
     }
     totalsHtml += `<div class="totals-row total-line"><span class="label">Total</span><span class="amount">${fmt(inv.total_cents)}</span></div>`;
     totalsEl.innerHTML = totalsHtml;

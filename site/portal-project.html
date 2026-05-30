@@ -7,9 +7,72 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <style>
+    :root {
+      --black: #1C1C1C;
+      --green: #2A5C45;
+      --teal:  #8FBFBE;
+      --cream: #F4F1EC;
+      --linen: #E8DDD0;
+      --text:  #2C2C2C;
+      --mid:   #5A5A5A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .portal-shell-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--cream);
+      border-bottom: 1px solid var(--linen);
+      padding: 18px 48px;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+      align-items: center;
+      gap: 24px;
+    }
+    .logo-wrap { line-height: 1; }
+    .logo-main {
+      display: block;
+      font-family: 'Gilda Display', serif;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--black);
+    }
+    .logo-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 26px;
+      color: var(--green);
+      line-height: 1;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .sign-out-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--linen);
+      color: var(--mid);
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sign-out-btn:hover { border-color: var(--teal); color: var(--green); }
+    main {
+      padding-top: 92px;
+    }
     .pp-wrap {
       max-width: 800px;
       margin: 0 auto;
@@ -258,34 +321,56 @@
     }
     .pp-error { color: #c00; }
     .pp-loading { color: #888; }
+
+    /* ── Portal tab nav ── */
+    .portal-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .portal-tab-link {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      padding: 10px 14px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .portal-tab-link:hover { color: var(--green); }
+    .portal-tab-link.active { color: var(--green); border-bottom-color: var(--green); }
+    @media (max-width: 640px) {
+      .portal-shell-nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 14px 20px;
+        gap: 12px;
+      }
+      .nav-right { justify-content: center; }
+      main { padding-top: 168px; }
+    }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="logo-wrap">
-    <a href="/" style="text-decoration:none">
+<nav class="portal-shell-nav">
+  <a href="/" style="text-decoration:none">
+    <div class="logo-wrap">
       <span class="logo-main">Coastal</span>
       <span class="logo-script">Travel Company</span>
-    </a>
+    </div>
+  </a>
+  <div class="portal-tabs" aria-label="Portal sections">
+    <a class="portal-tab-link" id="accountTabLink" href="/portal.html">My Account</a>
+    <a class="portal-tab-link active" id="projectTabLink" href="#">My Project</a>
   </div>
-  <nav class="nav">
-    <a href="index.html" class="nav-link">Home</a>
-    <a href="services.html" class="nav-link">Services</a>
-    <a href="contact.html" class="nav-link">Contact</a>
-    <a href="login.html" class="nav-link nav-account">Account</a>
-  </nav>
-  <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
-    <span></span><span></span><span></span>
+  <div class="nav-right">
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
-</header>
-
-<div class="mobile-nav" id="mobileNav">
-  <a href="index.html">Home</a>
-  <a href="services.html">Services</a>
-  <a href="contact.html">Contact</a>
-  <a href="login.html">Account</a>
-</div>
+</nav>
 
 <main>
   <div id="ppLoading" class="pp-loading">Loading your project portal…</div>
@@ -334,17 +419,65 @@
 <script src="config.js"></script>
 <script>
   const WORKER_URL = CTC_CONFIG.workerUrl;
+  const JWT_KEY = 'ctc_jwt';
+  const USER_KEY = 'ctc_user';
   const token = location.hash.slice(1);
+  const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
   let projectData = null;
 
   const STAGES = ['Inquiry','Proposal Sent','Contract Sent','Contract Signed','Retainer Paid','Active','Delivered','Complete'];
 
+  function portalHref(path, hash = '') {
+    return path + (isAdminPreview ? '?preview=1' : '') + hash;
+  }
+
+  function showAdminPreviewBanner() {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
+    banner.innerHTML = 'Admin Preview &mdash; this is how clients see the portal &nbsp;&middot;&nbsp; <a href="/admin/galleries.html" style="color:#000;text-decoration:underline;">Back to Admin</a>';
+    document.body.prepend(banner);
+    document.querySelector('.portal-shell-nav').style.top = '33px';
+    document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '125px';
+  }
+
+  function signOut() {
+    localStorage.removeItem(JWT_KEY);
+    localStorage.removeItem(USER_KEY);
+    window.location.href = '/login.html';
+  }
+
   async function load() {
     if (!token) { showError('No portal link found. Please use the link from your email.'); return; }
     try {
-      const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers: { Origin: location.origin } });
+      const jwt = localStorage.getItem(JWT_KEY);
+      document.getElementById('accountTabLink').href = portalHref('/portal.html');
+      document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
+
+      if (isAdminPreview && jwt) {
+        const meRes = await fetch(WORKER_URL + '/auth/me', {
+          headers: { 'Authorization': 'Bearer ' + jwt },
+        }).catch(() => null);
+        if (meRes?.ok && (await meRes.json()).role === 'admin') showAdminPreviewBanner();
+      }
+
+      const headers = { Origin: location.origin };
+      if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
+      const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers });
+      if (res.status === 401) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(location.href);
+        return;
+      }
+      if (res.status === 403) {
+        showError('This project portal is linked to a different account. Please sign in with the correct email address.');
+        return;
+      }
+      if (res.status === 410) {
+        showError('This project has been completed. The portal is no longer active.');
+        return;
+      }
       if (!res.ok) { showError('Portal not found. Please use the link you received by email.'); return; }
       projectData = await res.json();
+      localStorage.setItem('ctc_project_token', token);
       render();
       hide('ppLoading'); show('ppWrap');
     } catch {
@@ -363,6 +496,14 @@
     renderDocs(documents, proposals);
     renderQuestionnaires(questionnaires);
     renderMessages(messages);
+
+    if (project.stage === 'Complete') {
+      document.querySelector('.msg-form').style.display = 'none';
+      const note = document.createElement('p');
+      note.style.cssText = 'font-family:Montserrat,sans-serif;font-size:0.8rem;color:#aaa;font-style:italic;text-align:center;padding:12px 0;';
+      note.textContent = 'This project is complete — messaging is now closed.';
+      document.getElementById('ppMessages').after(note);
+    }
   }
 
   function renderTimeline(currentStage) {
@@ -435,9 +576,12 @@
     if (!content) return;
     btn.disabled = true;
     try {
+      const jwt = localStorage.getItem('ctc_jwt');
+      const msgHeaders = { 'Content-Type': 'application/json', Origin: location.origin };
+      if (jwt) msgHeaders['Authorization'] = 'Bearer ' + jwt;
       const res = await fetch(WORKER_URL + '/portal/project/' + token, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Origin: location.origin },
+        headers: msgHeaders,
         body: JSON.stringify({ content }),
       });
       if (res.ok) {
@@ -477,10 +621,6 @@
     if (!iso) return '';
     return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
-  function toggleMobileNav() {
-    document.getElementById('mobileNav').classList.toggle('open');
-  }
-
   load();
 </script>
 </body>

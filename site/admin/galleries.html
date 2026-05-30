@@ -23,6 +23,7 @@
       <a href="galleries.html" class="admin-nav-link">Galleries</a>
       <a href="clients.html" class="admin-nav-link">Clients</a>
       <a href="services.html" class="admin-nav-link">Services</a>
+      <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link" style="color:var(--teal);">Customer Portal ↗</a>
     </nav>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
@@ -356,7 +357,7 @@
           </div>
           <div class="gr-actions">
             <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
-            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
+            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Customer View ↗</button>
             <button class="btn btn-danger" onclick="deleteGallery('${esc(g.id)}')">Delete</button>
           </div>
         </div>

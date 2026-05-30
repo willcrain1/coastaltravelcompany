@@ -375,6 +375,7 @@ test.describe('Admin Pipeline — Invoice Section', () => {
     const price2 = page.locator('#pd-invoice-items-container input[placeholder="0.00"]').nth(1);
     await price2.fill('250');
 
+    await page.fill('#pd-invoice-tax', '0');
     await page.fill('#pd-invoice-due', '2026-06-15');
     await page.click('button:has-text("Create Invoice")');
 
@@ -430,12 +431,13 @@ test.describe('Client Portal — Invoice History', () => {
     await context.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
-  function mockPortal(context, { invoices = [] } = {}) {
+  function mockPortal(context, { invoices = [], contracts = [] } = {}) {
     return mockWorker(context, {
       'GET /auth/me': (route) =>
         json(route, { id: 'u1', email: 'client@grandpalms.com', role: 'client' }),
-      'GET /portal/galleries': (route) => json(route, []),
-      'GET /portal/invoices':  (route) =>
+      'GET /portal/galleries':  (route) => json(route, []),
+      'GET /portal/contracts':  (route) => json(route, contracts),
+      'GET /portal/invoices':   (route) =>
         json(route, invoices.map(inv => ({
           ...inv,
           public_url: `${STATIC_BASE}/invoice.html#${inv.magic_token}`,
@@ -481,12 +483,42 @@ test.describe('Client Portal — Invoice History', () => {
     await expect(page.locator('.badge-paid')).toBeVisible();
   });
 
-  test('invoice section is hidden when no invoices exist', async ({ page, context }) => {
+  test('invoice section shows empty state when no invoices exist', async ({ page, context }) => {
     await mockPortal(context, { invoices: [] });
 
     await page.goto(`${STATIC_BASE}/portal.html`);
-    // Give the page time to finish loading
-    await expect(page.locator('#content')).not.toContainText('Loading', { timeout: 10_000 });
-    await expect(page.locator('#invoices-section')).not.toBeVisible();
+    await expect(page.locator('#galleries-content')).not.toContainText('Loading', { timeout: 10_000 });
+    await expect(page.locator('#invoices-section')).toBeVisible();
+    await expect(page.locator('#invoices-content')).toContainText('No invoices have been sent yet');
+  });
+
+  test('documents section shows an unsigned contract with a Sign button', async ({ page, context }) => {
+    const mockContract = {
+      id:               'con1',
+      title:            'Editorial Stay Agreement',
+      status:           'sent',
+      signing_token:    'tok-con1',
+      client_signed_at: null,
+      admin_signed_at:  null,
+      created_at:       daysAgo(2),
+      property:         'Grand Palms Resort',
+      collection:       'The Editorial Stay',
+      public_url:       `${STATIC_BASE}/contract.html#tok-con1`,
+    };
+    await mockPortal(context, { contracts: [mockContract] });
+
+    await page.goto(`${STATIC_BASE}/portal.html`);
+    await expect(page.locator('#documents-section')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#documents-content')).toContainText('Editorial Stay Agreement');
+    await expect(page.locator('.doc-sign-btn')).toBeVisible();
+  });
+
+  test('documents section shows empty state when no contracts exist', async ({ page, context }) => {
+    await mockPortal(context, { contracts: [] });
+
+    await page.goto(`${STATIC_BASE}/portal.html`);
+    await expect(page.locator('#galleries-content')).not.toContainText('Loading', { timeout: 10_000 });
+    await expect(page.locator('#documents-section')).toBeVisible();
+    await expect(page.locator('#documents-content')).toContainText('No documents have been sent yet');
   });
 });

@@ -12,7 +12,7 @@ import { handleTokenExchange, handleNasProxy } from './gallery-proxy.js';
 import { handleContact } from './contact.js';
 
 import {
-  handlePortalGalleries, handleAdminProjectPortalLink,
+  handlePortalContracts, handlePortalGalleries, handleAdminProjectPortalLink,
   handlePublicProjectPortal, handleAdminProjectMessages,
 } from './portal.js';
 
@@ -148,8 +148,9 @@ export async function handleRequest(request, env) {
   if (projectProposalsMatch) return handleAdminProjectProposals(request, method, env, projectProposalsMatch[1]);
 
   // ── Portal ───────────────────────────────────────────────────────────────────
-  if (method === 'GET' && pathname === '/portal/galleries') return handlePortalGalleries(request, env);
-  if (method === 'GET' && pathname === '/portal/invoices')  return handlePortalInvoices(request, env);
+  if (method === 'GET' && pathname === '/portal/galleries')  return handlePortalGalleries(request, env);
+  if (method === 'GET' && pathname === '/portal/invoices')   return handlePortalInvoices(request, env);
+  if (method === 'GET' && pathname === '/portal/contracts')  return handlePortalContracts(request, env);
 
   // ── Questionnaire instances ──────────────────────────────────────────────────
   const projectQuestionnairesMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/questionnaires$/);
