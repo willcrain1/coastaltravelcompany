@@ -355,7 +355,7 @@
   </div>
 
   <nav class="portal-tab-nav">
-    <a class="portal-tab-link active" href="/portal.html">My Account</a>
+    <a class="portal-tab-link active" id="accountTabLink" href="/portal.html">My Account</a>
     <a class="portal-tab-link disabled" id="projectTabLink" href="/portal-project.html">My Project</a>
   </nav>
 
@@ -386,6 +386,11 @@
 
   const JWT_KEY  = 'ctc_jwt';
   const USER_KEY = 'ctc_user';
+  const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
+
+  function portalHref(path, hash = '') {
+    return path + (isAdminPreview ? '?preview=1' : '') + hash;
+  }
 
   function signOut() {
     localStorage.removeItem(JWT_KEY);
@@ -533,7 +538,6 @@
     document.getElementById('userEmail').textContent = user.email;
 
     // Admins have a dedicated admin panel; redirect unless previewing the customer view
-    const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
     if (user.role === 'admin' && !isAdminPreview) {
       window.location.href = '/admin/pipeline.html';
       return;
@@ -546,6 +550,8 @@
       document.querySelector('nav').style.top = '33px';
       document.querySelector('main').style.paddingTop = '153px';
     }
+
+    document.getElementById('accountTabLink').href = portalHref('/portal.html');
 
     // Fetch galleries, contracts, and invoices in parallel
     const headers = { 'Authorization': 'Bearer ' + token };
@@ -564,7 +570,7 @@
     const projectToken = localStorage.getItem('ctc_project_token');
     if (projectToken) {
       const link = document.getElementById('projectTabLink');
-      link.href = '/portal-project.html#' + projectToken;
+      link.href = portalHref('/portal-project.html', '#' + projectToken);
       link.classList.remove('disabled');
     }
 
