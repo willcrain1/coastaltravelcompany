@@ -163,6 +163,26 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: npx wrangler deploy
+      - name: Update Worker secrets
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+        run: |
+          push_secret() {
+            local name=$1 value=$2
+            if [ -z "$value" ]; then echo "⚠️  $name not set — skipping"; return; fi
+            echo "$value" | npx wrangler secret put "$name"
+          }
+          push_secret JWT_SECRET "$JWT_SECRET"
+          push_secret RESEND_API_KEY "$RESEND_API_KEY"
+          push_secret GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+          push_secret STRIPE_SECRET_KEY "$STRIPE_SECRET_KEY"
+          push_secret STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET"
 
   # ── 5. Site ───────────────────────────────────────────────────────────────────
   deploy-site:
