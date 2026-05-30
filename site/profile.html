@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Profile — Coastal Travel Company</title>
+  <title>My Profile — Coastal Travel Company</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,24 +27,21 @@
       background: var(--cream);
       color: var(--text);
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 120px 20px 40px;
       -webkit-font-smoothing: antialiased;
     }
 
-    nav {
+    /* ── Portal shell nav ── */
+    .portal-shell-nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 100;
       background: var(--cream);
       border-bottom: 1px solid var(--linen);
-      padding: 28px 48px;
-      display: flex;
+      padding: 18px 48px;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
       align-items: center;
-      justify-content: space-between;
+      gap: 24px;
     }
-    .logo-wrap { line-height: 1; text-decoration: none; }
+    .logo-wrap { line-height: 1; }
     .logo-main {
       display: block;
       font-family: 'Gilda Display', serif;
@@ -59,8 +56,11 @@
       color: var(--green);
       line-height: 1;
     }
-    .nav-right { display: flex; align-items: center; gap: 20px; }
-    .user-email { font-size: 11px; color: var(--mid); letter-spacing: 0.04em; }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
     .sign-out-btn {
       font-family: 'Montserrat', sans-serif;
       font-size: 9px;
@@ -76,190 +76,395 @@
     }
     .sign-out-btn:hover { border-color: var(--teal); color: var(--green); }
 
-    .card {
-      background: #fff;
-      width: 100%;
-      max-width: 400px;
-      padding: 40px 36px;
-      box-shadow: 0 2px 24px rgba(0,0,0,0.07);
+    /* ── Portal tab nav ── */
+    .portal-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .portal-tab-link {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      padding: 10px 14px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .portal-tab-link:hover { color: var(--green); }
+    .portal-tab-link.active { color: var(--green); border-bottom-color: var(--green); }
+
+    /* ── Main ── */
+    main {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 112px 24px 80px;
     }
 
-    /* ── Logged-out state ── */
-    .card-title {
+    .page-header { margin-bottom: 36px; }
+    .eyebrow {
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.42em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 10px;
+    }
+    .page-title {
       font-family: 'Gilda Display', serif;
-      font-size: 22px;
+      font-size: 28px;
       color: var(--black);
-      margin-bottom: 6px;
-    }
-    .card-sub {
-      font-size: 12px;
-      color: var(--light);
-      margin-bottom: 28px;
-      line-height: 1.6;
+      font-weight: 400;
     }
 
-    /* ── Logged-in state ── */
+    /* ── Avatar ── */
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
     .avatar {
-      width: 56px;
-      height: 56px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: var(--green);
       color: #fff;
       font-family: 'Gilda Display', serif;
-      font-size: 22px;
+      font-size: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 20px;
+      flex-shrink: 0;
     }
-    .profile-email {
-      text-align: center;
-      font-size: 14px;
-      font-weight: 500;
+    .profile-email-display {
+      font-size: 13px;
       color: var(--black);
-      margin-bottom: 6px;
+      font-weight: 500;
       word-break: break-all;
     }
     .role-badge {
-      display: block;
-      text-align: center;
+      display: inline-block;
       font-size: 9px;
       font-weight: 600;
-      letter-spacing: 0.38em;
+      letter-spacing: 0.32em;
       text-transform: uppercase;
       color: var(--teal);
-      margin-bottom: 28px;
-    }
-    .divider {
-      height: 1px;
-      background: var(--linen);
-      margin: 24px 0;
+      margin-top: 3px;
     }
 
-    .btn {
-      display: block;
+    /* ── Settings sections ── */
+    .settings-section {
+      background: #fff;
+      border: 1px solid var(--linen);
+      padding: 28px 28px 24px;
+      margin-bottom: 20px;
+    }
+    .settings-heading {
+      font-family: 'Gilda Display', serif;
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--black);
+      margin-bottom: 20px;
+    }
+    .settings-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .settings-label {
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mid);
+    }
+    .settings-input {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 300;
+      padding: 10px 12px;
+      border: 1px solid var(--linen);
+      background: #fff;
+      color: var(--black);
       width: 100%;
-      padding: 13px;
+      transition: border-color 0.2s;
+    }
+    .settings-input:focus { outline: none; border-color: var(--green); }
+    .settings-input:disabled { background: var(--cream); color: var(--mid); cursor: default; }
+    .settings-btn {
       font-family: 'Montserrat', sans-serif;
       font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.3em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
-      text-align: center;
-      text-decoration: none;
+      background: var(--green);
+      color: #fff;
       border: none;
+      padding: 11px 24px;
       cursor: pointer;
-      transition: background 0.2s, border-color 0.2s, color 0.2s;
-      margin-top: 10px;
+      transition: background 0.2s;
+      margin-top: 4px;
     }
-    .btn-primary { background: var(--green); color: #fff; }
-    .btn-primary:hover { background: #1e4532; }
-    .btn-ghost {
-      background: transparent;
+    .settings-btn:hover { background: #1e4532; }
+    .settings-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .msg-ok    { font-size: 12px; color: #1a7a40; margin-top: 10px; }
+    .msg-error { font-size: 12px; color: #c00;    margin-top: 10px; }
+    .google-note {
+      font-size: 13px;
       color: var(--mid);
+      line-height: 1.6;
+      padding: 14px;
+      background: var(--cream);
       border: 1px solid var(--linen);
     }
-    .btn-ghost:hover { border-color: var(--teal); color: var(--green); }
 
-    .hidden { display: none !important; }
-
+    /* ── Loading ── */
+    .pp-loading {
+      text-align: center;
+      padding: 80px 24px;
+      font-size: 13px;
+      color: var(--light);
+    }
     .spinner {
       width: 28px; height: 28px;
       border: 2px solid var(--linen);
       border-top-color: var(--green);
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
-      margin: 20px auto;
+      margin: 0 auto 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 640px) {
+      .portal-shell-nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 14px 20px;
+        gap: 12px;
+      }
+      .nav-right { justify-content: center; }
+      main { padding-top: 172px; }
+    }
   </style>
 </head>
 <body>
 
-<nav>
+<nav class="portal-shell-nav">
   <a href="/" style="text-decoration:none">
     <div class="logo-wrap">
       <span class="logo-main">Coastal</span>
       <span class="logo-script">Travel Company</span>
     </div>
   </a>
+  <div class="portal-tabs" aria-label="Portal sections">
+    <a class="portal-tab-link" id="accountTabLink" href="/portal.html">My Account</a>
+    <a class="portal-tab-link" id="projectTabLink" href="/portal-project.html">My Project</a>
+    <a class="portal-tab-link active" id="profileTabLink" href="/profile.html">My Profile</a>
+  </div>
   <div class="nav-right">
-    <span class="user-email" id="userEmail"></span>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
 
-<!-- ── Loading ── -->
-<div class="card" id="loadingCard">
-  <div class="spinner"></div>
-</div>
+<main>
+  <div id="ppLoading" class="pp-loading">
+    <div class="spinner"></div>
+    Loading…
+  </div>
 
-<!-- ── Logged out ── -->
-<div class="card hidden" id="loggedOutCard">
-  <h1 class="card-title">Your Profile</h1>
-  <p class="card-sub">Sign in to access your client galleries and account details.</p>
-  <a href="login.html" class="btn btn-primary">Sign In</a>
-  <a href="register.html" class="btn btn-ghost">Create Account</a>
-</div>
+  <div id="ppContent" style="display:none">
+    <div class="page-header">
+      <p class="eyebrow">Client Portal</p>
+      <h1 class="page-title">My Profile</h1>
+    </div>
 
-<!-- ── Logged in ── -->
-<div class="card hidden" id="loggedInCard">
-  <div class="avatar" id="avatarInitial"></div>
-  <p class="profile-email" id="profileEmail"></p>
-  <span class="role-badge" id="profileRole"></span>
-  <a href="#" class="btn btn-primary" id="portalBtn"></a>
-  <div class="divider"></div>
-  <button class="btn btn-ghost" onclick="signOut()">Sign Out</button>
-</div>
+    <div class="profile-header">
+      <div class="avatar" id="avatarInitial"></div>
+      <div>
+        <div class="profile-email-display" id="profileEmail"></div>
+        <span class="role-badge" id="profileRole"></span>
+      </div>
+    </div>
+
+    <!-- Profile section -->
+    <div class="settings-section">
+      <h2 class="settings-heading">Profile</h2>
+      <div class="settings-field">
+        <label class="settings-label" for="nameInput">Name</label>
+        <input class="settings-input" type="text" id="nameInput" placeholder="Your full name" autocomplete="name" />
+      </div>
+      <div class="settings-field">
+        <label class="settings-label" for="emailInput">Email</label>
+        <input class="settings-input" type="email" id="emailInput" disabled />
+      </div>
+      <button class="settings-btn" id="saveNameBtn" onclick="saveName()">Save Changes</button>
+      <div id="nameMsg"></div>
+    </div>
+
+    <!-- Security section -->
+    <div class="settings-section" id="securitySection">
+      <h2 class="settings-heading">Security</h2>
+      <div id="passwordForm">
+        <div class="settings-field">
+          <label class="settings-label" for="currentPw">Current Password</label>
+          <input class="settings-input" type="password" id="currentPw" autocomplete="current-password" />
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="newPw">New Password</label>
+          <input class="settings-input" type="password" id="newPw" placeholder="Min. 8 characters" autocomplete="new-password" />
+        </div>
+        <div class="settings-field">
+          <label class="settings-label" for="confirmPw">Confirm New Password</label>
+          <input class="settings-input" type="password" id="confirmPw" autocomplete="new-password" />
+        </div>
+        <button class="settings-btn" id="savePwBtn" onclick="savePassword()">Update Password</button>
+        <div id="pwMsg"></div>
+      </div>
+    </div>
+  </div>
+</main>
 
 <script>
   const WORKER_URL = CTC_CONFIG.workerUrl;
+  const JWT_KEY    = 'ctc_jwt';
+  const USER_KEY   = 'ctc_user';
+  const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
 
-  const JWT_KEY  = 'ctc_jwt';
-  const USER_KEY = 'ctc_user';
-
-  function show(id) {
-    ['loadingCard', 'loggedOutCard', 'loggedInCard'].forEach(c => {
-      document.getElementById(c).classList.toggle('hidden', c !== id);
-    });
+  function portalHref(path) {
+    return path + (isAdminPreview ? '?preview=1' : '');
   }
 
   function signOut() {
     localStorage.removeItem(JWT_KEY);
     localStorage.removeItem(USER_KEY);
-    show('loggedOutCard');
+    window.location.href = '/login.html';
   }
 
+  let currentUser = null;
+
   async function init() {
-    const token = localStorage.getItem(JWT_KEY);
-    if (!token) { show('loggedOutCard'); return; }
+    const jwt = localStorage.getItem(JWT_KEY);
+    if (!jwt) { window.location.href = '/login.html?redirect=/profile.html'; return; }
 
     const res = await fetch(WORKER_URL + '/auth/me', {
-      headers: { 'Authorization': 'Bearer ' + token },
+      headers: { 'Authorization': 'Bearer ' + jwt },
     }).catch(() => null);
 
     if (!res || !res.ok) {
       localStorage.removeItem(JWT_KEY);
       localStorage.removeItem(USER_KEY);
-      show('loggedOutCard');
+      window.location.href = '/login.html?redirect=/profile.html';
       return;
     }
 
-    const user = await res.json();
-    const initial = (user.email || '?')[0].toUpperCase();
-    const isAdmin = user.role === 'admin';
+    currentUser = await res.json();
 
-    document.getElementById('avatarInitial').textContent = initial;
-    document.getElementById('profileEmail').textContent  = user.email;
-    document.getElementById('profileRole').textContent   = isAdmin ? 'Administrator' : 'Client';
+    document.getElementById('accountTabLink').href = portalHref('/portal.html');
+    document.getElementById('projectTabLink').href = portalHref('/portal-project.html');
+    document.getElementById('profileTabLink').href = portalHref('/profile.html');
 
-    const btn = document.getElementById('portalBtn');
-    btn.textContent = isAdmin ? 'Admin Panel' : 'My Galleries';
-    btn.href        = isAdmin ? '/admin/pipeline.html' : '/portal.html';
+    if (currentUser.role === 'admin' && isAdminPreview) {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
+      banner.innerHTML = 'Admin Preview — this is how clients see the portal &nbsp;·&nbsp; <a href="/admin/pipeline.html" style="color:#000;text-decoration:underline;">Back to Admin</a>';
+      document.body.prepend(banner);
+      document.querySelector('.portal-shell-nav').style.top = '33px';
+      document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '205px' : '145px';
+    }
 
-    document.getElementById('userEmail').textContent = user.email;
-    show('loggedInCard');
+    const initial = (currentUser.name || currentUser.email || '?')[0].toUpperCase();
+    document.getElementById('avatarInitial').textContent  = initial;
+    document.getElementById('profileEmail').textContent   = currentUser.email;
+    document.getElementById('profileRole').textContent    = currentUser.role === 'admin' ? 'Administrator' : 'Client';
+    document.getElementById('nameInput').value            = currentUser.name || '';
+    document.getElementById('emailInput').value           = currentUser.email;
+
+    if (!currentUser.hasPassword) {
+      document.getElementById('passwordForm').innerHTML =
+        '<div class="google-note">Your account uses Google Sign-In. Password changes are managed through your Google account.</div>';
+    }
+
+    hide('ppLoading'); show('ppContent');
   }
+
+  async function saveName() {
+    const name  = document.getElementById('nameInput').value.trim();
+    const btn   = document.getElementById('saveNameBtn');
+    const msgEl = document.getElementById('nameMsg');
+    msgEl.textContent = '';
+    msgEl.className   = '';
+    btn.disabled = true;
+
+    const jwt = localStorage.getItem(JWT_KEY);
+    const res = await fetch(WORKER_URL + '/auth/me', {
+      method:  'PATCH',
+      headers: { 'Authorization': 'Bearer ' + jwt, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name }),
+    }).catch(() => null);
+
+    if (res && res.ok) {
+      const updated = await res.json();
+      currentUser = updated;
+      const initial = (updated.name || updated.email || '?')[0].toUpperCase();
+      document.getElementById('avatarInitial').textContent = initial;
+      msgEl.textContent = 'Changes saved.';
+      msgEl.className   = 'msg-ok';
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {};
+      msgEl.textContent = err.error || 'Failed to save. Please try again.';
+      msgEl.className   = 'msg-error';
+    }
+    btn.disabled = false;
+  }
+
+  async function savePassword() {
+    const currentPw = document.getElementById('currentPw').value;
+    const newPw     = document.getElementById('newPw').value;
+    const confirmPw = document.getElementById('confirmPw').value;
+    const btn       = document.getElementById('savePwBtn');
+    const msgEl     = document.getElementById('pwMsg');
+    msgEl.textContent = '';
+    msgEl.className   = '';
+
+    if (!currentPw || !newPw || !confirmPw) {
+      msgEl.textContent = 'Please fill in all password fields.'; msgEl.className = 'msg-error'; return;
+    }
+    if (newPw.length < 8) {
+      msgEl.textContent = 'New password must be at least 8 characters.'; msgEl.className = 'msg-error'; return;
+    }
+    if (newPw !== confirmPw) {
+      msgEl.textContent = 'New passwords do not match.'; msgEl.className = 'msg-error'; return;
+    }
+
+    btn.disabled = true;
+    const jwt = localStorage.getItem(JWT_KEY);
+    const res = await fetch(WORKER_URL + '/auth/me', {
+      method:  'PATCH',
+      headers: { 'Authorization': 'Bearer ' + jwt, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+    }).catch(() => null);
+
+    if (res && res.ok) {
+      document.getElementById('currentPw').value = '';
+      document.getElementById('newPw').value     = '';
+      document.getElementById('confirmPw').value = '';
+      msgEl.textContent = 'Password updated successfully.';
+      msgEl.className   = 'msg-ok';
+    } else {
+      const err = res ? await res.json().catch(() => ({})) : {};
+      msgEl.textContent = err.error || 'Failed to update password. Please try again.';
+      msgEl.className   = 'msg-error';
+    }
+    btn.disabled = false;
+  }
+
+  function show(id) { document.getElementById(id).style.display = ''; }
+  function hide(id) { document.getElementById(id).style.display = 'none'; }
 
   init();
 </script>

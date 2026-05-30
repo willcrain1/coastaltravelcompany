@@ -345,7 +345,8 @@
   </a>
   <div class="portal-tabs" aria-label="Portal sections">
     <a class="portal-tab-link active" id="accountTabLink" href="/portal.html">My Account</a>
-    <a class="portal-tab-link disabled" id="projectTabLink" href="/portal-project.html">My Project</a>
+    <a class="portal-tab-link" id="projectTabLink" href="/portal-project.html">My Project</a>
+    <a class="portal-tab-link" id="profileTabLink" href="/profile.html">My Profile</a>
   </div>
   <div class="nav-right">
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
@@ -549,6 +550,7 @@
     }
 
     document.getElementById('accountTabLink').href = portalHref('/portal.html');
+    document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
     // Fetch galleries, contracts, and invoices in parallel
     const headers = { 'Authorization': 'Bearer ' + token };
@@ -564,12 +566,7 @@
       return;
     }
 
-    const projectToken = localStorage.getItem('ctc_project_token');
-    if (projectToken) {
-      const link = document.getElementById('projectTabLink');
-      link.href = portalHref('/portal-project.html', '#' + projectToken);
-      link.classList.remove('disabled');
-    }
+    document.getElementById('projectTabLink').href = portalHref('/portal-project.html');
 
     renderGalleries(await galRes.json());
 
