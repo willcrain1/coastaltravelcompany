@@ -7,9 +7,57 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <style>
+    :root {
+      --black: #1C1C1C;
+      --green: #2A5C45;
+      --teal:  #8FBFBE;
+      --cream: #F4F1EC;
+      --linen: #E8DDD0;
+      --text:  #2C2C2C;
+      --mid:   #5A5A5A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      background: var(--cream);
+      border-bottom: 1px solid var(--linen);
+      padding: 20px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-main {
+      display: block;
+      font-family: 'Gilda Display', serif;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--black);
+    }
+    .logo-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 26px;
+      color: var(--green);
+      line-height: 1;
+    }
+    .header-tagline {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--mid);
+      text-transform: uppercase;
+    }
+    @media (max-width: 600px) {
+      header { padding: 16px 20px; }
+      .header-tagline { display: none; }
+    }
     .pp-wrap {
       max-width: 800px;
       margin: 0 auto;
@@ -287,29 +335,12 @@
 <body>
 
 <header>
-  <div class="logo-wrap">
-    <a href="/" style="text-decoration:none">
-      <span class="logo-main">Coastal</span>
-      <span class="logo-script">Travel Company</span>
-    </a>
-  </div>
-  <nav class="nav">
-    <a href="index.html" class="nav-link">Home</a>
-    <a href="services.html" class="nav-link">Services</a>
-    <a href="contact.html" class="nav-link">Contact</a>
-    <a href="login.html" class="nav-link nav-account">Account</a>
-  </nav>
-  <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
-    <span></span><span></span><span></span>
-  </div>
+  <a href="/" style="text-decoration:none">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </a>
+  <span class="header-tagline">Project Portal</span>
 </header>
-
-<div class="mobile-nav" id="mobileNav">
-  <a href="index.html">Home</a>
-  <a href="services.html">Services</a>
-  <a href="contact.html">Contact</a>
-  <a href="login.html">Account</a>
-</div>
 
 <main>
   <nav class="portal-tab-nav">
@@ -533,10 +564,6 @@
     if (!iso) return '';
     return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
-  function toggleMobileNav() {
-    document.getElementById('mobileNav').classList.toggle('open');
-  }
-
   load();
 </script>
 </body>
