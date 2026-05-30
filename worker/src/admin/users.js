@@ -15,12 +15,13 @@ export async function handleAdminCreateUser(request, env) {
   const p = await getAuth(request, env);
   if (!p) return authRequired();
   if (p.role !== 'admin') return forbidden();
-  const { email, password, role = 'client', galleries = [] } = await request.json();
+  const { email, password, role = 'client', galleries = [], name } = await request.json();
   if (!email) return jsonResponse({ error: 'Email required' }, 400);
   if (await getUser(email, env.KV)) return jsonResponse({ error: 'User already exists' }, 409);
   const id   = crypto.randomUUID();
   const user = {
     id, email: email.toLowerCase(),
+    name: name ? name.trim() : '',
     passwordHash: password ? await hashPassword(password) : null,
     role, created: Date.now(), galleries,
     verified: true,
@@ -36,11 +37,12 @@ export async function handleAdminUpdateUser(request, env, id) {
   if (p.role !== 'admin') return forbidden();
   const user = await getUserById(id, env.KV);
   if (!user) return jsonResponse({ error: 'Not found' }, 404);
-  const { password, role, galleries } = await request.json();
+  const { password, role, galleries, name } = await request.json();
   const oldGalleries = user.galleries || [];
   const newGalleries = galleries !== undefined ? galleries : oldGalleries;
   if (password) user.passwordHash = await hashPassword(password);
   if (role !== undefined) user.role = role;
+  if (name !== undefined) user.name = name.trim();
   user.galleries = newGalleries;
   await putUser(user, env.KV);
   const added   = newGalleries.filter(g => !oldGalleries.includes(g));
