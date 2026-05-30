@@ -64,8 +64,9 @@ const ADMIN_ROUTES = [
 ];
 
 const PORTAL_ROUTES = [
-  ['GET', '/portal/galleries', 'portal galleries'],
-  ['GET', '/portal/invoices',  'portal invoices'],
+  ['GET', '/portal/galleries',  'portal galleries'],
+  ['GET', '/portal/invoices',   'portal invoices'],
+  ['GET', '/portal/contracts',  'portal contracts'],
 ];
 
 function makeTestEnv() {
@@ -321,7 +322,7 @@ describe('router cross-check', () => {
     const src = readFileSync(join(__dir, '../src/router.js'), 'utf8');
 
     // Routes that require auth and must NOT be in PUBLIC_ROUTES
-    const AUTH_REQUIRED = new Set(['/portal/galleries', '/portal/invoices', '/auth/me']);
+    const AUTH_REQUIRED = new Set(['/portal/galleries', '/portal/invoices', '/portal/contracts', '/auth/me']);
 
     // Paths exempted from PUBLIC_ROUTES with a reason
     const ALLOWLIST = new Set([

@@ -206,8 +206,8 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── Invoices section ── */
-    .invoices-section {
+    /* ── Portal sections ── */
+    .portal-section {
       margin-top: 56px;
       border-top: 1px solid var(--linen);
       padding-top: 40px;
@@ -269,6 +269,40 @@
     }
     .invoice-view-link:hover { text-decoration: underline; }
 
+    /* ── Document rows ── */
+    .doc-row {
+      background: #fff;
+      border: 1px solid var(--linen);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .doc-row-left { flex: 1; min-width: 160px; }
+    .doc-title { font-size: 14px; font-weight: 500; color: var(--black); }
+    .doc-meta { font-size: 12px; color: var(--mid); margin-top: 3px; }
+    .badge-awaiting { background: #fff7e6; color: #92580a; }
+    .badge-pending  { background: #e8f4fd; color: #0d47a1; }
+    .badge-executed { background: #d1f0e3; color: #145a35; }
+    .doc-sign-btn {
+      display: inline-block;
+      background: var(--green);
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 9px 18px;
+      text-decoration: none;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
     @media (max-width: 640px) {
       nav { padding: 16px 20px; }
       main { padding: 100px 20px 60px; }
@@ -294,15 +328,26 @@
 <main>
   <div class="page-header">
     <p class="eyebrow">Client Portal</p>
-    <h1 class="page-title">My Galleries</h1>
+    <h1 class="page-title">My Account</h1>
   </div>
-  <div id="content">
+
+  <!-- Galleries -->
+  <h2 class="section-heading">Galleries</h2>
+  <div id="galleries-content">
     <div class="state-loading">
       <div class="spinner"></div>
       Loading your galleries…
     </div>
   </div>
-  <div class="invoices-section" id="invoices-section" style="display:none">
+
+  <!-- Documents -->
+  <div class="portal-section" id="documents-section" style="display:none">
+    <h2 class="section-heading">Documents</h2>
+    <div id="documents-content"></div>
+  </div>
+
+  <!-- Invoices -->
+  <div class="portal-section" id="invoices-section" style="display:none">
     <h2 class="section-heading">Invoices</h2>
     <div id="invoices-content"></div>
   </div>
@@ -337,7 +382,7 @@
   }
 
   function renderGalleries(galleries) {
-    const el = document.getElementById('content');
+    const el = document.getElementById('galleries-content');
     if (!galleries.length) {
       el.innerHTML = `<div class="state-empty">
         No galleries have been assigned to your account yet.<br>
@@ -365,6 +410,40 @@
 
   function esc(s) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderContracts(contracts) {
+    const section = document.getElementById('documents-section');
+    const content = document.getElementById('documents-content');
+    if (!contracts.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    content.innerHTML = contracts.map(c => {
+      const context = [c.collection, c.property].filter(Boolean).join(' · ');
+      const created = c.created_at
+        ? new Date(c.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
+      let badgeCls, badgeLabel, action;
+      if (c.status === 'fully_executed') {
+        badgeCls = 'badge-executed'; badgeLabel = 'Fully Executed';
+        action = `<a class="invoice-view-link" href="${esc(c.public_url)}">View →</a>`;
+      } else if (c.status === 'client_signed') {
+        badgeCls = 'badge-pending'; badgeLabel = 'Awaiting Countersignature';
+        action = `<a class="invoice-view-link" href="${esc(c.public_url)}">View →</a>`;
+      } else {
+        badgeCls = 'badge-awaiting'; badgeLabel = 'Signature Required';
+        action = `<a class="doc-sign-btn" href="${esc(c.public_url)}">Review &amp; Sign</a>`;
+      }
+      return `<div class="doc-row">
+        <div class="doc-row-left">
+          <div class="doc-title">${esc(c.title)}</div>
+          <div class="doc-meta">
+            <span class="invoice-badge ${badgeCls}">${badgeLabel}</span>
+            ${esc(created)}${context ? ' · ' + esc(context) : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">${action}</div>
+      </div>`;
+    }).join('');
   }
 
   function renderInvoices(invoices) {
@@ -432,25 +511,25 @@
       document.querySelector('main').style.paddingTop = '153px';
     }
 
-    // Fetch galleries and invoices in parallel
-    const [galRes, invRes] = await Promise.all([
-      fetch(WORKER_URL + '/portal/galleries', { headers: { 'Authorization': 'Bearer ' + token } }).catch(() => null),
-      fetch(WORKER_URL + '/portal/invoices',  { headers: { 'Authorization': 'Bearer ' + token } }).catch(() => null),
+    // Fetch galleries, contracts, and invoices in parallel
+    const headers = { 'Authorization': 'Bearer ' + token };
+    const [galRes, conRes, invRes] = await Promise.all([
+      fetch(WORKER_URL + '/portal/galleries',  { headers }).catch(() => null),
+      fetch(WORKER_URL + '/portal/contracts',  { headers }).catch(() => null),
+      fetch(WORKER_URL + '/portal/invoices',   { headers }).catch(() => null),
     ]);
 
     if (!galRes || !galRes.ok) {
-      document.getElementById('content').innerHTML =
+      document.getElementById('galleries-content').innerHTML =
         '<div class="state-error">Could not load galleries. Please try again later.</div>';
       return;
     }
 
-    const galleries = await galRes.json();
-    renderGalleries(galleries);
+    renderGalleries(await galRes.json());
 
-    if (invRes && invRes.ok) {
-      const invoices = await invRes.json();
-      renderInvoices(invoices);
-    }
+    if (conRes && conRes.ok) renderContracts(await conRes.json());
+
+    if (invRes && invRes.ok) renderInvoices(await invRes.json());
   }
 
   load();
