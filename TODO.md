@@ -1622,3 +1622,8 @@ For answering "how long did they spend on the services section vs. the collectio
 - [ ] Build a GA4 Exploration report grouping `section_dwell` events by `section_id` to identify which content holds attention longest
 
 ### Scroll-depth milestones (25 / 50 / 75 / 100
+
+## 47. Allow Users to create project
+
+**Goal:  Right now the only way a project can be created is by an admin for a user.  This discourages use and hides the process behind a step which is not self service.  Make a change so a user which does not have a project yet is able to navigate to the 'My Project' page and create a new project to start the initial inquiry.**
+
