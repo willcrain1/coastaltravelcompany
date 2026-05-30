@@ -1,7 +1,7 @@
 /**
  * Acceptance tests for the registration page.
  *
- *  1. Registration form renders with email, password, and confirm fields
+ *  1. Registration form renders with name, email, password, and confirm fields
  *  2. Successful registration stores JWT in localStorage and redirects to portal
  *  3. Server error (e.g. email already taken) shows an error message
  *  4. Password mismatch is caught client-side before any API call is made
@@ -52,6 +52,7 @@ test.describe('Registration Page', () => {
 
   test('renders the registration form with all required fields', async ({ page }) => {
     await page.goto(`${STATIC_BASE}/register.html`);
+    await expect(page.locator('#regName')).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('#regEmail')).toBeVisible({ timeout: 5_000 });
     await expect(page.locator('#regPassword')).toBeVisible();
     await expect(page.locator('#regConfirm')).toBeVisible();
@@ -71,6 +72,7 @@ test.describe('Registration Page', () => {
     });
 
     await page.goto(`${STATIC_BASE}/register.html`);
+    await page.fill('#regName',     'New Client');
     await page.fill('#regEmail',    'new@example.com');
     await page.fill('#regPassword', 'SecurePass1!');
     await page.fill('#regConfirm',  'SecurePass1!');
@@ -89,6 +91,7 @@ test.describe('Registration Page', () => {
     });
 
     await page.goto(`${STATIC_BASE}/register.html`);
+    await page.fill('#regName',     'Existing Client');
     await page.fill('#regEmail',    'existing@example.com');
     await page.fill('#regPassword', 'SecurePass1!');
     await page.fill('#regConfirm',  'SecurePass1!');
@@ -106,6 +109,7 @@ test.describe('Registration Page', () => {
     });
 
     await page.goto(`${STATIC_BASE}/register.html`);
+    await page.fill('#regName',     'Test Client');
     await page.fill('#regEmail',    'test@example.com');
     await page.fill('#regPassword', 'SecurePass1!');
     await page.fill('#regConfirm',  'DifferentPass2!');

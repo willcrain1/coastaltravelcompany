@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-  handlePortalGalleries, handleAdminProjectPortalLink,
+  handlePortalContracts, handlePortalGalleries, handleAdminProjectPortalLink,
   handlePublicProjectPortal, handleAdminProjectMessages,
 } from '../src/portal.js';
 import { createJWT } from '../src/jwt.js';
@@ -74,6 +74,36 @@ describe('handlePortalGalleries', () => {
     await kv.put('user:nogal@t.com', JSON.stringify({ id: 'u3', email: 'nogal@t.com', role: 'client' }));
     const req = await makeAuthReq('http://t/portal/galleries', 'GET', { sub: 'nogal@t.com', role: 'client' });
     const r   = await handlePortalGalleries(req, { KV: kv, JWT_SECRET: SECRET });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual([]);
+  });
+});
+
+// ── handlePortalContracts ─────────────────────────────────────────────────────
+
+describe('handlePortalContracts', () => {
+  it('401 when not authenticated', async () => {
+    const r = await handlePortalContracts(new Request('http://t/portal/contracts'), { DB: makeDb(), JWT_SECRET: SECRET });
+    expect(r.status).toBe(401);
+  });
+  it('503 when DB not configured', async () => {
+    const req = await makeAuthReq('http://t/portal/contracts', 'GET', { sub: 'c@t.com', role: 'client' });
+    const r   = await handlePortalContracts(req, { JWT_SECRET: SECRET });
+    expect(r.status).toBe(503);
+  });
+  it('200 returns contracts with public_url for authenticated user', async () => {
+    const rows = [{ id: 'c1', title: 'Agreement', status: 'sent', signing_token: 'tok1', client_signed_at: '', admin_signed_at: '', created_at: '2026-01-01', property: 'Grand Palms', collection: 'Editorial Stay' }];
+    const req  = await makeAuthReq('http://t/portal/contracts', 'GET', { sub: 'client@t.com', role: 'client' });
+    const r    = await handlePortalContracts(req, { DB: makeDb(rows), JWT_SECRET: SECRET });
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body.length).toBe(1);
+    expect(body[0].title).toBe('Agreement');
+    expect(body[0].public_url).toContain('contract.html#tok1');
+  });
+  it('200 returns empty array when user has no contracts', async () => {
+    const req = await makeAuthReq('http://t/portal/contracts', 'GET', { sub: 'new@t.com', role: 'client' });
+    const r   = await handlePortalContracts(req, { DB: makeDb([]), JWT_SECRET: SECRET });
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual([]);
   });

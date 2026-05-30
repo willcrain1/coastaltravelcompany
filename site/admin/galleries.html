@@ -23,6 +23,7 @@
       <a href="galleries.html" class="admin-nav-link">Galleries</a>
       <a href="clients.html" class="admin-nav-link">Clients</a>
       <a href="services.html" class="admin-nav-link">Services</a>
+      <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link" style="color:var(--teal);">Customer Portal ↗</a>
     </nav>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
@@ -77,11 +78,6 @@
         <div class="fg">
           <label>Event / Gallery Name</label>
           <input type="text" id="eventName" required placeholder="Rivera Wedding · May 2024" />
-        </div>
-
-        <div class="fg">
-          <label>Client Name</label>
-          <input type="text" id="clientName" required placeholder="Rivera Family" />
         </div>
 
         <div class="fg full">
@@ -283,7 +279,6 @@
     const shareRaw      = document.getElementById('shareUrl').value.trim();
     const sharePassword = document.getElementById('sharePassword').value.trim();
     const eventName     = document.getElementById('eventName').value.trim();
-    const clientName    = document.getElementById('clientName').value.trim();
     const notes         = document.getElementById('notes').value.trim();
     const watermark     = document.getElementById('watermark').checked;
 
@@ -307,7 +302,7 @@
 
     const gallery = {
       id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: activeProxyUrl,
-      passphrase: parsed.passphrase, sharePassword, eventName, clientName,
+      passphrase: parsed.passphrase, sharePassword, eventName,
       created, notes, watermark, assignedUsers: [],
     };
 
@@ -362,7 +357,7 @@
           </div>
           <div class="gr-actions">
             <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
-            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
+            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Customer View ↗</button>
             <button class="btn btn-danger" onclick="deleteGallery('${esc(g.id)}')">Delete</button>
           </div>
         </div>

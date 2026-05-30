@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Coastal Travel Company</title>
+  <meta name="description" content="Privacy Policy for Coastal Travel Company — how we collect, use, and protect your information." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <style>
+    .privacy-wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 80px 40px 120px;
+    }
+    .privacy-wrap h2 {
+      font-family: 'Gilda Display', serif;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--black);
+      margin: 52px 0 16px;
+      padding-top: 52px;
+      border-top: 1px solid var(--warm-linen);
+    }
+    .privacy-wrap h2:first-of-type {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+    .privacy-wrap h3 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--forest-green);
+      margin: 28px 0 10px;
+    }
+    .privacy-wrap p {
+      font-size: 13.5px;
+      line-height: 1.85;
+      color: var(--text-mid);
+      margin-bottom: 16px;
+    }
+    .privacy-wrap ul {
+      margin: 0 0 16px 0;
+      padding-left: 20px;
+    }
+    .privacy-wrap ul li {
+      font-size: 13.5px;
+      line-height: 1.85;
+      color: var(--text-mid);
+      margin-bottom: 8px;
+    }
+    .privacy-wrap a {
+      color: var(--forest-green);
+      text-decoration: underline;
+    }
+    .privacy-wrap a:hover {
+      color: var(--black);
+    }
+    .last-updated {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--sage-teal);
+      margin-bottom: 40px;
+      display: block;
+    }
+    @media (max-width: 640px) {
+      .privacy-wrap { padding: 48px 24px 80px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ─────────────────────────────────────── -->
+  <nav id="main-nav">
+    <a href="index.html" class="nav-logo">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="services.html">Services</a></li>
+      <li><a href="collections.html">Collections</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li><a href="login.html">Account</a></li>
+    </ul>
+    <button class="nav-toggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <section class="section bg-linen" style="padding-top: 140px; padding-bottom: 56px;">
+    <div class="container">
+      <span class="eyebrow">Legal</span>
+      <h1 style="font-size: clamp(32px, 5vw, 56px);">Privacy Policy</h1>
+    </div>
+  </section>
+
+  <!-- ── Content ────────────────────────────────────────── -->
+  <section class="section bg-white" style="padding-top: 0;">
+    <div class="container">
+      <div class="privacy-wrap">
+
+        <span class="last-updated">Last updated: 2026-05-30</span>
+
+        <p>Coastal Travel Company ("we," "us," or "our") operates the website at <strong>coastaltravelcompany.com</strong> and related services. This policy explains what information we collect, why we collect it, who we share it with, and your rights under the California Consumer Privacy Act (CCPA).</p>
+
+        <!-- 1. What we collect -->
+        <h2>1. What We Collect and Why</h2>
+
+        <h3>Contact form submissions</h3>
+        <p>When you submit the contact form we collect your name, email address, and message. This information is forwarded directly to our inbox via Resend (our email delivery provider) and is not stored on our servers. It is retained only within the recipient's email client.</p>
+
+        <h3>User accounts</h3>
+        <p>If you create an account we collect your email address and either a bcrypt-hashed password or a Google OAuth token (we never see or store your Google password). We also store your account role (client or admin). This data is stored in a Cloudflare D1 database indefinitely until you request deletion.</p>
+
+        <h3>Gallery sessions</h3>
+        <p>When you access a client gallery we issue a short-lived session token (a random UUID) stored in Cloudflare KV with a 4-hour expiry. No IP address, browser fingerprint, or personally identifiable information is associated with gallery sessions. Photos are fetched from our NAS through the Cloudflare Worker and are not cached server-side.</p>
+
+        <h3>Invoices and contracts</h3>
+        <p>As part of our booking process we collect your name, email address, and invoice and contract data. This information is stored in a Cloudflare D1 database. Payment is processed by Stripe — we receive a confirmation token from Stripe but never see or store your card number or full payment details. Stripe's handling of payment data is governed by their own privacy policy.</p>
+
+        <h3>Real estate analytics (when live)</h3>
+        <p>Our planned real estate property pages will collect anonymized room engagement events and hotspot interactions for property owners. A session identifier (a random UUID) is generated in your browser and stored in <code>sessionStorage</code> only — it is cleared when you close the tab and is never linked to your identity. No personally identifiable information is collected. Analytics events are only sent if you grant consent via the on-page consent banner.</p>
+
+        <h3>Real estate lead capture (when live)</h3>
+        <p>If you voluntarily submit your email address through a lead capture form on a property page, that email is shared only with the listing agent and is not sold or shared with any other third party.</p>
+
+        <!-- 2. Third-party services -->
+        <h2>2. Third-Party Services</h2>
+        <p>We use the following third-party services. Each processes data according to their own privacy policy, linked below.</p>
+        <ul>
+          <li><strong>Cloudflare</strong> — provides our website hosting (Pages), serverless compute (Workers), database (D1), key-value storage (KV), and secure NAS tunnel. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy</a></li>
+          <li><strong>Resend</strong> — delivers transactional emails including contact form forwards and booking notifications. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend Privacy Policy</a></li>
+          <li><strong>Google</strong> — provides optional OAuth login ("Sign in with Google"). If you use this option, Google shares your email address and profile identifier with us. We do not receive your password. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+          <li><strong>Stripe</strong> — processes all payments. Stripe receives your payment card details directly; we receive only a confirmation token. <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy Policy</a></li>
+          <li><strong>Synology NAS</strong> — client photos are stored on a self-hosted Synology NAS accessed through a Cloudflare Tunnel. Photos are not transmitted to any external cloud storage provider.</li>
+        </ul>
+
+        <!-- 3. Cookies and local storage -->
+        <h2>3. Cookies and Local Storage</h2>
+        <p>We do not set any cookies on this site.</p>
+        <p>We use browser storage as follows:</p>
+        <ul>
+          <li><strong>sessionStorage</strong> — used for gallery session tokens and, when live, real estate analytics session IDs. All sessionStorage data is cleared automatically when you close the browser tab.</li>
+          <li><strong>localStorage</strong> — used in the client portal to store your authentication token and in the admin panel to store saved settings. This data persists across sessions until you sign out or clear your browser data.</li>
+        </ul>
+        <p>No tracking pixels, advertising cookies, or cross-site tracking technologies are used on this site.</p>
+
+        <!-- 4. CCPA rights -->
+        <h2 id="do-not-sell">4. Your Rights (CCPA)</h2>
+        <p>If you are a California resident, you have the following rights under the California Consumer Privacy Act:</p>
+        <ul>
+          <li><strong>Right to know</strong> — you may request a summary of the personal information we have collected about you, the purposes for which it was collected, and the categories of third parties with whom it has been shared.</li>
+          <li><strong>Right to delete</strong> — you may request deletion of personal information we hold about you. To delete your account and associated data, email us at the address below.</li>
+          <li><strong>Right to opt out of sale or sharing</strong> — we do not sell or share your personal information with third parties for advertising or cross-context behavioral advertising purposes. There is nothing to opt out of, but you may contact us to confirm this at any time.</li>
+          <li><strong>Right to non-discrimination</strong> — we will not discriminate against you for exercising any of these rights.</li>
+        </ul>
+        <p>To exercise any of these rights, contact us at the address in Section 5 below. We will respond within 30 days.</p>
+
+        <!-- 5. Contact -->
+        <h2>5. How to Contact Us</h2>
+        <p>For privacy questions, data deletion requests, or to exercise any CCPA rights, please email us at:</p>
+        <p><a href="mailto:thecoastaltravelcompany@gmail.com">thecoastaltravelcompany@gmail.com</a></p>
+        <p>We aim to respond to all privacy requests within 30 days.</p>
+
+        <!-- 6. Changes -->
+        <h2>6. Changes to This Policy</h2>
+        <p>We may update this privacy policy from time to time. When we do, we will update the "Last updated" date at the top of this page. Material changes will be communicated to registered users by email.</p>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────── -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <span class="f-logo-main">Coastal</span>
+          <span class="f-logo-script">Travel Company</span>
+          <p>Editorial photography and short-form video for luxury hotels and destinations that want to be desired, not just seen.</p>
+          <p class="f-location">Palm Beach, Florida</p>
+        </div>
+        <div class="footer-col">
+          <h5>Navigate</h5>
+          <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="services.html">Services</a></li>
+            <li><a href="collections.html">Collections</a></li>
+            <li><a href="contact.html">Contact</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Services</h5>
+          <ul>
+            <li><a href="services.html">Editorial Photography</a></li>
+            <li><a href="services.html">Short-Form Video</a></li>
+            <li><a href="services.html">Lifestyle Capture</a></li>
+            <li><a href="services.html">Visual Storytelling</a></li>
+            <li><a href="walkthroughs.html">3D Walkthroughs</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h5>Connect</h5>
+          <ul>
+            <li><a href="https://www.instagram.com/coastaltravelcompany" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.pinterest.com/thecoastaltravelcompany/" target="_blank" rel="noopener">Pinterest</a></li>
+            <li><a href="https://www.facebook.com/share/18zzn7QVWT/" target="_blank" rel="noopener">Facebook</a></li>
+            <li><a href="contact.html">Inquire</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Coastal Travel Company. All rights reserved.</p>
+        <p><a href="privacy.html" style="color:rgba(255,255,255,0.45);text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp; <span style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</span></p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

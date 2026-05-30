@@ -1507,3 +1507,123 @@ No e2e test exercises the Users tab in the admin panel.
 - [ ] `colmap --version` — shows version string
 - [ ] `conda run -n nerfstudio ns-train --help` — nerfstudio CLI responds without error
 - [ ] Drop a 30-second test clip into `incoming\`, run `workstation/splatting/process-scene.ps1`, confirm `point_cloud.ply` appears in `export\`; load it in supersplat.playcanvas.com, export as `.splat`, and confirm the file is substantially smaller than the PLY
+
+---
+
+## 46. Advanced Clickstream Analytics & User Behavior Tracking
+
+**Goal:** Understand exactly what visitors are looking at on each page, how long they spend in specific sections, where attention drops off, and what content drives inquiry — going beyond pageview counts to per-section engagement data.
+
+### Why this matters
+
+GA4 (item 32) answers *what pages* people visit. This item answers *what they do while there*: which service descriptions they read, whether they scroll past the portfolio grid, how far down the contact page they get before leaving, and which sections correlate with form submissions.
+
+### Approach: Microsoft Clarity (free, no-code starting point)
+
+Microsoft Clarity is free, requires a single `<script>` snippet, and provides:
+- **Session recordings** — watch real visitor sessions as a replay to see exactly where they click, scroll, and stop
+- **Heatmaps** — aggregated click and scroll heatmaps per page, showing which areas attract attention
+- **Rage clicks and dead clicks** — automated detection of frustrated interactions
+- **Scroll depth by section** — shows the percentage of visitors who reached each part of the page
+
+Integration steps:
+- [ ] Create a Clarity project at clarity.microsoft.com
+- [ ] Add the Clarity tracking snippet to the `<head>` of all public HTML pages (index, about, services, collections, contact, walkthroughs)
+- [ ] Link the Clarity project to the existing GA4 property for combined reporting
+- [ ] Verify session recording is capturing in the Clarity dashboard (allow 24–48 hours for data to appear)
+
+### Custom section-timing instrumentation (precise per-section dwell data)
+
+For answering "how long did they spend on the services section vs. the collections section," implement an `IntersectionObserver`-based tracker in `main.js`:
+
+- Attach an observer to each major page section (using existing semantic IDs or adding `data-track-section` attributes)
+- Record a `section_enter` timestamp when a section enters the viewport
+- On `section_leave` (element exits viewport), compute dwell time and send a GA4 custom event:
+  ```js
+  gtag('event', 'section_dwell', {
+    section_id: 'services-editorial',
+    dwell_seconds: 14,
+    page_path: window.location.pathname
+  });
+  ```
+- [ ] Add `data-track-section` attributes to the key sections on each page
+- [ ] Implement the observer and GA4 event dispatch in `main.js`
+- [ ] Verify events appear in GA4 DebugView (append `?debug_mode=1` to the page URL)
+- [ ] Build a GA4 Exploration report grouping `section_dwell` events by `section_id` to identify which content holds attention longest
+
+### Scroll-depth milestones (25 / 50 / 75 / 100%)
+
+GA4's built-in scroll tracking only fires at 90%. Add finer granularity:
+- [ ] Implement a scroll-percentage listener that fires `scroll_depth` events at 25%, 50%, 75%, and 100% of each page, once per session
+- [ ] Compare scroll depth across pages to identify where visitors disengage on long-form pages (services, collections)
+
+### Click-path analysis
+
+- [ ] Ensure all internal nav clicks and CTA buttons fire named GA4 events so the sequence of pages and actions per session can be reconstructed in the Funnel Exploration report
+- [ ] Track which portfolio images are clicked (pass image title as event parameter)
+- [ ] Track which collection cards are expanded or linked out from
+
+### Reporting targets
+
+| Question | Where to answer it |
+|---|---|
+| Which page section do visitors spend the most time on? | GA4 Exploration → `section_dwell` by `section_id` |
+| What % of contact page visitors reach the form? | Scroll depth events + Clarity heatmap |
+| Do services-page visitors who read past 75% convert more? | GA4 segment: scroll_depth ≥ 75 AND form_submit |
+| Which portfolio image drives the most gallery clicks? | GA4 `image_click` event parameter |
+| Are visitors rage-clicking anything? | Clarity dashboard → Rage clicks |
+
+### Acceptance criteria
+
+- [ ] Clarity snippet live on all public pages; session recordings and heatmaps populating after 48 hours
+- [ ] `section_dwell` custom event firing and visible in GA4 DebugView for each tracked section
+- [ ] Scroll-depth events firing at 25/50/75/100% per page
+- [ ] GA4 Exploration report saved showing avg dwell time by section across the last 30 days
+- [ ] No PII captured in event parameters (no email addresses, names, or form content in event labels)
+
+## 46. Advanced Clickstream Analytics & User Behavior Tracking
+
+**Goal:** Understand exactly what visitors are looking at on each page, how long they spend in specific sections, where attention drops off, and what content drives inquiry — going beyond pageview counts to per-section engagement data.
+
+### Why this matters
+GA4 (item 32) answers *what pages* people visit. This item answers *what they do while there*: which service descriptions they read, whether they scroll past the portfolio grid, how far down the contact page they get before leaving, and which sections correlate with form submissions.
+
+### Approach: Microsoft Clarity (free, no-code option first)
+
+Microsoft Clarity is free, requires a single `<script>` snippet, and provides:
+- **Session recordings** — watch real visitor sessions as a replay to see exactly where they click, scroll, and stop
+- **Heatmaps** — aggregated click and scroll heatmaps per page, showing which areas attract attention
+- **Rage clicks and dead clicks** — automated detection of frustrated interactions
+- **Scroll depth by section** — shows the percentage of visitors who reached each part of the page
+
+Integration steps:
+- [ ] Create a Clarity project at clarity.microsoft.com
+- [ ] Add the Clarity tracking snippet to the `<head>` of all public HTML pages (index, about, services, collections, contact, walkthroughs)
+- [ ] Link the Clarity project to the existing GA4 property for combined reporting
+- [ ] Verify session recording is capturing in the Clarity dashboard (allow 24–48 hours for data to appear)
+
+### Custom section-timing instrumentation (code option for precise data)
+
+For answering "how long did they spend on the services section vs. the collections section," implement an `IntersectionObserver`-based tracker in `main.js`:
+
+- Attach an observer to each major page section (using existing semantic IDs or adding `data-section` attributes)
+- Record a `section_enter` timestamp when a section enters the viewport
+- On `section_leave` (element exits viewport), compute dwell time and send a GA4 custom event:
+  ```js
+  gtag('event', 'section_dwell', {
+    section_id: 'services-editorial',
+    dwell_seconds: 14,
+    page_path: window.location.pathname
+  });
+  ```
+- [ ] Add `data-track-section` attributes to the key sections on each page
+- [ ] Implement the observer and GA4 event dispatch in `main.js`
+- [ ] Verify events appear in GA4 DebugView (use `?debug_mode=1` on the page URL)
+- [ ] Build a GA4 Exploration report grouping `section_dwell` events by `section_id` to identify which content holds attention longest
+
+### Scroll-depth milestones (25 / 50 / 75 / 100
+
+## 47. Allow Users to create project
+
+**Goal:  Right now the only way a project can be created is by an admin for a user.  This discourages use and hides the process behind a step which is not self service.  Make a change so a user which does not have a project yet is able to navigate to the 'My Project' page and create a new project to start the initial inquiry.**
+
