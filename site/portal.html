@@ -206,6 +206,29 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Portal tab nav ── */
+    .portal-tab-nav {
+      display: flex;
+      border-bottom: 2px solid var(--linen);
+      margin-bottom: 40px;
+    }
+    .portal-tab-link {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      padding: 12px 20px;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .portal-tab-link:hover { color: var(--green); }
+    .portal-tab-link.active { color: var(--green); border-bottom-color: var(--green); }
+    .portal-tab-link.disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
     /* ── Portal sections ── */
     .portal-section {
       margin-top: 56px;
@@ -330,6 +353,11 @@
     <p class="eyebrow">Client Portal</p>
     <h1 class="page-title">My Account</h1>
   </div>
+
+  <nav class="portal-tab-nav">
+    <a class="portal-tab-link active" href="/portal.html">My Account</a>
+    <a class="portal-tab-link disabled" id="projectTabLink" href="/portal-project.html">My Project</a>
+  </nav>
 
   <!-- Galleries -->
   <h2 class="section-heading">Galleries</h2>
@@ -531,6 +559,13 @@
       document.getElementById('galleries-content').innerHTML =
         '<div class="state-error">Could not load galleries. Please try again later.</div>';
       return;
+    }
+
+    const projectToken = localStorage.getItem('ctc_project_token');
+    if (projectToken) {
+      const link = document.getElementById('projectTabLink');
+      link.href = '/portal-project.html#' + projectToken;
+      link.classList.remove('disabled');
     }
 
     renderGalleries(await galRes.json());
