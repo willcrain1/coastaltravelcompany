@@ -53,6 +53,16 @@ export async function handlePublicProjectPortal(request, method, env, token) {
   if (!projRows.length) return jsonResponse({ error: 'Project not found' }, 404);
   const proj = projRows[0];
 
+  // If the client has an account, require them to be authenticated as that email
+  if (proj.client_email) {
+    const clientUser = await getUser(proj.client_email, env.KV);
+    if (clientUser) {
+      const p = await getAuth(request, env);
+      if (!p) return authRequired();
+      if (p.sub !== proj.client_email) return forbidden();
+    }
+  }
+
   if (method === 'GET') {
     const [docsRes, propsRes, msgsRes, questRes] = await Promise.all([
       env.DB.prepare('SELECT * FROM project_documents WHERE project_id=? ORDER BY created_at DESC').bind(projectId).all(),
