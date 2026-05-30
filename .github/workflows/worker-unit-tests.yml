@@ -1,7 +1,6 @@
 name: Worker Unit Tests
 on:
-  push:
-    branches: [preprod, master]
+  workflow_dispatch:
 jobs:
   test:
     runs-on: ubuntu-latest
