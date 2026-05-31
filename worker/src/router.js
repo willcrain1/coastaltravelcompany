@@ -64,6 +64,7 @@ import {
 } from './admin/invoices.js';
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
+import { handleAdminMasqueradeStart, handleAdminMasqueradeExit } from './admin/masquerade.js';
 
 import {
   handlePublicWalkthroughs,
@@ -88,6 +89,14 @@ export async function handleRequest(request, env) {
   const { pathname } = url;
   const method   = request.method;
 
+  // ── Masquerade read-only enforcement ─────────────────────────────────────────
+  // Masquerade tokens carry role='client' so admin routes are already gated.
+  // This blocks mutating portal/auth actions a client could otherwise perform.
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) && pathname !== '/admin/masquerade/exit') {
+    const p = await getAuth(request, env);
+    if (p?.masquerade) return jsonResponse({ error: 'Mutating actions are not permitted during a masquerade session' }, 403);
+  }
+
   // ── Auth routes ──────────────────────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/auth/setup-status')   return handleAuthSetupStatus(env);
   if (method === 'POST' && pathname === '/auth/setup')          return handleAuthSetup(request, env);
@@ -108,6 +117,10 @@ export async function handleRequest(request, env) {
   if (publicProposalMatch && method === 'GET')             return handlePublicProposal(request, env, publicProposalMatch[1]);
   if (publicProposalAnalyticsMatch && method === 'POST')   return handlePublicProposalAnalytics(request, env, publicProposalAnalyticsMatch[1]);
   if (publicProposalSelectMatch && method === 'POST')      return handlePublicProposalSelect(request, env, publicProposalSelectMatch[1]);
+
+  // ── Admin: Masquerade ────────────────────────────────────────────────────────
+  if (method === 'POST' && pathname === '/admin/masquerade')       return handleAdminMasqueradeStart(request, env);
+  if (method === 'POST' && pathname === '/admin/masquerade/exit')  return handleAdminMasqueradeExit(request, env);
 
   // ── Admin: Gallery + User CRUD ───────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/admin/galleries') return handleAdminListGalleries(request, env);

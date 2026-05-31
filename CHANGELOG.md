@@ -4,6 +4,11 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 50 — Admin Masquerade (View as Client)
+Admins can impersonate any client account from `clients.html` and see the portal exactly as that client sees it. "View as Client" button calls `POST /admin/masquerade` (admin-auth required), which issues a short-lived (30-minute) masquerade JWT scoped to the target user's identity. The masquerade JWT is stored in `sessionStorage` and used for all portal API calls. A persistent amber banner on `portal.html` shows the client name and a one-click "Exit Masquerade" link that calls `POST /admin/masquerade/exit`, clears the session, and returns the admin to `clients.html`. Mutating actions (POST/PATCH/PUT/DELETE) are blocked at the Worker router level for any masquerade token, returning 403. Masquerade is non-recursive and cannot target admin accounts. Every session start and exit is written to the `masquerade_log` D1 table (`016_masquerade_log.sql`).
+
+---
+
 ## 2026
 
 ### P0 — Fix & Expand Acceptance Tests
