@@ -1,0 +1,682 @@
+{
+  "C:\\Users\\William\\coastaltravelcompany\\package.json": {
+    "mtime": 1779033708.633937,
+    "ast_hash": "aea9a5834146878c3f3f83b235fb25cd",
+    "semantic_hash": "aea9a5834146878c3f3f83b235fb25cd"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\playwright.config.js": {
+    "mtime": 1780137078.4325993,
+    "ast_hash": "2c039aa97d61b6ee742d43debb2806c1",
+    "semantic_hash": "2c039aa97d61b6ee742d43debb2806c1"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\config.js": {
+    "mtime": 1780137078.4359229,
+    "ast_hash": "7788fc1cde5b2b9a7c4feef47cdf4b7a",
+    "semantic_hash": "7788fc1cde5b2b9a7c4feef47cdf4b7a"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\main.js": {
+    "mtime": 1780136214.9598272,
+    "ast_hash": "0b869809c26b2f9244ae01e6e371f5e5",
+    "semantic_hash": "0b869809c26b2f9244ae01e6e371f5e5"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\admin\\admin-shared.js": {
+    "mtime": 1779138095.301712,
+    "ast_hash": "d3b86fd03fb9cf4aaea7b2d6bdb99f33",
+    "semantic_hash": "d3b86fd03fb9cf4aaea7b2d6bdb99f33"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\auth.spec.js": {
+    "mtime": 1780137078.4474158,
+    "ast_hash": "7acb1ba3b977d20dfaefee86d5472f3d",
+    "semantic_hash": "7acb1ba3b977d20dfaefee86d5472f3d"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\automations.spec.js": {
+    "mtime": 1780137078.4474158,
+    "ast_hash": "41178544d80865069bc8676ea375ddd4",
+    "semantic_hash": "41178544d80865069bc8676ea375ddd4"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\availability.spec.js": {
+    "mtime": 1780136214.9674182,
+    "ast_hash": "960553ddab9bbdfb567b669ad7644d90",
+    "semantic_hash": "960553ddab9bbdfb567b669ad7644d90"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\brute-force.spec.js": {
+    "mtime": 1780137078.4484358,
+    "ast_hash": "46a86be4975cbc76e8f83806c16a8cb4",
+    "semantic_hash": "46a86be4975cbc76e8f83806c16a8cb4"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\clients.spec.js": {
+    "mtime": 1780228875.3367195,
+    "ast_hash": "cfe11f94f4c5f152b253cb5828a3363c",
+    "semantic_hash": "cfe11f94f4c5f152b253cb5828a3363c"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\contact.spec.js": {
+    "mtime": 1780136214.9685633,
+    "ast_hash": "945666b628b4457250720d63a494c524",
+    "semantic_hash": "945666b628b4457250720d63a494c524"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\contract.spec.js": {
+    "mtime": 1780228875.3367195,
+    "ast_hash": "bfab7e9dda5ff06c1e709f0b95b77249",
+    "semantic_hash": "bfab7e9dda5ff06c1e709f0b95b77249"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\gallery.spec.js": {
+    "mtime": 1780228875.3377428,
+    "ast_hash": "4627eaa3ca9a36f5d4e94dc996caa487",
+    "semantic_hash": "4627eaa3ca9a36f5d4e94dc996caa487"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\invoice.spec.js": {
+    "mtime": 1780172997.722468,
+    "ast_hash": "121df6a6bfeac1f5ef2a75e6a1c331d5",
+    "semantic_hash": "121df6a6bfeac1f5ef2a75e6a1c331d5"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\nav.spec.js": {
+    "mtime": 1780228875.33925,
+    "ast_hash": "9dcde7151ecdf5697d7dd7af9a1752b1",
+    "semantic_hash": "9dcde7151ecdf5697d7dd7af9a1752b1"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\pipeline.spec.js": {
+    "mtime": 1780136214.9718788,
+    "ast_hash": "bf4b9073bbe9b7a8723dfffa26801b91",
+    "semantic_hash": "bf4b9073bbe9b7a8723dfffa26801b91"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\portal-project.spec.js": {
+    "mtime": 1780136214.9718788,
+    "ast_hash": "ec361eb19d4470879daa9769ad1f21a6",
+    "semantic_hash": "ec361eb19d4470879daa9769ad1f21a6"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\proposal.spec.js": {
+    "mtime": 1780136214.9733355,
+    "ast_hash": "bc547ce5ff8956e4bdbb113de3c60ac4",
+    "semantic_hash": "bc547ce5ff8956e4bdbb113de3c60ac4"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\questionnaire.spec.js": {
+    "mtime": 1780136214.9733355,
+    "ast_hash": "a991cb062e7322b5e6120db4e4496b6a",
+    "semantic_hash": "a991cb062e7322b5e6120db4e4496b6a"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\register.spec.js": {
+    "mtime": 1780228875.3402607,
+    "ast_hash": "c0af3f6f9e4ea8f361ea330c620a7570",
+    "semantic_hash": "c0af3f6f9e4ea8f361ea330c620a7570"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\schedule.spec.js": {
+    "mtime": 1780136214.9748042,
+    "ast_hash": "d2a8af216a332b17c85a61b65ae1d182",
+    "semantic_hash": "d2a8af216a332b17c85a61b65ae1d182"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\walkthroughs.spec.js": {
+    "mtime": 1780137078.449679,
+    "ast_hash": "c11d5e576943fe6ce386f42025e08f58",
+    "semantic_hash": "c11d5e576943fe6ce386f42025e08f58"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\webhook.spec.js": {
+    "mtime": 1780228875.3402607,
+    "ast_hash": "97a9d1db5474f7ceafbe299439a1a557",
+    "semantic_hash": "97a9d1db5474f7ceafbe299439a1a557"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\tests\\e2e\\scripts\\check-route-coverage.js": {
+    "mtime": 1780137078.449679,
+    "ast_hash": "894b58ef11a1239b633605fff8cffc48",
+    "semantic_hash": "894b58ef11a1239b633605fff8cffc48"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\cloudflare-worker.js": {
+    "mtime": 1779216494.891522,
+    "ast_hash": "81a08664eb469dda9e3c6677f485154c",
+    "semantic_hash": "81a08664eb469dda9e3c6677f485154c"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\deploy-worker-preprod.sh": {
+    "mtime": 1780228875.3412607,
+    "ast_hash": "5c73b02d30a2e87cbc8b059018de7181",
+    "semantic_hash": "5c73b02d30a2e87cbc8b059018de7181"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\deploy-worker.sh": {
+    "mtime": 1780228875.3432972,
+    "ast_hash": "421cd6f1c17c0beeb7472f4ae89dbcd7",
+    "semantic_hash": "421cd6f1c17c0beeb7472f4ae89dbcd7"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\package.json": {
+    "mtime": 1780137078.4518871,
+    "ast_hash": "fe6ae9a8b9b28f66bdc701aa0f5eff56",
+    "semantic_hash": "fe6ae9a8b9b28f66bdc701aa0f5eff56"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\vitest.config.js": {
+    "mtime": 1780137078.4691198,
+    "ast_hash": "e90adb26898a756ee8fb9c3661a398e7",
+    "semantic_hash": "e90adb26898a756ee8fb9c3661a398e7"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\001_projects.sql": {
+    "mtime": 1779072701.1199331,
+    "ast_hash": "cab4e76bedaba3ccf01a6d3d3ec66413",
+    "semantic_hash": "cab4e76bedaba3ccf01a6d3d3ec66413"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\002_project_documents.sql": {
+    "mtime": 1779137256.5056076,
+    "ast_hash": "5cccead2961dfc032ff49574e930f4e3",
+    "semantic_hash": "5cccead2961dfc032ff49574e930f4e3"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\003_service_packages.sql": {
+    "mtime": 1779137256.5069993,
+    "ast_hash": "ec580baea39fd0752e6f5387fd047ded",
+    "semantic_hash": "ec580baea39fd0752e6f5387fd047ded"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\004_proposals.sql": {
+    "mtime": 1779137256.5069993,
+    "ast_hash": "68cf940b00ca4e4258e039abef9d0a1b",
+    "semantic_hash": "68cf940b00ca4e4258e039abef9d0a1b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\005_questionnaire_sets.sql": {
+    "mtime": 1779137256.508445,
+    "ast_hash": "39983bf8817b19bd839858ec00d0cc7d",
+    "semantic_hash": "39983bf8817b19bd839858ec00d0cc7d"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\006_questionnaire_instances.sql": {
+    "mtime": 1779141179.1349323,
+    "ast_hash": "d266d524150732a0b17838d802e7aba1",
+    "semantic_hash": "d266d524150732a0b17838d802e7aba1"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\007_project_messages.sql": {
+    "mtime": 1779141179.1349323,
+    "ast_hash": "cbec41ef29cfff971a7febdcf449477e",
+    "semantic_hash": "cbec41ef29cfff971a7febdcf449477e"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\008_scheduling.sql": {
+    "mtime": 1779141179.1359785,
+    "ast_hash": "46ec419d08d7127b1ef95dd1d11fbaff",
+    "semantic_hash": "46ec419d08d7127b1ef95dd1d11fbaff"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\009_automations.sql": {
+    "mtime": 1779141179.1359785,
+    "ast_hash": "cef3217b689d2208b7242f3367b6b643",
+    "semantic_hash": "cef3217b689d2208b7242f3367b6b643"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\010_contracts.sql": {
+    "mtime": 1779156625.485553,
+    "ast_hash": "a8b82dc205d0644c1bd41497c064daed",
+    "semantic_hash": "a8b82dc205d0644c1bd41497c064daed"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\011_invoices.sql": {
+    "mtime": 1779156625.485553,
+    "ast_hash": "581915f74afb3e1b92d962a1e6e6a489",
+    "semantic_hash": "581915f74afb3e1b92d962a1e6e6a489"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\012_user_role_audit.sql": {
+    "mtime": 1780136214.9770913,
+    "ast_hash": "007674370675a953276b6ba1735fc605",
+    "semantic_hash": "007674370675a953276b6ba1735fc605"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\013_walkthroughs.sql": {
+    "mtime": 1780137078.4508345,
+    "ast_hash": "9a3beb07e97e39b71daf8adcea624052",
+    "semantic_hash": "9a3beb07e97e39b71daf8adcea624052"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\014_contract_template_seeds.sql": {
+    "mtime": 1780231975.502506,
+    "ast_hash": "d1690aef0358e82cf21fb866cb43716b",
+    "semantic_hash": "d1690aef0358e82cf21fb866cb43716b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\migrations\\015_contracts_r2_key.sql": {
+    "mtime": 1780245862.7012413,
+    "ast_hash": "b4a109bba02ab4e60ef37b93ed576912",
+    "semantic_hash": "b4a109bba02ab4e60ef37b93ed576912"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\auth.js": {
+    "mtime": 1780228875.3453956,
+    "ast_hash": "462b001ced9365977b56b076c54fb168",
+    "semantic_hash": "462b001ced9365977b56b076c54fb168"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\brute-force.js": {
+    "mtime": 1780137078.45334,
+    "ast_hash": "296b16d52a4d35abba9f2a3946b54eff",
+    "semantic_hash": "296b16d52a4d35abba9f2a3946b54eff"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\constants.js": {
+    "mtime": 1780137078.4544022,
+    "ast_hash": "ac9346880a9f05e5187e0082202fb954",
+    "semantic_hash": "ac9346880a9f05e5187e0082202fb954"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\contact.js": {
+    "mtime": 1779215894.6946113,
+    "ast_hash": "a8c6277514c6be22958ee39632c05276",
+    "semantic_hash": "a8c6277514c6be22958ee39632c05276"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\crypto.js": {
+    "mtime": 1779215951.8104246,
+    "ast_hash": "90009ba9faf2991c1d35d9a66553a743",
+    "semantic_hash": "90009ba9faf2991c1d35d9a66553a743"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\gallery-proxy.js": {
+    "mtime": 1780137078.4544022,
+    "ast_hash": "c1daf0a147c643859a4a785372bf8c9e",
+    "semantic_hash": "c1daf0a147c643859a4a785372bf8c9e"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\jwt.js": {
+    "mtime": 1779215769.5576558,
+    "ast_hash": "255add3d74eb4e950992dc7d3e09ce0d",
+    "semantic_hash": "255add3d74eb4e950992dc7d3e09ce0d"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\kv.js": {
+    "mtime": 1780228875.3464746,
+    "ast_hash": "479da9b5ad2c8fc6c62f170309e72680",
+    "semantic_hash": "479da9b5ad2c8fc6c62f170309e72680"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\portal.js": {
+    "mtime": 1780228875.3464746,
+    "ast_hash": "19fc99b29a8d14819b6f12ce24f4e950",
+    "semantic_hash": "19fc99b29a8d14819b6f12ce24f4e950"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\router.js": {
+    "mtime": 1780245362.3185022,
+    "ast_hash": "28178eaed837ffbf463c895f810ac044",
+    "semantic_hash": "28178eaed837ffbf463c895f810ac044"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\utils.js": {
+    "mtime": 1780137078.455406,
+    "ast_hash": "61cbf37333cf1bae5d1f314e6dabf051",
+    "semantic_hash": "61cbf37333cf1bae5d1f314e6dabf051"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\walkthroughs.js": {
+    "mtime": 1780137078.4564247,
+    "ast_hash": "9caf04be4e32ede8c78af552ef437ef5",
+    "semantic_hash": "9caf04be4e32ede8c78af552ef437ef5"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\automations.js": {
+    "mtime": 1779302454.248536,
+    "ast_hash": "982cf284da4d94d88c534cd2da359ba5",
+    "semantic_hash": "982cf284da4d94d88c534cd2da359ba5"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\contracts.js": {
+    "mtime": 1780246316.1654701,
+    "ast_hash": "9cd7f61fbf771abf20b1994f46a88017",
+    "semantic_hash": "9cd7f61fbf771abf20b1994f46a88017"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\galleries.js": {
+    "mtime": 1779215910.0672863,
+    "ast_hash": "5ef518a90e12885a75550776e99fd06e",
+    "semantic_hash": "5ef518a90e12885a75550776e99fd06e"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\invoices.js": {
+    "mtime": 1779281467.244258,
+    "ast_hash": "83b9c4a5b80383cf990b23358a59edad",
+    "semantic_hash": "83b9c4a5b80383cf990b23358a59edad"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\packages.js": {
+    "mtime": 1779216010.6934,
+    "ast_hash": "3a1808ff120b06f05c8c23a912c2b310",
+    "semantic_hash": "3a1808ff120b06f05c8c23a912c2b310"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\projects.js": {
+    "mtime": 1779216031.2755141,
+    "ast_hash": "c7acf782bfed7c4d4ad60acada2f491a",
+    "semantic_hash": "c7acf782bfed7c4d4ad60acada2f491a"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\questionnaires.js": {
+    "mtime": 1779216188.2185514,
+    "ast_hash": "f1822d318fdadd955834c631503e0c1d",
+    "semantic_hash": "f1822d318fdadd955834c631503e0c1d"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\scheduling.js": {
+    "mtime": 1780137078.45334,
+    "ast_hash": "4f699307f1e8f20a66e718781c48225a",
+    "semantic_hash": "4f699307f1e8f20a66e718781c48225a"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\src\\admin\\users.js": {
+    "mtime": 1780228875.3443975,
+    "ast_hash": "30acbb84b7446584033f9fc8b05b2c95",
+    "semantic_hash": "30acbb84b7446584033f9fc8b05b2c95"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\auth-boundaries.test.js": {
+    "mtime": 1780245435.9925354,
+    "ast_hash": "2b9e099efcc1cef78a50c0f217c5a74b",
+    "semantic_hash": "2b9e099efcc1cef78a50c0f217c5a74b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\auth.test.js": {
+    "mtime": 1780137078.4609454,
+    "ast_hash": "a974f9d16129b3dc45379eced340dfa2",
+    "semantic_hash": "a974f9d16129b3dc45379eced340dfa2"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\brute-force.test.js": {
+    "mtime": 1780137078.4620721,
+    "ast_hash": "8c863d79cef8758bc1a2859ba01d5ceb",
+    "semantic_hash": "8c863d79cef8758bc1a2859ba01d5ceb"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\constants.test.js": {
+    "mtime": 1780137078.4620721,
+    "ast_hash": "e270d04060cf557e4607f545c610e840",
+    "semantic_hash": "e270d04060cf557e4607f545c610e840"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\contact.test.js": {
+    "mtime": 1780137078.4620721,
+    "ast_hash": "0d9aea5334e992a47ea35b18f43ce2cb",
+    "semantic_hash": "0d9aea5334e992a47ea35b18f43ce2cb"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\crypto.test.js": {
+    "mtime": 1780137078.4632883,
+    "ast_hash": "5464a8e56ba59eefc12e9a42f3dcd4eb",
+    "semantic_hash": "5464a8e56ba59eefc12e9a42f3dcd4eb"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\emails.test.js": {
+    "mtime": 1780231009.6852252,
+    "ast_hash": "9a2e29f066fdb58bd249dec44be505ab",
+    "semantic_hash": "9a2e29f066fdb58bd249dec44be505ab"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\gallery-proxy.test.js": {
+    "mtime": 1780137078.4632883,
+    "ast_hash": "cff71ca098d89b46bfee120382965b91",
+    "semantic_hash": "cff71ca098d89b46bfee120382965b91"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\jwt.test.js": {
+    "mtime": 1780137078.4654043,
+    "ast_hash": "2d09e9583296494c2ff8567676894c50",
+    "semantic_hash": "2d09e9583296494c2ff8567676894c50"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\kv.test.js": {
+    "mtime": 1780137078.4654043,
+    "ast_hash": "1fc6c5a89a8b1aef76b30a40d497683b",
+    "semantic_hash": "1fc6c5a89a8b1aef76b30a40d497683b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\migration-smoke.test.js": {
+    "mtime": 1780245907.5122313,
+    "ast_hash": "9714a2f28b9a9fbf5ff66860b3cf670b",
+    "semantic_hash": "9714a2f28b9a9fbf5ff66860b3cf670b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\portal.test.js": {
+    "mtime": 1780228875.3492022,
+    "ast_hash": "758dc9851d80246b1050d838c64ea0e5",
+    "semantic_hash": "758dc9851d80246b1050d838c64ea0e5"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\router.test.js": {
+    "mtime": 1780137078.4664364,
+    "ast_hash": "288971be6c4562f05c86a4e5800dd7d4",
+    "semantic_hash": "288971be6c4562f05c86a4e5800dd7d4"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\utils.test.js": {
+    "mtime": 1780137078.4679222,
+    "ast_hash": "b39e92843e3e1f076562bd1e797f5c5f",
+    "semantic_hash": "b39e92843e3e1f076562bd1e797f5c5f"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\walkthroughs.test.js": {
+    "mtime": 1780137078.4679222,
+    "ast_hash": "6ec80d64507163f02999f611bf3201db",
+    "semantic_hash": "6ec80d64507163f02999f611bf3201db"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\automations.test.js": {
+    "mtime": 1780137078.4574423,
+    "ast_hash": "6bf3a3f6d5d0b55ace8d4dc4948fa0fa",
+    "semantic_hash": "6bf3a3f6d5d0b55ace8d4dc4948fa0fa"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\contracts.test.js": {
+    "mtime": 1780246321.6961813,
+    "ast_hash": "dee023824bfaa35614f5b766ce7ec8e0",
+    "semantic_hash": "dee023824bfaa35614f5b766ce7ec8e0"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\galleries.test.js": {
+    "mtime": 1780137078.4574423,
+    "ast_hash": "7ce0e0ecdf7848362ffef9710ba536c2",
+    "semantic_hash": "7ce0e0ecdf7848362ffef9710ba536c2"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\invoices.test.js": {
+    "mtime": 1780137078.458612,
+    "ast_hash": "3c2673a6dc1d8e4ab411f339b35189c9",
+    "semantic_hash": "3c2673a6dc1d8e4ab411f339b35189c9"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\packages.test.js": {
+    "mtime": 1780137078.458612,
+    "ast_hash": "b22e4db93f15ef6e2bedc456529dbfb9",
+    "semantic_hash": "b22e4db93f15ef6e2bedc456529dbfb9"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\projects.test.js": {
+    "mtime": 1780137078.4599028,
+    "ast_hash": "28191d2860e59244c1d7df22a12a5d26",
+    "semantic_hash": "28191d2860e59244c1d7df22a12a5d26"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\questionnaires.test.js": {
+    "mtime": 1780137078.4599028,
+    "ast_hash": "d69e20c8dbf58cfb6a2ae86bc904c41b",
+    "semantic_hash": "d69e20c8dbf58cfb6a2ae86bc904c41b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\scheduling.test.js": {
+    "mtime": 1780137078.4599028,
+    "ast_hash": "0d84fd2e8abeecddc1ea0a20604e742d",
+    "semantic_hash": "0d84fd2e8abeecddc1ea0a20604e742d"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\admin\\users.test.js": {
+    "mtime": 1780137078.4609454,
+    "ast_hash": "646b5fabf576d7c3065fe4f1e153581e",
+    "semantic_hash": "646b5fabf576d7c3065fe4f1e153581e"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\integration\\auth.test.js": {
+    "mtime": 1780137078.4642928,
+    "ast_hash": "04794b1be486b4b3ac4e9413c0f4196b",
+    "semantic_hash": "04794b1be486b4b3ac4e9413c0f4196b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\integration\\brute-force.test.js": {
+    "mtime": 1780137078.4642928,
+    "ast_hash": "b176504d9b4fa8ffe96782487deb4705",
+    "semantic_hash": "b176504d9b4fa8ffe96782487deb4705"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\integration\\crud.test.js": {
+    "mtime": 1780137078.4642928,
+    "ast_hash": "746363b87b2b4d03f998962c1d7849cb",
+    "semantic_hash": "746363b87b2b4d03f998962c1d7849cb"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\worker\\tests\\integration\\helpers.js": {
+    "mtime": 1780137078.4654043,
+    "ast_hash": "696dd03c46f094a191a5fd73735657cf",
+    "semantic_hash": "696dd03c46f094a191a5fd73735657cf"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\workstation\\splatting\\process-scene.ps1": {
+    "mtime": 1780137078.4691198,
+    "ast_hash": "786d9e360d1f0a0575123aff4f86e71d",
+    "semantic_hash": "786d9e360d1f0a0575123aff4f86e71d"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\workstation\\splatting\\setup-windows.ps1": {
+    "mtime": 1780137078.4702652,
+    "ast_hash": "8f43b29a1c45778e1ba52365caacdc3a",
+    "semantic_hash": "8f43b29a1c45778e1ba52365caacdc3a"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\AGENTS.md": {
+    "mtime": 1779133211.4078925,
+    "ast_hash": "3c291ded5089ac4712dcf646b1695396",
+    "semantic_hash": "3c291ded5089ac4712dcf646b1695396"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\CLAUDE.md": {
+    "mtime": 1780248059.3645291,
+    "ast_hash": "ff8fdc0d3d73ae9594497dbab096a015",
+    "semantic_hash": "ff8fdc0d3d73ae9594497dbab096a015"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\DOCS.md": {
+    "mtime": 1780246329.808008,
+    "ast_hash": "1038cae23cad6033d61c165ec0c87468",
+    "semantic_hash": "1038cae23cad6033d61c165ec0c87468"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\README.md": {
+    "mtime": 1779051579.0129259,
+    "ast_hash": "c208794229181582cd1ea420813473d1",
+    "semantic_hash": "c208794229181582cd1ea420813473d1"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\TODO.md": {
+    "mtime": 1780245495.8309236,
+    "ast_hash": "18d5cf5e7fd58fd736a7963cbdcb30b2",
+    "semantic_hash": "18d5cf5e7fd58fd736a7963cbdcb30b2"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\ci-pr.yml": {
+    "mtime": 1780228875.31464,
+    "ast_hash": "f5af7bb141f4df48e89ecb1b07062be7",
+    "semantic_hash": "f5af7bb141f4df48e89ecb1b07062be7"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\create-pages-preprod.yml": {
+    "mtime": 1779728811.2441688,
+    "ast_hash": "f4c2b9bac9e9a63362ed3033c1543eb7",
+    "semantic_hash": "f4c2b9bac9e9a63362ed3033c1543eb7"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\create-pages-prod.yml": {
+    "mtime": 1779728811.2441688,
+    "ast_hash": "0b0ac052bd15038882a1f9197f63897f",
+    "semantic_hash": "0b0ac052bd15038882a1f9197f63897f"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\deploy-prod.yml": {
+    "mtime": 1780246281.8299885,
+    "ast_hash": "3a107303f9cf20376f2fcfad6b104df4",
+    "semantic_hash": "3a107303f9cf20376f2fcfad6b104df4"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\deploy-worker-preprod.yml": {
+    "mtime": 1780246296.426949,
+    "ast_hash": "e61f0d0078e3d6db89d91be6cf92b38c",
+    "semantic_hash": "e61f0d0078e3d6db89d91be6cf92b38c"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\migration-smoke.yml": {
+    "mtime": 1780137078.428385,
+    "ast_hash": "999548cc333908e22631da8a936f0edc",
+    "semantic_hash": "999548cc333908e22631da8a936f0edc"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\run-migrations-prod.yml": {
+    "mtime": 1780137078.429438,
+    "ast_hash": "1492cc8280091af3b7cf17cca7ddf6c1",
+    "semantic_hash": "1492cc8280091af3b7cf17cca7ddf6c1"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\.github\\workflows\\worker-unit-tests.yml": {
+    "mtime": 1780172997.7070541,
+    "ast_hash": "4fa018cffda2e435e77333110918bfa9",
+    "semantic_hash": "4fa018cffda2e435e77333110918bfa9"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\nas\\docker-compose.yml": {
+    "mtime": 1779020975.8772156,
+    "ast_hash": "f6b85cc142ec28796d4073bf98e901d9",
+    "semantic_hash": "f6b85cc142ec28796d4073bf98e901d9"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\nas\\README.md": {
+    "mtime": 1779020975.8760402,
+    "ast_hash": "de8c34d49bc989b70a67e9b290e7cb15",
+    "semantic_hash": "de8c34d49bc989b70a67e9b290e7cb15"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\nas\\cloudflare-tunnel\\config.example.yml": {
+    "mtime": 1779020975.8772156,
+    "ast_hash": "f80f228c7fb79262d1d09ae55d18f9f7",
+    "semantic_hash": "f80f228c7fb79262d1d09ae55d18f9f7"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\about.html": {
+    "mtime": 1780228875.3191395,
+    "ast_hash": "28b4040eaea148ea39ad53d8126ad787",
+    "semantic_hash": "28b4040eaea148ea39ad53d8126ad787"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\collections.html": {
+    "mtime": 1780228875.3254678,
+    "ast_hash": "818c5d4c38e7bfe53d35105edb8cc173",
+    "semantic_hash": "818c5d4c38e7bfe53d35105edb8cc173"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\contact.html": {
+    "mtime": 1780228908.508286,
+    "ast_hash": "3aa26c2c31ea59adad4d75ffb2a070b1",
+    "semantic_hash": "3aa26c2c31ea59adad4d75ffb2a070b1"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\contract.html": {
+    "mtime": 1780245389.3768032,
+    "ast_hash": "3a5422ef1af14d73ea99d99412e5f1eb",
+    "semantic_hash": "3a5422ef1af14d73ea99d99412e5f1eb"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\index.html": {
+    "mtime": 1780228875.3284607,
+    "ast_hash": "bb87726b6c09d9b84e5abba5b2733c7b",
+    "semantic_hash": "bb87726b6c09d9b84e5abba5b2733c7b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\invoice.html": {
+    "mtime": 1780172997.7160213,
+    "ast_hash": "b4d2d39372d847c0cbbac78217933ab2",
+    "semantic_hash": "b4d2d39372d847c0cbbac78217933ab2"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\login.html": {
+    "mtime": 1780228875.3294575,
+    "ast_hash": "3033cf7ed5abbfaffca1cbc342e8c218",
+    "semantic_hash": "3033cf7ed5abbfaffca1cbc342e8c218"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\portal-project.html": {
+    "mtime": 1780228875.3299625,
+    "ast_hash": "0ed88bbf4d9378ee2616a2c92f0fe925",
+    "semantic_hash": "0ed88bbf4d9378ee2616a2c92f0fe925"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\portal.html": {
+    "mtime": 1780228875.3309622,
+    "ast_hash": "985115c014009c89b4e2820283e4d749",
+    "semantic_hash": "985115c014009c89b4e2820283e4d749"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\privacy.html": {
+    "mtime": 1780228875.3319614,
+    "ast_hash": "43374c0b322ad1b6640ab5c6291dd7aa",
+    "semantic_hash": "43374c0b322ad1b6640ab5c6291dd7aa"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\profile.html": {
+    "mtime": 1780228875.332959,
+    "ast_hash": "7eb93861753c64d0b463ee82f4c89da6",
+    "semantic_hash": "7eb93861753c64d0b463ee82f4c89da6"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\proposal.html": {
+    "mtime": 1780137078.443878,
+    "ast_hash": "f333b248efa401cc7b41267c608ccd24",
+    "semantic_hash": "f333b248efa401cc7b41267c608ccd24"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\questionnaire.html": {
+    "mtime": 1780172997.7191913,
+    "ast_hash": "c1517fd83e06dd0ae69d76c206ec435c",
+    "semantic_hash": "c1517fd83e06dd0ae69d76c206ec435c"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\register.html": {
+    "mtime": 1780228875.3342748,
+    "ast_hash": "a613fb4b942f80c93bd5fa3767870048",
+    "semantic_hash": "a613fb4b942f80c93bd5fa3767870048"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\schedule.html": {
+    "mtime": 1780172997.7191913,
+    "ast_hash": "f51a1ea9697cc8762c086ae5c19d081f",
+    "semantic_hash": "f51a1ea9697cc8762c086ae5c19d081f"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\services.html": {
+    "mtime": 1780228875.3342748,
+    "ast_hash": "4c22b317bd86a48fec55d05acbb4442b",
+    "semantic_hash": "4c22b317bd86a48fec55d05acbb4442b"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\walkthroughs.html": {
+    "mtime": 1780137078.4462676,
+    "ast_hash": "685ed0a0b8b9520d64daf0df5e7a5c85",
+    "semantic_hash": "685ed0a0b8b9520d64daf0df5e7a5c85"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\admin\\clients.html": {
+    "mtime": 1780228875.3201504,
+    "ast_hash": "f39d8d37bc789ee46590bb6355f9b927",
+    "semantic_hash": "f39d8d37bc789ee46590bb6355f9b927"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\admin\\galleries.html": {
+    "mtime": 1780228875.322148,
+    "ast_hash": "81a1dee162b4383c4920ac9f3d546226",
+    "semantic_hash": "81a1dee162b4383c4920ac9f3d546226"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\admin\\pipeline.html": {
+    "mtime": 1780228875.323146,
+    "ast_hash": "be290d8b2b64cfa4d2c56a16aca9bc5c",
+    "semantic_hash": "be290d8b2b64cfa4d2c56a16aca9bc5c"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\admin\\services.html": {
+    "mtime": 1780228875.3244703,
+    "ast_hash": "50fc33ac072e87d2a3cf5cf211963c2c",
+    "semantic_hash": "50fc33ac072e87d2a3cf5cf211963c2c"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\gallery\\client-gallery.html": {
+    "mtime": 1780137078.4383342,
+    "ast_hash": "04d5c9363c6af4bc85131f3449f3c47f",
+    "semantic_hash": "04d5c9363c6af4bc85131f3449f3c47f"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\gallery\\gallery.html": {
+    "mtime": 1779034530.6642642,
+    "ast_hash": "eab591b55c28bfe9c2af952d5af580a7",
+    "semantic_hash": "eab591b55c28bfe9c2af952d5af580a7"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\favicon.svg": {
+    "mtime": 1780137078.4383342,
+    "ast_hash": "1d6a7b6f08562154cabe91629b621bd9",
+    "semantic_hash": "1d6a7b6f08562154cabe91629b621bd9"
+  },
+  "C:\\Users\\William\\coastaltravelcompany\\site\\images\\laura-crain.jpg": {
+    "mtime": 1780137078.4403796,
+    "ast_hash": "8048a9ed2adc0db33a7bd3ad9056eade",
+    "semantic_hash": "8048a9ed2adc0db33a7bd3ad9056eade"
+  }
+}
