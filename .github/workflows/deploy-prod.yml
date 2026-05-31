@@ -142,10 +142,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          for f in $(ls migrations/*.sql | sort); do
-            echo "Applying $f..."
-            npx wrangler d1 execute CTC_PROJECTS --remote --file "$f"
-          done
+          echo "Applying migrations"
+          npx wrangler d1 migrations apply CTC_PROJECTS --remote
 
   # ── 4. Worker ─────────────────────────────────────────────────────────────────
   deploy-worker:
