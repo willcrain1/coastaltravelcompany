@@ -1,0 +1,2312 @@
+{
+  "nodes": [
+    {
+      "id": "agents_md",
+      "label": "AGENTS.md",
+      "file_type": "document",
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "claude_md",
+      "label": "CLAUDE.md Project Instructions",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docs_md",
+      "label": "DOCS.md System Documentation",
+      "file_type": "document",
+      "source_file": "DOCS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme_md",
+      "label": "README.md Project Overview",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "todo_md",
+      "label": "TODO.md Feature Backlog",
+      "file_type": "document",
+      "source_file": "TODO.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "ci_pr_yml",
+      "label": "CI PR Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/ci-pr.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "deploy_prod_yml",
+      "label": "Deploy Prod Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/deploy-prod.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "deploy_worker_preprod_yml",
+      "label": "Deploy Worker Preprod Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/deploy-worker-preprod.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "create_pages_prod_yml",
+      "label": "Create Pages Prod Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/create-pages-prod.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "create_pages_preprod_yml",
+      "label": "Create Pages Preprod Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/create-pages-preprod.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "migration_smoke_yml",
+      "label": "Migration Smoke Tests Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/migration-smoke.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "run_migrations_prod_yml",
+      "label": "Run Migrations Prod Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/run-migrations-prod.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "worker_unit_tests_yml",
+      "label": "Worker Unit Tests Workflow",
+      "file_type": "document",
+      "source_file": ".github/workflows/worker-unit-tests.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "nas_docker_compose",
+      "label": "NAS Docker Compose",
+      "file_type": "document",
+      "source_file": "nas/docker-compose.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "nas_readme",
+      "label": "NAS README",
+      "file_type": "document",
+      "source_file": "nas/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cloudflare_tunnel_config",
+      "label": "Cloudflare Tunnel Config",
+      "file_type": "document",
+      "source_file": "nas/cloudflare-tunnel/config.example.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "site_about",
+      "label": "About Page",
+      "file_type": "document",
+      "source_file": "site/about.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "site_collections",
+      "label": "Collections Page",
+      "file_type": "document",
+      "source_file": "site/collections.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "site_contact",
+      "label": "Contact Page",
+      "file_type": "document",
+      "source_file": "site/contact.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "site_contract",
+      "label": "Contract Signing Page",
+      "file_type": "document",
+      "source_file": "site/contract.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cloudflare_worker",
+      "label": "Cloudflare Worker",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "d1_database",
+      "label": "D1 Database (CTC_PROJECTS)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "kv_namespace",
+      "label": "KV Namespace (CTC_AUTH)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "r2_bucket",
+      "label": "R2 Bucket (ctc-assets)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gallery_url_hash",
+      "label": "Gallery URL Hash Config Pattern",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "jwt_auth",
+      "label": "JWT Authentication",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "synology_nas",
+      "label": "Synology NAS Storage",
+      "file_type": "rationale",
+      "source_file": "nas/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "cloudflared_tunnel",
+      "label": "Cloudflared Tunnel",
+      "file_type": "rationale",
+      "source_file": "nas/docker-compose.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "preprod_environment",
+      "label": "Preprod Environment",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "contract_signing_workflow",
+      "label": "Contract Signing Workflow",
+      "file_type": "rationale",
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:133",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stripe_billing",
+      "label": "Stripe Billing & Invoicing",
+      "file_type": "rationale",
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:163",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gaussian_splatting",
+      "label": "Gaussian Splatting 3D Walkthroughs",
+      "file_type": "rationale",
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:251",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "availability_calendar",
+      "label": "Availability Calendar",
+      "file_type": "rationale",
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:198",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pipeline_kanban",
+      "label": "Project Pipeline Kanban",
+      "file_type": "rationale",
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:82",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "nas_r2_upload_pipeline",
+      "label": "NAS to R2 Upload Pipeline",
+      "file_type": "rationale",
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:357",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "index_homepage",
+      "label": "Homepage (index.html)",
+      "file_type": "code",
+      "source_file": "site/index.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "invoice_invoicepage",
+      "label": "Invoice Page (invoice.html)",
+      "file_type": "code",
+      "source_file": "site/invoice.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "login_loginpage",
+      "label": "Login Page (login.html)",
+      "file_type": "code",
+      "source_file": "site/login.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "portalproject_projectportal",
+      "label": "Project Portal (portal-project.html)",
+      "file_type": "code",
+      "source_file": "site/portal-project.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "portal_clientportal",
+      "label": "Client Portal My Account (portal.html)",
+      "file_type": "code",
+      "source_file": "site/portal.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "privacy_privacypolicy",
+      "label": "Privacy Policy (privacy.html)",
+      "file_type": "code",
+      "source_file": "site/privacy.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "profile_profilepage",
+      "label": "Profile Page (profile.html)",
+      "file_type": "code",
+      "source_file": "site/profile.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "proposal_proposalpage",
+      "label": "Proposal Page (proposal.html)",
+      "file_type": "code",
+      "source_file": "site/proposal.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "questionnaire_questionnairepage",
+      "label": "Questionnaire Page (questionnaire.html)",
+      "file_type": "code",
+      "source_file": "site/questionnaire.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "register_registerpage",
+      "label": "Register Page (register.html)",
+      "file_type": "code",
+      "source_file": "site/register.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "schedule_schedulepage",
+      "label": "Schedule Page (schedule.html)",
+      "file_type": "code",
+      "source_file": "site/schedule.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "services_servicespage",
+      "label": "Services Page (services.html)",
+      "file_type": "code",
+      "source_file": "site/services.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "walkthroughs_walkthroughspage",
+      "label": "3D Walkthroughs Page (walkthroughs.html)",
+      "file_type": "code",
+      "source_file": "site/walkthroughs.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "admin_clients_clientsadmin",
+      "label": "Admin Clients Page (admin/clients.html)",
+      "file_type": "code",
+      "source_file": "site/admin/clients.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "admin_galleries_galleriesadmin",
+      "label": "Admin Galleries Page (admin/galleries.html)",
+      "file_type": "code",
+      "source_file": "site/admin/galleries.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "admin_pipeline_pipelineadmin",
+      "label": "Admin Pipeline Page (admin/pipeline.html)",
+      "file_type": "code",
+      "source_file": "site/admin/pipeline.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "admin_services_servicesadmin",
+      "label": "Admin Services Page (admin/services.html)",
+      "file_type": "code",
+      "source_file": "site/admin/services.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gallery_clientgallery",
+      "label": "Client Gallery UI (gallery/client-gallery.html)",
+      "file_type": "code",
+      "source_file": "site/gallery/client-gallery.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "gallery_galleryshell",
+      "label": "Gallery Shell / Iframe Wrapper (gallery/gallery.html)",
+      "file_type": "code",
+      "source_file": "site/gallery/gallery.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "shared_configjs",
+      "label": "Runtime Config (config.js)",
+      "file_type": "code",
+      "source_file": "site/config.js",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "shared_maincss",
+      "label": "Shared Stylesheet (styles.css)",
+      "file_type": "code",
+      "source_file": "site/styles.css",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "shared_mainjs",
+      "label": "Shared Script (main.js)",
+      "file_type": "code",
+      "source_file": "site/main.js",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "shared_admincss",
+      "label": "Admin Stylesheet (admin/admin.css)",
+      "file_type": "code",
+      "source_file": "site/admin/admin.css",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "shared_adminsharedjs",
+      "label": "Admin Shared Script (admin/admin-shared.js)",
+      "file_type": "code",
+      "source_file": "site/admin/admin-shared.js",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "worker_cloudfareworker",
+      "label": "Cloudflare Worker API",
+      "file_type": "code",
+      "source_file": "worker/cloudflare-worker.js",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_jwtauth",
+      "label": "JWT Authentication (ctc_jwt / ctc_user localStorage)",
+      "file_type": "rationale",
+      "source_file": "site/login.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_googleoauth",
+      "label": "Google OAuth Sign-In (GSI)",
+      "file_type": "rationale",
+      "source_file": "site/login.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_portalshellnav",
+      "label": "Portal Shell Nav (3-tab: Account / Project / Profile)",
+      "file_type": "rationale",
+      "source_file": "site/portal.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_projectstages",
+      "label": "Project Pipeline Stages (Inquiry → Complete)",
+      "file_type": "rationale",
+      "source_file": "site/portal-project.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_stripepayment",
+      "label": "Stripe Payment via Checkout Session",
+      "file_type": "rationale",
+      "source_file": "site/invoice.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_galleryurleconfig",
+      "label": "Gallery Config Encoded in URL Hash (base64 JSON)",
+      "file_type": "rationale",
+      "source_file": "site/gallery/gallery.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_gaussiansplatting",
+      "label": "Gaussian Splatting 3D Walkthroughs",
+      "file_type": "rationale",
+      "source_file": "site/walkthroughs.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_adminpreviewmode",
+      "label": "Admin Preview Mode (portal ?preview=1)",
+      "file_type": "rationale",
+      "source_file": "site/portal.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_proposalanalytics",
+      "label": "Proposal Engagement Analytics (sendBeacon)",
+      "file_type": "rationale",
+      "source_file": "site/proposal.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "concept_magictokenlinks",
+      "label": "Magic Token Links (invoice / schedule / questionnaire / portal)",
+      "file_type": "rationale",
+      "source_file": "site/invoice.html",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "agents_md",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": "AGENTS.md:82",
+      "weight": 1.0
+    },
+    {
+      "source": "agents_md",
+      "target": "synology_nas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": "AGENTS.md:44",
+      "weight": 1.0
+    },
+    {
+      "source": "agents_md",
+      "target": "gallery_url_hash",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "AGENTS.md",
+      "source_location": "AGENTS.md:63",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_md",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "CLAUDE.md:89",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_md",
+      "target": "d1_database",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "claude_md",
+      "target": "kv_namespace",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "claude_md",
+      "target": "preprod_environment",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "claude_md",
+      "target": "gallery_url_hash",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "CLAUDE.md:72",
+      "weight": 1.0
+    },
+    {
+      "source": "claude_md",
+      "target": "jwt_auth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_md",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "README.md:16",
+      "weight": 1.0
+    },
+    {
+      "source": "readme_md",
+      "target": "docs_md",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "README.md:94",
+      "weight": 1.0
+    },
+    {
+      "source": "readme_md",
+      "target": "jwt_auth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "README.md:44",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "contract_signing_workflow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:133",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "stripe_billing",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:163",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "gaussian_splatting",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:251",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "availability_calendar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:198",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "pipeline_kanban",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:82",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "r2_bucket",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:359",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "nas_r2_upload_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:357",
+      "weight": 1.0
+    },
+    {
+      "source": "todo_md",
+      "target": "d1_database",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:88",
+      "weight": 1.0
+    },
+    {
+      "source": "deploy_prod_yml",
+      "target": "kv_namespace",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-prod.yml",
+      "source_location": "deploy-prod.yml:13",
+      "weight": 1.0
+    },
+    {
+      "source": "deploy_prod_yml",
+      "target": "d1_database",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-prod.yml",
+      "source_location": "deploy-prod.yml:47",
+      "weight": 1.0
+    },
+    {
+      "source": "deploy_prod_yml",
+      "target": "r2_bucket",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-prod.yml",
+      "source_location": "deploy-prod.yml:80",
+      "weight": 1.0
+    },
+    {
+      "source": "deploy_prod_yml",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-prod.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "deploy_worker_preprod_yml",
+      "target": "preprod_environment",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-worker-preprod.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "deploy_worker_preprod_yml",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/deploy-worker-preprod.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "ci_pr_yml",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/ci-pr.yml",
+      "source_location": "ci-pr.yml:17",
+      "weight": 1.0
+    },
+    {
+      "source": "migration_smoke_yml",
+      "target": "d1_database",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/migration-smoke.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "run_migrations_prod_yml",
+      "target": "d1_database",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/run-migrations-prod.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "nas_docker_compose",
+      "target": "cloudflared_tunnel",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "nas/docker-compose.yml",
+      "source_location": "nas/docker-compose.yml:6",
+      "weight": 1.0
+    },
+    {
+      "source": "cloudflare_tunnel_config",
+      "target": "synology_nas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "nas/cloudflare-tunnel/config.example.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cloudflare_tunnel_config",
+      "target": "cloudflared_tunnel",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "nas/cloudflare-tunnel/config.example.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "cloudflared_tunnel",
+      "target": "synology_nas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "nas/docker-compose.yml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "nas_readme",
+      "target": "synology_nas",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "nas/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "nas_readme",
+      "target": "cloudflared_tunnel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "nas/README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "site_contact",
+      "target": "availability_calendar",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/contact.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "site_contact",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/contact.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "site_contract",
+      "target": "contract_signing_workflow",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/contract.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "site_contract",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/contract.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "site_contract",
+      "target": "jwt_auth",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "site/contract.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "site_collections",
+      "target": "gaussian_splatting",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "site/collections.html",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "gallery_url_hash",
+      "target": "kv_namespace",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "CLAUDE.md",
+      "source_location": "CLAUDE.md:100",
+      "weight": 1.0
+    },
+    {
+      "source": "contract_signing_workflow",
+      "target": "r2_bucket",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:155",
+      "weight": 1.0
+    },
+    {
+      "source": "contract_signing_workflow",
+      "target": "d1_database",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:153",
+      "weight": 1.0
+    },
+    {
+      "source": "gaussian_splatting",
+      "target": "r2_bucket",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:359",
+      "weight": 1.0
+    },
+    {
+      "source": "gaussian_splatting",
+      "target": "nas_r2_upload_pipeline",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:357",
+      "weight": 1.0
+    },
+    {
+      "source": "pipeline_kanban",
+      "target": "d1_database",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:88",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_billing",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:167",
+      "weight": 1.0
+    },
+    {
+      "source": "stripe_billing",
+      "target": "d1_database",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:171",
+      "weight": 1.0
+    },
+    {
+      "source": "availability_calendar",
+      "target": "cloudflare_worker",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:199",
+      "weight": 1.0
+    },
+    {
+      "source": "availability_calendar",
+      "target": "d1_database",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "TODO.md",
+      "source_location": "TODO.md:199",
+      "weight": 1.0
+    },
+    {
+      "source": "agents_md",
+      "target": "claude_md",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "AGENTS.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "preprod_environment",
+      "target": "d1_database",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "preprod_environment",
+      "target": "kv_namespace",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_homepage",
+      "target": "shared_maincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/index.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "index_homepage",
+      "target": "shared_mainjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/index.html",
+      "source_location": "line 259",
+      "weight": 1.0
+    },
+    {
+      "source": "invoice_invoicepage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/invoice.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "invoice_invoicepage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/invoice.html",
+      "source_location": "GET /invoices/:token, POST /invoices/:token/checkout",
+      "weight": 1.0
+    },
+    {
+      "source": "invoice_invoicepage",
+      "target": "concept_stripepayment",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/invoice.html",
+      "source_location": "startPayment() function",
+      "weight": 1.0
+    },
+    {
+      "source": "invoice_invoicepage",
+      "target": "concept_magictokenlinks",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/invoice.html",
+      "source_location": "location.hash token read",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "shared_maincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "line 10",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "shared_mainjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "line 345",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "line 12",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "/auth/login, /auth/register, /auth/google, /auth/setup, /auth/reset-request, /auth/reset-confirm, /auth/verify, /auth/resend-verify, /auth/setup-status, /auth/me",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "concept_jwtauth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "storeAuth(), JWT_KEY localStorage",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "concept_googleoauth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "initGoogle(), handleGoogleCredential()",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "register_registerpage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "createAccountLink inline register card",
+      "weight": 1.0
+    },
+    {
+      "source": "login_loginpage",
+      "target": "privacy_privacypolicy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "line 632",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "/auth/me, /portal/galleries, /portal/contracts, /portal/invoices",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "concept_jwtauth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "load() JWT check",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "concept_portalshellnav",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "portal-shell-nav with 3 tab links",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "concept_adminpreviewmode",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "isAdminPreview ?preview=1 banner",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "portalproject_projectportal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "projectTabLink href",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "profile_profilepage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "profileTabLink href",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "invoice_invoicepage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "renderInvoices() inv.public_url links",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "privacy_privacypolicy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "line 596",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "gallery_galleryshell",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal.html",
+      "source_location": "buildGalleryUrl() → CTC_CONFIG.mainSiteUrl + hash",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "line 508",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "/portal/project/:token GET/POST, /portal/my-project GET/POST, /auth/me",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "concept_jwtauth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "loadOrCreate() JWT handling",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "concept_portalshellnav",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "portal-shell-nav 3-tab nav",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "concept_projectstages",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "STAGES array, renderTimeline()",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "concept_adminpreviewmode",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "isAdminPreview showAdminPreviewBanner()",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "concept_magictokenlinks",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "token from location.hash",
+      "weight": 1.0
+    },
+    {
+      "source": "portalproject_projectportal",
+      "target": "questionnaire_questionnairepage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/portal-project.html",
+      "source_location": "renderQuestionnaires() → questionnaire.html# link",
+      "weight": 1.0
+    },
+    {
+      "source": "profile_profilepage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/profile.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "profile_profilepage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/profile.html",
+      "source_location": "/auth/me GET and PATCH",
+      "weight": 1.0
+    },
+    {
+      "source": "profile_profilepage",
+      "target": "concept_jwtauth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/profile.html",
+      "source_location": "init() JWT check",
+      "weight": 1.0
+    },
+    {
+      "source": "profile_profilepage",
+      "target": "concept_portalshellnav",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/profile.html",
+      "source_location": "portal-shell-nav 3-tab nav",
+      "weight": 1.0
+    },
+    {
+      "source": "proposal_proposalpage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/proposal.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "proposal_proposalpage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/proposal.html",
+      "source_location": "/proposals/:id GET, /proposals/:id/select POST, /proposals/:id/analytics POST",
+      "weight": 1.0
+    },
+    {
+      "source": "proposal_proposalpage",
+      "target": "concept_proposalanalytics",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/proposal.html",
+      "source_location": "sendAnalytics(), navigator.sendBeacon",
+      "weight": 1.0
+    },
+    {
+      "source": "proposal_proposalpage",
+      "target": "concept_magictokenlinks",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/proposal.html",
+      "source_location": "getProposalId() from path or hash",
+      "weight": 1.0
+    },
+    {
+      "source": "questionnaire_questionnairepage",
+      "target": "shared_maincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/questionnaire.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "questionnaire_questionnairepage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/questionnaire.html",
+      "source_location": "line 205",
+      "weight": 1.0
+    },
+    {
+      "source": "questionnaire_questionnairepage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/questionnaire.html",
+      "source_location": "/questionnaire/:token GET and POST",
+      "weight": 1.0
+    },
+    {
+      "source": "questionnaire_questionnairepage",
+      "target": "concept_magictokenlinks",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/questionnaire.html",
+      "source_location": "token from location.hash",
+      "weight": 1.0
+    },
+    {
+      "source": "register_registerpage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/register.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "register_registerpage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/register.html",
+      "source_location": "POST /auth/register",
+      "weight": 1.0
+    },
+    {
+      "source": "register_registerpage",
+      "target": "concept_jwtauth",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/register.html",
+      "source_location": "localStorage JWT_KEY / USER_KEY set on success",
+      "weight": 1.0
+    },
+    {
+      "source": "register_registerpage",
+      "target": "login_loginpage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/register.html",
+      "source_location": "sign in link href login.html",
+      "weight": 1.0
+    },
+    {
+      "source": "schedule_schedulepage",
+      "target": "shared_maincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/schedule.html",
+      "source_location": "line 11",
+      "weight": 1.0
+    },
+    {
+      "source": "schedule_schedulepage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/schedule.html",
+      "source_location": "line 242",
+      "weight": 1.0
+    },
+    {
+      "source": "schedule_schedulepage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/schedule.html",
+      "source_location": "/schedule/:token GET and POST",
+      "weight": 1.0
+    },
+    {
+      "source": "schedule_schedulepage",
+      "target": "concept_magictokenlinks",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/schedule.html",
+      "source_location": "token from location.hash",
+      "weight": 1.0
+    },
+    {
+      "source": "services_servicespage",
+      "target": "shared_maincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/services.html",
+      "source_location": "link rel=stylesheet",
+      "weight": 1.0
+    },
+    {
+      "source": "services_servicespage",
+      "target": "shared_mainjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/services.html",
+      "source_location": "script src main.js",
+      "weight": 1.0
+    },
+    {
+      "source": "services_servicespage",
+      "target": "walkthroughs_walkthroughspage",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/services.html",
+      "source_location": "walkthroughs.html See Examples link",
+      "weight": 1.0
+    },
+    {
+      "source": "walkthroughs_walkthroughspage",
+      "target": "shared_maincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/walkthroughs.html",
+      "source_location": "link rel=stylesheet",
+      "weight": 1.0
+    },
+    {
+      "source": "walkthroughs_walkthroughspage",
+      "target": "shared_mainjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/walkthroughs.html",
+      "source_location": "script src main.js",
+      "weight": 1.0
+    },
+    {
+      "source": "walkthroughs_walkthroughspage",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/walkthroughs.html",
+      "source_location": "script src config.js",
+      "weight": 1.0
+    },
+    {
+      "source": "walkthroughs_walkthroughspage",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/walkthroughs.html",
+      "source_location": "GET /public/walkthroughs",
+      "weight": 1.0
+    },
+    {
+      "source": "walkthroughs_walkthroughspage",
+      "target": "concept_gaussiansplatting",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/walkthroughs.html",
+      "source_location": "embed iframe modal viewer",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_clients_clientsadmin",
+      "target": "shared_admincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/clients.html",
+      "source_location": "link rel=stylesheet admin.css",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_clients_clientsadmin",
+      "target": "shared_adminsharedjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/clients.html",
+      "source_location": "script src admin-shared.js",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_clients_clientsadmin",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/clients.html",
+      "source_location": "script src ../config.js",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_clients_clientsadmin",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/clients.html",
+      "source_location": "/admin/galleries, /admin/users, /admin/users/:id, /admin/users/:id/role, /auth/reset-request",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_galleries_galleriesadmin",
+      "target": "shared_admincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/galleries.html",
+      "source_location": "link rel=stylesheet admin.css",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_galleries_galleriesadmin",
+      "target": "shared_adminsharedjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/galleries.html",
+      "source_location": "script src admin-shared.js",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_galleries_galleriesadmin",
+      "target": "shared_configjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/galleries.html",
+      "source_location": "script src ../config.js",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_galleries_galleriesadmin",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/galleries.html",
+      "source_location": "/admin/galleries CRUD, /admin/walkthroughs CRUD",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_galleries_galleriesadmin",
+      "target": "concept_galleryurleconfig",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/galleries.html",
+      "source_location": "buildUrl() encode() base64 hash generation",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_galleries_galleriesadmin",
+      "target": "concept_gaussiansplatting",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/galleries.html",
+      "source_location": "wt-embed field, /admin/walkthroughs",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_pipeline_pipelineadmin",
+      "target": "shared_admincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/pipeline.html",
+      "source_location": "link rel=stylesheet admin.css",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_pipeline_pipelineadmin",
+      "target": "shared_adminsharedjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/pipeline.html",
+      "source_location": "script src admin-shared.js",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_pipeline_pipelineadmin",
+      "target": "concept_projectstages",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/pipeline.html",
+      "source_location": "np-collection options matching stages",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_services_servicesadmin",
+      "target": "shared_admincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/services.html",
+      "source_location": "link rel=stylesheet admin.css",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_services_servicesadmin",
+      "target": "shared_adminsharedjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/services.html",
+      "source_location": "script src admin-shared.js",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_services_servicesadmin",
+      "target": "proposal_proposalpage",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "site/admin/services.html",
+      "source_location": "pkg add-ons used in proposals",
+      "weight": 1.0
+    },
+    {
+      "source": "gallery_galleryshell",
+      "target": "gallery_clientgallery",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/gallery/gallery.html",
+      "source_location": "frame.src = clientUrl + hash",
+      "weight": 1.0
+    },
+    {
+      "source": "gallery_galleryshell",
+      "target": "concept_galleryurleconfig",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/gallery/gallery.html",
+      "source_location": "JSON.parse(decodeURIComponent(escape(atob(hash.slice(1))))",
+      "weight": 1.0
+    },
+    {
+      "source": "gallery_clientgallery",
+      "target": "worker_cloudfareworker",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/gallery/client-gallery.html",
+      "source_location": "POST /token, photo fetch requests via proxyUrl",
+      "weight": 1.0
+    },
+    {
+      "source": "gallery_clientgallery",
+      "target": "concept_galleryurleconfig",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/gallery/client-gallery.html",
+      "source_location": "reads hash config including pwHash for lock screen",
+      "weight": 1.0
+    },
+    {
+      "source": "privacy_privacypolicy",
+      "target": "shared_maincss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/privacy.html",
+      "source_location": "link rel=stylesheet styles.css",
+      "weight": 1.0
+    },
+    {
+      "source": "privacy_privacypolicy",
+      "target": "shared_mainjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/privacy.html",
+      "source_location": "script src main.js",
+      "weight": 1.0
+    },
+    {
+      "source": "index_homepage",
+      "target": "privacy_privacypolicy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/index.html",
+      "source_location": "footer privacy.html link",
+      "weight": 1.0
+    },
+    {
+      "source": "services_servicespage",
+      "target": "privacy_privacypolicy",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/services.html",
+      "source_location": "footer privacy.html link",
+      "weight": 1.0
+    },
+    {
+      "source": "concept_jwtauth",
+      "target": "concept_googleoauth",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/login.html",
+      "source_location": "both produce the same JWT token stored in ctc_jwt",
+      "weight": 1.0
+    },
+    {
+      "source": "concept_magictokenlinks",
+      "target": "concept_jwtauth",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "site/portal-project.html",
+      "source_location": "portal project combines magic token in hash with optional JWT bearer auth",
+      "weight": 1.0
+    },
+    {
+      "source": "portal_clientportal",
+      "target": "concept_magictokenlinks",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "site/portal.html",
+      "source_location": "inv.public_url / contract public_url are magic token links",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_pipeline_pipelineadmin",
+      "target": "portalproject_projectportal",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "site/admin/pipeline.html",
+      "source_location": "admin manages same projects clients view in portal-project.html",
+      "weight": 1.0
+    },
+    {
+      "source": "admin_galleries_galleriesadmin",
+      "target": "portal_clientportal",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "site/admin/galleries.html",
+      "source_location": "../portal.html?preview=1 link in admin nav",
+      "weight": 1.0
+    },
+    {
+      "source": "schedule_schedulepage",
+      "target": "questionnaire_questionnairepage",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "site/schedule.html",
+      "source_location": "both are magic-token single-purpose forms triggered from admin pipeline",
+      "weight": 1.0
+    },
+    {
+      "source": "proposal_proposalpage",
+      "target": "invoice_invoicepage",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "site/proposal.html",
+      "source_location": "both are standalone token-accessed client-facing documents in the booking flow",
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "cloudflare_infra_trio",
+      "label": "Cloudflare Infrastructure Trio",
+      "nodes": [
+        "kv_namespace",
+        "d1_database",
+        "r2_bucket"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": ".github/workflows/deploy-prod.yml"
+    },
+    {
+      "id": "ci_cd_pipeline",
+      "label": "CI/CD Deployment Pipeline",
+      "nodes": [
+        "ci_pr_yml",
+        "deploy_prod_yml",
+        "deploy_worker_preprod_yml",
+        "migration_smoke_yml",
+        "run_migrations_prod_yml"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": ".github/workflows/deploy-prod.yml"
+    },
+    {
+      "id": "booking_workflow_chain",
+      "label": "Full Booking Workflow Chain",
+      "nodes": [
+        "pipeline_kanban",
+        "contract_signing_workflow",
+        "stripe_billing"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "TODO.md"
+    },
+    {
+      "id": "client_portal_trio",
+      "label": "Client Portal Shell (portal.html + portal-project.html + profile.html share nav and JWT auth)",
+      "nodes": [
+        "portal_clientportal",
+        "portalproject_projectportal",
+        "profile_profilepage"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 0.95,
+      "source_file": "site/portal.html"
+    },
+    {
+      "id": "admin_panel_quartet",
+      "label": "Admin Panel Pages (pipeline + galleries + clients + services share admin nav, admin.css, admin-shared.js)",
+      "nodes": [
+        "admin_pipeline_pipelineadmin",
+        "admin_galleries_galleriesadmin",
+        "admin_clients_clientsadmin",
+        "admin_services_servicesadmin"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "site/admin/pipeline.html"
+    },
+    {
+      "id": "booking_flow_documents",
+      "label": "Transactional Document Flow (proposal → schedule → questionnaire → invoice form a sequential client booking funnel)",
+      "nodes": [
+        "proposal_proposalpage",
+        "schedule_schedulepage",
+        "questionnaire_questionnairepage",
+        "invoice_invoicepage"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "site/portal-project.html"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -4,12 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## What this is
 
-Static website and client photo gallery system for Coastal Travel Company. No build tools, no frameworks, no package manager — all files are plain HTML/CSS/JS served directly by GitHub Pages.
+Static website and client photo gallery system for Coastal Travel Company. No build tools, no frameworks, no package manager — all files are plain HTML/CSS/JS served directly by Cloudflare Pages.
+
+# Agent Execution Pipeline & Guardrails
+
+## CRITICAL CRITERIA: After Making Any Code Changes
+1. If your code modification alters a component's inputs, outputs, file path, or core logic, you MUST immediately use the `Edit` tool to update the corresponding module mapping in `DOCS.md`.
+2. Keep `DOCS.md` perfectly synchronized with the codebase state before concluding the session.
+
+# Verification Workflows
+- **Post-Change Rule:** Before committing or finalizing, check `git status`. If any source files under `/src` were modified, verify that `DOCS.md` was also modified in the same staging index. 
+- If `DOCS.md` is missing from the modified file list, read your own recent file changes and run a targeted update to sync `DOCS.md`.
+- PRs created must point to the `preprod` branch.
 
 ## Repository layout
 
 ```
-site/          ← GitHub Pages source (only this directory is deployed)
+site/          ← Cloudflare Pages source (only this directory is deployed)
   index.html, about.html, services.html, collections.html,
   contact.html, login.html, portal.html, styles.css, main.js, CNAME
   gallery/     client-gallery.html, gallery.html
@@ -22,18 +33,14 @@ playwright.config.js, package.json   ← test tooling (not deployed)
 
 ## Deployment
 
-**Website changes** — PR merges to the `master` branch; GitHub Pages deploys automatically within ~2 minutes:
+**Website changes** — PR merges to the `preprod` branch; Cloudflare deploys automatically within ~2 minutes:
 ```bash
 git add <files>
 git commit -m "description"
 git push
 ```
 
-**Cloudflare Worker changes** — edit `worker/cloudflare-worker.js`, then the `deploy-worker` github action will push changes.  To make changes manually instead:
-```bash
-./worker/deploy-worker.sh
-```
-Requires `worker/.worker-config` (gitignored). Copy from `worker/.worker-config.example` and fill in `CF_ACCOUNT_ID`, `CF_API_TOKEN`, `CF_WORKER_NAME`.
+**Cloudflare Worker changes** — edit `worker/cloudflare-worker.js`, then the `deploy-worker` github action will push changes.
 
 There is no local dev server, linter, or test suite. Manual browser testing is the verification method.
 
@@ -120,7 +127,7 @@ A staging environment that mirrors production for safe validation before every d
 
 | Resource | Production | Preprod |
 |---|---|---|
-| GitHub Pages branch | `master` | `preprod` |
+| Cloudflare Pages branch | `master` | `preprod` |
 | Site URL | `https://coastaltravelcompany.com` | `https://preprod.coastaltravelcompany.com` |
 | Cloudflare Worker | `coastal-gallery-proxy` | `coastal-gallery-proxy-preprod` |
 | KV namespace | `CTC_AUTH` | `CTC_AUTH_PREPROD` |
@@ -129,19 +136,11 @@ A staging environment that mirrors production for safe validation before every d
 
 ### Deploying to preprod
 
-```bash
-# Deploy Worker to preprod (provisions KV + D1, runs all migrations, deploys)
-./worker/deploy-worker-preprod.sh
-
-# GitHub Actions deploys the Worker and Pages automatically on push to preprod branch
-git push origin preprod
-```
-
-Requires `worker/.worker-config` with `CF_WORKER_NAME_PREPROD` set (see `.worker-config.example`).
+# GitHub Actions deploys the Worker and Pages automatically on PR merge to preprod branch
 
 ### Manual setup steps (one-time, done in dashboards)
 
-1. **GitHub Pages** — Settings → Pages → add `preprod` environment pointing at the `preprod` branch
+1. **Cloudflare Pages**
 2. **DNS** — Cloudflare dashboard: add CNAME `preprod.coastaltravelcompany.com` → GitHub Pages URL (Proxied)
 3. **Worker secrets** — Cloudflare dashboard → `coastal-gallery-proxy-preprod` → Settings → Variables:
    - `JWT_SECRET` (different random value from prod)
@@ -183,3 +182,13 @@ Always run migrations against preprod **before** production:
 2. Deploy to preprod: `wrangler d1 execute ctc-preprod --env preprod --file worker/migrations/NNN_description.sql`
 3. Verify the feature works end-to-end in preprod
 4. Merge to master, then run against production: `wrangler d1 execute CTC_PROJECTS --file worker/migrations/NNN_description.sql`
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
