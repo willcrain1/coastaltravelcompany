@@ -214,6 +214,7 @@ const PUBLIC_ROUTES = [
     ['POST', '/contracts/tok1/view',         '{}',       'contract view'],
     ['POST', '/contracts/tok1/sign',         '{}',       'contract sign'],
     ['GET',  '/contracts/tok1/audit',        undefined,  'contract audit'],
+    ['GET',  '/contracts/tok1/archive',      undefined,  'contract archive download'],
     ['GET',  '/invoices/tok1',               undefined,  'public invoice'],
     ['POST', '/invoices/tok1/checkout',      '{}',       'invoice checkout'],
     ['GET',  '/schedule/tok1',               undefined,  'public schedule get'],
