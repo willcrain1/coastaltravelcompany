@@ -140,6 +140,9 @@ name = "$CF_WORKER_NAME"
 main = "cloudflare-worker.js"
 compatibility_date = "2024-09-23"
 
+[observability]
+enabled = true
+
 [[kv_namespaces]]
 binding = "KV"
 id = "$KV_ID"
