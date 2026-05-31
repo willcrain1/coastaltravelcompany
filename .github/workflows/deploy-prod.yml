@@ -22,26 +22,49 @@ jobs:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID"
-          KV_ID=$(curl -sf "$BASE/storage/kv/namespaces?per_page=100" \
-            -H "Authorization: Bearer $CF_API_TOKEN" | \
-            python3 -c "
-          import json,sys
-          ns=[n['id'] for n in json.load(sys.stdin).get('result',[]) if n.get('title')=='CTC_AUTH']
-          print(ns[0] if ns else '')
+          # 1. Attempt to list buckets and handle potential failures gracefully
+          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/r2/buckets"
+          
+          # Use -w to check HTTP status codes
+          HTTP_STATUS=$(curl -o response.json -w "%{http_code}" -sf "$BASE" \
+            -H "Authorization: Bearer $CF_API_TOKEN")
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Error: API returned status $HTTP_STATUS"
+            cat response.json
+            exit 1
+          fi
+
+          # 2. Check if bucket exists
+          EXISTS=$(python3 -c "
+          import json, sys
+          try:
+              data = json.load(sys.stdin)
+              # The R2 list endpoint returns a list directly or in a 'result' key depending on version
+              buckets = [b['name'] for b in data.get('result', []) if b.get('name') == 'ctc-assets-preprod']
+              print('true' if buckets else 'false')
+          except:
+              print('false')
           ")
-          if [ -z "$KV_ID" ]; then
-            echo "Creating KV namespace CTC_AUTH..."
-            KV_ID=$(curl -sf -X POST "$BASE/storage/kv/namespaces" \
+
+          # 3. Create if it doesn't exist
+          if [ "$EXISTS" = "false" ]; then
+            echo "Creating R2 bucket ctc-assets..."
+            CREATE_STATUS=$(curl -X POST "$BASE" \
               -H "Authorization: Bearer $CF_API_TOKEN" \
               -H "Content-Type: application/json" \
-              -d '{"title":"CTC_AUTH"}' | \
-              python3 -c "import json,sys; print(json.load(sys.stdin)['result']['id'])")
-            echo "Created: $KV_ID"
+              -d '{"name":"ctc-assets"}' \
+              -w "%{http_code}" -s -o create_res.json)
+            
+            if [ "$CREATE_STATUS" -ne 200 ]; then
+                echo "Failed to create bucket!"
+                cat create_res.json
+                exit 1
+            fi
+            echo "Created successfully."
           else
-            echo "Existing: $KV_ID"
+            echo "Bucket already exists."
           fi
-          echo "kv_id=$KV_ID" >> "$GITHUB_OUTPUT"
 
   # ── 2. D1 ─────────────────────────────────────────────────────────────────────
   provision-d1:
