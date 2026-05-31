@@ -952,7 +952,9 @@ footer {
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-2, .grid-2-narrow { grid-template-columns: 1fr; gap: 48px; }
   .service-item { grid-template-columns: 60px 1fr; }
-  .service-cta { grid-column: 2; text-align: left; padding-top: 16px; }
+  .service-num { grid-column: 1; grid-row: 1; }
+  .service-body { grid-column: 2; grid-row: 1; }
+  .service-cta { grid-column: 2; grid-row: 2; text-align: left; padding-top: 8px; }
   .page-hero { padding: 48px 32px; }
   .services-grid { grid-template-columns: 1fr; }
   .services-feature { grid-column: span 1; }
