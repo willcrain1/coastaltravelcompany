@@ -161,7 +161,7 @@ jobs:
           binding = "DB"
           database_name = "ctc-preprod"
           database_id = "$D1_ID"
-          migrations_dir = "worker/migrations"
+          migrations_dir = "migrations"
           TOML
       - name: Apply all migrations (idempotent)
         env:
