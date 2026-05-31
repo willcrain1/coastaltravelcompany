@@ -1627,3 +1627,38 @@ For answering "how long did they spend on the services section vs. the collectio
 
 **Goal:  Right now the only way a project can be created is by an admin for a user.  This discourages use and hides the process behind a step which is not self service.  Make a change so a user which does not have a project yet is able to navigate to the 'My Project' page and create a new project to start the initial inquiry.**
 
+---
+
+## 48. Set up Mailosaur and activate email capture tests
+
+**Goal:** Create a Mailosaur account, wire the API key into GitHub Actions and the preprod Worker, and activate the email capture Playwright tests that are already written and gated on `MAILOSAUR_API_KEY` (items 42 and 43). Once done, every transactional email is verified automatically in CI rather than manually during preprod walkthroughs.
+
+### One-time account and secret setup
+
+- [ ] **Create Mailosaur account** — sign up at [mailosaur.com](https://mailosaur.com); create a server named `ctc-preprod`; note the server ID (e.g. `abc123`) — this becomes the inbox domain `abc123.mailosaur.net`
+- [ ] **Add `MAILOSAUR_API_KEY` to GitHub Actions secrets** — Settings → Secrets → Actions → New repository secret; the key is found in the Mailosaur dashboard under API Keys
+- [ ] **Add `EMAIL_CAPTURE_DOMAIN` to GitHub Actions secrets** — value is `<server-id>.mailosaur.net` (e.g. `abc123.mailosaur.net`)
+- [ ] **Add `EMAIL_CAPTURE_DOMAIN` as a preprod Worker secret** — `wrangler secret put EMAIL_CAPTURE_DOMAIN --env preprod` → enter the same `<server-id>.mailosaur.net` value; this tells the preprod Worker to rewrite all `to` addresses to the capture inbox so no real email is sent during tests
+
+### Worker change (one file)
+
+- [ ] **Implement email capture rewriting in the Worker** — in `worker/src/utils.js` (or wherever `sendEmail` / Resend calls live), check `env.EMAIL_CAPTURE_DOMAIN`; if set, rewrite every `to` address to `<local-part>@<EMAIL_CAPTURE_DOMAIN>` before the `fetch` to Resend. The `from`, `subject`, and body are unchanged so the full email path is exercised.
+
+### Install Mailosaur SDK
+
+- [ ] **`npm install --save-dev mailosaur`** in the root `package.json` (where the Playwright tests live); commit the updated `package-lock.json`
+
+### Playwright tests to activate (already written, just need the secret)
+
+Once `MAILOSAUR_API_KEY` is present in CI, these tests in `tests/e2e/register.spec.js` and related files automatically un-skip:
+
+- [ ] **Verification email** — registers with a `@<server>.mailosaur.net` address; polls until the verify email arrives; clicks the link; asserts account becomes loginable
+- [ ] **Password reset email** — triggers reset; polls for the reset email; follows the link; sets a new password; logs in with it
+- [ ] **Invoice send** — admin sends an invoice to a capture address; polls for the email; asserts total and payment link URL appear in the body
+- [ ] **Contract send** — admin sends a contract to a capture address; polls for the email; asserts the signing link URL appears
+- [ ] **Contact form** — submits the public contact form; polls for the notification email (rewritten from `thecoastaltravelcompany@gmail.com` to the capture inbox); asserts subject and sender name
+
+### CLAUDE.md cleanup (after tests pass)
+
+- [ ] **Update preprod test checklist in `CLAUDE.md`** — remove the manual "verify email link works" and "password reset flow end-to-end" steps; replace with a note that these are now automated via Mailosaur and run on every preprod CI build
+

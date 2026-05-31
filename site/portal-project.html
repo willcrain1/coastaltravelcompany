@@ -322,6 +322,64 @@
     .pp-error { color: #c00; }
     .pp-loading { color: #888; }
 
+    /* ── Create inquiry form ── */
+    .pp-create-intro {
+      font-size: 0.9rem;
+      color: var(--mid);
+      line-height: 1.7;
+      margin-bottom: 32px;
+      max-width: 480px;
+    }
+    .pp-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pp-label {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--mid);
+    }
+    .pp-input, .pp-textarea {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 300;
+      padding: 11px 14px;
+      border: 1px solid #ddd;
+      border-radius: 2px;
+      width: 100%;
+      box-sizing: border-box;
+      background: #fff;
+      color: var(--black);
+      transition: border-color 0.2s;
+    }
+    .pp-input:focus, .pp-textarea:focus { outline: none; border-color: var(--green); }
+    .pp-textarea { resize: vertical; min-height: 100px; }
+    .pp-create-error {
+      font-size: 0.85rem;
+      color: #c00;
+      display: none;
+    }
+    .pp-submit-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 13px 36px;
+      border-radius: 2px;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: opacity 0.2s;
+    }
+    .pp-submit-btn:hover { opacity: 0.85; }
+    .pp-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
     /* ── Portal tab nav ── */
     .portal-tabs {
       display: flex;
@@ -366,6 +424,7 @@
   <div class="portal-tabs" aria-label="Portal sections">
     <a class="portal-tab-link" id="accountTabLink" href="/portal.html">My Account</a>
     <a class="portal-tab-link active" id="projectTabLink" href="#">My Project</a>
+    <a class="portal-tab-link" id="profileTabLink" href="/profile.html">My Profile</a>
   </div>
   <div class="nav-right">
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
@@ -375,6 +434,36 @@
 <main>
   <div id="ppLoading" class="pp-loading">Loading your project portal…</div>
   <div id="ppError"   class="pp-error"   style="display:none"></div>
+
+  <!-- New inquiry form — shown when client has no project yet -->
+  <div id="ppCreate" class="pp-wrap" style="display:none">
+    <div class="pp-hero">
+      <span class="brand-script">Coastal Travel Company</span>
+      <h1>Start Your Project</h1>
+      <div class="pp-meta">Submit an inquiry and we'll be in touch shortly</div>
+    </div>
+    <div class="pp-section">
+      <div class="pp-section-title" style="text-align:center;">New Project Inquiry</div>
+      <p class="pp-create-intro" style="margin-left:auto;margin-right:auto;">Tell us about your property and what you have in mind. We'll review your inquiry and reach out to discuss next steps.</p>
+      <form onsubmit="event.preventDefault(); createProject();" style="display:flex;flex-direction:column;gap:20px;max-width:480px;margin:0 auto;">
+        <div class="pp-field">
+          <label class="pp-label" for="createProperty">Property / Hotel Name *</label>
+          <input class="pp-input" type="text" id="createProperty" required placeholder="Grand Palms Resort" autocomplete="off" />
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="createLocation">Location</label>
+          <input class="pp-input" type="text" id="createLocation" placeholder="Palm Beach, FL" autocomplete="off" />
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="createMessage">Tell us about your project</label>
+          <textarea class="pp-textarea" id="createMessage" placeholder="Anything you'd like us to know — vision, timeline, special considerations…"></textarea>
+        </div>
+        <div id="createError" class="pp-create-error"></div>
+        <button type="submit" id="createBtn" class="pp-submit-btn">Submit Inquiry</button>
+      </form>
+    </div>
+  </div>
+
   <div id="ppWrap"   class="pp-wrap"    style="display:none">
 
     <div class="pp-hero">
@@ -421,7 +510,7 @@
   const WORKER_URL = CTC_CONFIG.workerUrl;
   const JWT_KEY = 'ctc_jwt';
   const USER_KEY = 'ctc_user';
-  const token = location.hash.slice(1);
+  let token = location.hash.slice(1);
   const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
   let projectData = null;
 
@@ -452,13 +541,7 @@
       const jwt = localStorage.getItem(JWT_KEY);
       document.getElementById('accountTabLink').href = portalHref('/portal.html');
       document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
-
-      if (isAdminPreview && jwt) {
-        const meRes = await fetch(WORKER_URL + '/auth/me', {
-          headers: { 'Authorization': 'Bearer ' + jwt },
-        }).catch(() => null);
-        if (meRes?.ok && (await meRes.json()).role === 'admin') showAdminPreviewBanner();
-      }
+      document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
       const headers = { Origin: location.origin };
       if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
@@ -598,6 +681,102 @@
     btn.disabled = false;
   }
 
+  async function loadOrCreate() {
+    const jwt = localStorage.getItem(JWT_KEY);
+
+    if (isAdminPreview && jwt) {
+      const meRes = await fetch(WORKER_URL + '/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + jwt },
+      }).catch(() => null);
+      if (meRes?.ok && (await meRes.json()).role === 'admin') showAdminPreviewBanner();
+    }
+
+    if (token) { await load(); return; }
+
+    if (!jwt) {
+      window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
+      return;
+    }
+
+    document.getElementById('accountTabLink').href = portalHref('/portal.html');
+    document.getElementById('profileTabLink').href  = portalHref('/profile.html');
+
+    try {
+      const res = await fetch(WORKER_URL + '/portal/my-project', {
+        headers: { 'Authorization': 'Bearer ' + jwt, 'Origin': location.origin },
+      }).catch(() => null);
+
+      if (!res || res.status === 401) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
+        return;
+      }
+      if (!res.ok) { showError('Unable to load your project. Please try again later.'); return; }
+
+      const data = await res.json();
+      if (data.token) {
+        token = data.token;
+        history.replaceState(null, '', location.pathname + '#' + token);
+        localStorage.setItem('ctc_project_token', token);
+        await load();
+      } else {
+        hide('ppLoading');
+        show('ppCreate');
+      }
+    } catch {
+      showError('Unable to load your project. Please try again later.');
+    }
+  }
+
+  async function createProject() {
+    const property = document.getElementById('createProperty').value.trim();
+    const location_val = document.getElementById('createLocation').value.trim();
+    const message = document.getElementById('createMessage').value.trim();
+
+    const errEl = document.getElementById('createError');
+    errEl.style.display = 'none';
+
+    if (!property) {
+      errEl.textContent = 'Please enter the property or hotel name.';
+      errEl.style.display = '';
+      return;
+    }
+
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    try {
+      const jwt = localStorage.getItem(JWT_KEY);
+      const res = await fetch(WORKER_URL + '/portal/my-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt, 'Origin': location.origin },
+        body: JSON.stringify({ property, location: location_val, message }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        errEl.textContent = err.error || 'Submission failed. Please try again.';
+        errEl.style.display = '';
+        btn.disabled = false;
+        btn.textContent = 'Submit Inquiry';
+        return;
+      }
+
+      const data = await res.json();
+      token = data.token;
+      history.replaceState(null, '', location.pathname + '#' + token);
+      localStorage.setItem('ctc_project_token', token);
+      hide('ppCreate');
+      show('ppLoading');
+      await load();
+    } catch {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.style.display = '';
+      btn.disabled = false;
+      btn.textContent = 'Submit Inquiry';
+    }
+  }
+
   function showError(msg) {
     hide('ppLoading');
     const el = document.getElementById('ppError');
@@ -621,7 +800,7 @@
     if (!iso) return '';
     return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
-  load();
+  loadOrCreate();
 </script>
 </body>
 </html>

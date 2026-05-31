@@ -62,6 +62,16 @@
       justify-content: flex-end;
       gap: 20px;
     }
+    .nav-account-link {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-account-link:hover { color: var(--green); }
     .sign-out-btn {
       font-family: 'Montserrat', sans-serif;
       font-size: 9px;
@@ -331,6 +341,7 @@
       }
       .nav-right { justify-content: center; }
       main { padding: 168px 20px 60px; }
+      .nav-account-link { display: none; }
     }
   </style>
 </head>
@@ -345,9 +356,11 @@
   </a>
   <div class="portal-tabs" aria-label="Portal sections">
     <a class="portal-tab-link active" id="accountTabLink" href="/portal.html">My Account</a>
-    <a class="portal-tab-link disabled" id="projectTabLink" href="/portal-project.html">My Project</a>
+    <a class="portal-tab-link" id="projectTabLink" href="/portal-project.html">My Project</a>
+    <a class="portal-tab-link" id="profileTabLink" href="/profile.html">My Profile</a>
   </div>
   <div class="nav-right">
+    <a href="profile.html" class="nav-account-link" id="navAccountLink"></a>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -534,6 +547,10 @@
     }
 
     const user = await meRes.json();
+    const accountLink = document.getElementById('navAccountLink');
+    accountLink.textContent = user.name || user.email;
+    accountLink.title = user.email;
+
     // Admins have a dedicated admin panel; redirect unless previewing the customer view
     if (user.role === 'admin' && !isAdminPreview) {
       window.location.href = '/admin/pipeline.html';
@@ -549,6 +566,7 @@
     }
 
     document.getElementById('accountTabLink').href = portalHref('/portal.html');
+    document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
     // Fetch galleries, contracts, and invoices in parallel
     const headers = { 'Authorization': 'Bearer ' + token };
@@ -564,12 +582,7 @@
       return;
     }
 
-    const projectToken = localStorage.getItem('ctc_project_token');
-    if (projectToken) {
-      const link = document.getElementById('projectTabLink');
-      link.href = portalHref('/portal-project.html', '#' + projectToken);
-      link.classList.remove('disabled');
-    }
+    document.getElementById('projectTabLink').href = portalHref('/portal-project.html');
 
     renderGalleries(await galRes.json());
 

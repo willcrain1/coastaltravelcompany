@@ -465,6 +465,300 @@ Renew `coastaltravelcompany.com` at Name.com before it expires. No DNS changes a
 
 ---
 
+## Transactional Emails
+
+All transactional email is sent via [Resend](https://resend.com) using the `RESEND_API_KEY` Worker secret. Every send is fire-and-forget (`.catch(() => {})`) so a Resend failure never breaks the API response — except where noted below.
+
+**From address (all emails):** `Coastal Travel Company <noreply@coastaltravelcompany.com>`
+**Admin inbox (`CONTACT_TO`):** `thecoastaltravelcompany@gmail.com`
+
+---
+
+### 1. Email Verification — on Registration
+**Source:** `worker/src/auth.js` → `handleAuthRegister`
+**Trigger:** Client self-registers via `POST /auth/register`
+**To:** New client's email address
+**Subject:** `Verify your email — Coastal Travel Company`
+**Body:**
+> Thanks for creating an account with Coastal Travel Company.
+> Please verify your email address to access your galleries. The link expires in 24 hours.
+> [verify link]
+> If you didn't create this account, you can ignore this email.
+
+**Notes:** The verify token is stored in KV as `verify:{uuid}` with a 24-hour TTL. The link points to `/login.html?verify={token}`. This send uses `await` (not fire-and-forget) — if Resend fails the registration still succeeds (`.catch(() => {})`).
+
+---
+
+### 2. Email Verification — Resend
+**Source:** `worker/src/auth.js` → `handleAuthResendVerify`
+**Trigger:** Client calls `POST /auth/resend-verify` (e.g. from the "resend verification" button on the login page)
+**To:** Client's email address
+**Subject:** `Verify your email — Coastal Travel Company`
+**Body:**
+> Here's a new verification link for your Coastal Travel Company account. It expires in 24 hours.
+> [verify link]
+
+**Notes:** Only sends if the user exists and `verified === false`. Always returns `{ ok: true }` regardless — prevents account enumeration.
+
+---
+
+### 3. Password Reset
+**Source:** `worker/src/auth.js` → `handleAuthResetRequest`
+**Trigger:** Client calls `POST /auth/reset-request` (from login page "Forgot password" flow)
+**To:** Client's email address
+**Subject:** `Reset your password — Coastal Travel Company`
+**Body:**
+> Click the link below to reset your password. The link expires in 1 hour.
+> [reset link]
+> If you didn't request this, you can ignore this email.
+
+**Notes:** Reset token stored in KV as `reset:{uuid}` with a 1-hour TTL. Link points to `/login.html?reset={token}`. Always returns `{ ok: true }` even if the email isn't found (prevents enumeration). Rate-limited: 3 requests per email per hour, 10 per IP per hour.
+
+---
+
+### 4. Contact Form Inquiry
+**Source:** `worker/src/contact.js` → `handleContact`
+**Trigger:** Visitor submits the contact form at `contact.html` (public, no auth)
+**To:** `CONTACT_TO` (admin inbox)
+**Reply-To:** Visitor's email address
+**Subject:** `Inquiry: {First Name} {Last Name} — {Property}` (property omitted if blank)
+**Body:** HTML table with:
+- Name, Email, Property, Location, Collection, Timeline
+- Message body (pre-wrapped, HTML-escaped)
+
+**Notes:** This is the only send that is **not** fire-and-forget — if Resend returns non-OK the API responds 502. Also creates a project row in D1 at stage `Inquiry` with `source: 'inquiry'` (silently skipped if DB write fails).
+
+---
+
+### 5. Contract Ready to Sign
+**Source:** `worker/src/admin/contracts.js` → `handleAdminProjectContracts` (POST)
+**Trigger:** Admin creates and sends a contract from the project pipeline
+**To:** Client's email address
+**Subject:** `Your contract is ready to sign — Coastal Travel Company`
+**Body:**
+> Hi {client_name},
+> Your contract **{title}** is ready for your review and signature.
+> [Review & Sign Contract →]
+> Warmly, Coastal Travel Company
+
+**Notes:** Uses `await` (not fire-and-forget). Creating the contract also advances the project stage to `Contract Sent` and adds a document row.
+
+---
+
+### 6. Contract Signed — Admin Notification
+**Source:** `worker/src/admin/contracts.js` → `handlePublicContractSign`
+**Trigger:** Client submits their signature on `contract.html`
+**To:** `thecoastaltravelcompany@gmail.com` (hardcoded, not `CONTACT_TO`)
+**Subject:** `Contract signed — {client_name} — {title}`
+**Body:**
+> {client_name} has signed the contract "{title}".
+> [Review & Countersign →]
+
+---
+
+### 7. Contract Fully Executed
+**Source:** `worker/src/admin/contracts.js` → `handleAdminProjectContractCountersign`
+**Trigger:** Admin countersigns the contract from the pipeline
+**To:** Client's email address
+**Subject:** `Your contract is fully executed — Coastal Travel Company`
+**Body:**
+> Hi {client_name},
+> Your contract **{title}** has been signed by both parties. You can view and download your copy at any time:
+> [View Fully Executed Contract →]
+> Warmly, Coastal Travel Company
+
+**Notes:** Uses `await`. Also advances project stage to `Contract Signed`.
+
+---
+
+### 8. Invoice Sent to Client
+**Source:** `worker/src/admin/invoices.js` → `handleAdminInvoiceSend`
+**Trigger:** Admin clicks "Send" on an invoice in the pipeline
+**To:** Client's email address
+**Subject:** `Invoice {invoice_number} — Coastal Travel Company`
+**Body:** Styled HTML invoice with:
+- Header: "Coastal Travel Company" + invoice number + due date
+- Greeting: "Hi {client_name}, please find your invoice below."
+- Line-item table: Description / Qty / Rate / Amount
+- Tax row (if `tax_cents > 0`)
+- Bold total
+- Invoice notes (if present)
+- [View & Pay Invoice →] button + plain-text URL fallback
+- "Warmly, Coastal Travel Company"
+
+---
+
+### 9. Payment Received — Client Receipt
+**Source:** `worker/src/admin/invoices.js` → `handleStripeWebhook`
+**Trigger:** Stripe fires `checkout.session.completed` with `payment_status: paid`
+**To:** Client's email address
+**Subject:** `Payment received — {invoice_number}`
+**Body:**
+> Hi {client_name},
+> Thank you! We received your payment of **${amount}** for invoice {invoice_number}.
+> [View receipt →]
+> Warmly, Coastal Travel Company
+
+**Notes:** Only sent if `inv.client_email` is set. Also advances project stage to `Retainer Paid`.
+
+---
+
+### 10. Payment Received — Admin Notification
+**Source:** `worker/src/admin/invoices.js` → `handleStripeWebhook`
+**Trigger:** Same Stripe `checkout.session.completed` event as email #9 (sent in parallel)
+**To:** `CONTACT_TO` (admin inbox)
+**Subject:** `Payment received — {invoice_number} — {client_name}`
+**Body:**
+> Payment of **${amount}** received from {client_name} for invoice {invoice_number}.
+
+---
+
+### 11. Questionnaire Link Sent to Client
+**Source:** `worker/src/admin/questionnaires.js` → `handleAdminProjectQuestionnaires` (POST)
+**Trigger:** Admin sends a questionnaire to a client from the pipeline
+**To:** Client's email address
+**Subject:** `{questionnaire_set_name} — Coastal Travel Company`
+**Body:**
+> Hi {client_name},
+> Please take a moment to complete this questionnaire for your upcoming project.
+> [Complete Questionnaire] button + plain-text URL fallback
+
+---
+
+### 12. Questionnaire Submitted — Admin Notification
+**Source:** `worker/src/admin/questionnaires.js` → `handlePublicQuestionnaire` (POST)
+**Trigger:** Client submits a questionnaire on `questionnaire.html`
+**To:** `CONTACT_TO` (admin inbox)
+**Subject:** `Questionnaire submitted — {client_name}`
+**Body:**
+> **{client_name}** completed the questionnaire "*{set_name}*".
+> [View in Pipeline →]
+
+---
+
+### 13. Scheduling Link Sent to Client
+**Source:** `worker/src/admin/scheduling.js` → `handleAdminProjectScheduleLinks` (POST)
+**Trigger:** Admin creates a scheduling link for a project (discovery call or shoot date)
+**To:** Client's email address
+**Subject:** `Schedule your {discovery call|shoot date} — Coastal Travel Company`
+**Body:**
+> Hi {client_name},
+> Please choose a time that works for your {discovery call|shoot date}.
+> [Choose a Time] button + plain-text URL fallback
+
+---
+
+### 14. Booking Confirmed — Client
+**Source:** `worker/src/admin/scheduling.js` → `handlePublicSchedule` (POST)
+**Trigger:** Client selects a time slot on `schedule.html`
+**To:** Client's email address
+**Subject:** `Confirmed: {Discovery Call|Shoot Date} — Coastal Travel Company`
+**Body:**
+> Your {shoot date|discovery call} is confirmed!
+> **{Day, Month Date, Time} ET**
+> Notes: {notes} *(if provided)*
+> A calendar invite is attached.
+
+**Attachment:** `invite.ics` — iCalendar file with event title, start/end time, organizer (`noreply@coastaltravelcompany.com`), and attendee.
+
+**Notes:** Sent with `await Promise.all([...])` alongside email #15 simultaneously. If link type is `shoot`, also updates `projects.shoot_date`.
+
+---
+
+### 15. Booking Confirmed — Admin
+**Source:** `worker/src/admin/scheduling.js` → `handlePublicSchedule` (POST)
+**Trigger:** Same slot-booking event as email #14 (sent simultaneously)
+**To:** `thecoastaltravelcompany@gmail.com` (hardcoded)
+**Subject:** `Confirmed: {label} — {client_name}`
+**Body:** Same HTML as client confirmation email (#14)
+**Attachment:** Same `invite.ics` calendar file
+
+---
+
+### 16. User Role Changed
+**Source:** `worker/src/admin/users.js` → `handleAdminUpdateUserRole`
+**Trigger:** Admin changes a user's role via the Clients admin panel (`PATCH /admin/users/{id}/role`)
+**To:** The affected user's email address
+**Subject:** `Your account has been updated — Coastal Travel Company`
+**Body:**
+> Your Coastal Travel Company account role has been updated.
+> Your role has been changed from **{old_role}** to **{new_role}** by an administrator.
+> If you have questions about this change, please contact us.
+
+---
+
+### 17. Security Alert — Failed Admin Login
+**Source:** `worker/src/brute-force.js` → `sendAdminAlert` (internal, called by `recordLoginFailure`)
+**Trigger:** 3 or more consecutive failed login attempts on an admin account
+**To:** `thecoastaltravelcompany@gmail.com` (hardcoded as `ALERT_TO`)
+**Subject:** `[Security] Failed admin login — {email}`
+**Body:**
+> Failed admin login attempts detected.
+> **Account:** {email}
+> **Attempts:** {count}
+> **IP:** {ip}
+> This is an automated security alert from Coastal Travel Company.
+
+**Notes:** Sent on the 3rd failure and again at 5 (permanent lockout threshold). Per-email lockout after 5 failures (15 min TTL); per-IP lockout after 20 failures.
+
+---
+
+### 18. Portal Message — Admin Notification
+**Source:** `worker/src/portal.js` → `handlePublicProjectPortal` (POST)
+**Trigger:** Client sends a message via the messaging thread in their project portal (`portal-project.html`)
+**To:** `CONTACT_TO` (admin inbox)
+**Subject:** `New portal message — {client_name}`
+**Body:**
+> **{sender_name}** sent a message:
+> > {message content}
+>
+> [View in Pipeline →]
+
+---
+
+### 19. New Project Inquiry — Admin Notification
+**Source:** `worker/src/portal.js` → `handlePortalMyProject` (POST)
+**Trigger:** Authenticated client self-submits a project inquiry from the "My Project" tab in their portal (`portal-project.html` with no existing project)
+**To:** `CONTACT_TO` (admin inbox)
+**Subject:** `New project inquiry — {client_name}`
+**Body:**
+> **{client_name}** ({email}) submitted a new project inquiry:
+> **Property:** {property}
+> **Location:** {location} *(if provided)*
+> > {initial message} *(if provided)*
+>
+> [View in Pipeline →]
+
+**Notes:** Also creates a project row in D1 at stage `Inquiry` with `source: 'client-portal'`, a portal token, and (if a message was included) an initial message row.
+
+---
+
+### Email summary table
+
+| # | Subject | To | Trigger | Source |
+|---|---------|-----|---------|--------|
+| 1 | Verify your email | Client | Self-registration | `auth.js` |
+| 2 | Verify your email | Client | Resend verification | `auth.js` |
+| 3 | Reset your password | Client | Forgot password | `auth.js` |
+| 4 | Inquiry: {name} | Admin | Contact form submission | `contact.js` |
+| 5 | Your contract is ready to sign | Client | Admin sends contract | `contracts.js` |
+| 6 | Contract signed — {name} | Admin | Client signs contract | `contracts.js` |
+| 7 | Your contract is fully executed | Client | Admin countersigns | `contracts.js` |
+| 8 | Invoice {number} | Client | Admin sends invoice | `invoices.js` |
+| 9 | Payment received — {number} | Client | Stripe webhook | `invoices.js` |
+| 10 | Payment received — {number} — {name} | Admin | Stripe webhook | `invoices.js` |
+| 11 | {Questionnaire name} | Client | Admin sends questionnaire | `questionnaires.js` |
+| 12 | Questionnaire submitted — {name} | Admin | Client submits questionnaire | `questionnaires.js` |
+| 13 | Schedule your {call/shoot} | Client | Admin creates scheduling link | `scheduling.js` |
+| 14 | Confirmed: {call/shoot} | Client | Client books a time slot | `scheduling.js` |
+| 15 | Confirmed: {call/shoot} — {name} | Admin | Client books a time slot | `scheduling.js` |
+| 16 | Your account has been updated | User | Admin changes role | `users.js` |
+| 17 | [Security] Failed admin login | Admin | 3+ failed admin logins | `brute-force.js` |
+| 18 | New portal message — {name} | Admin | Client sends portal message | `portal.js` |
+| 19 | New project inquiry — {name} | Admin | Client self-submits inquiry | `portal.js` |
+
+---
+
 ## Testing
 
 ### Testing Overview

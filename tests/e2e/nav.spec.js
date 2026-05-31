@@ -24,7 +24,7 @@ const CORS = {
 };
 
 const PUBLIC_NAV = ['Home', 'About', 'Services', 'Collections', 'Contact', 'Account'];
-const PORTAL_TABS = ['My Account', 'My Project'];
+const PORTAL_TABS = ['My Account', 'My Project', 'My Profile'];
 const ADMIN_NAV = ['Pipeline', 'Galleries', 'Clients', 'Services', 'Customer Portal'];
 
 function mockWorker(context, handlers) {
@@ -115,6 +115,17 @@ test.describe('Client portal tab nav', () => {
     const tabs = page.locator('.portal-tab-link');
     await expect(tabs).toHaveText(PORTAL_TABS, { timeout: 10_000 });
   });
+
+  test(`profile.html tab nav shows exactly: ${PORTAL_TABS.join(', ')}`, async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-client'));
+    await mockWorker(context, {
+      'GET /auth/me': (route) => json(route, { id: 'u1', email: 'client@test.com', role: 'client', name: 'Test Client', hasPassword: true }),
+    });
+
+    await page.goto(`${STATIC_BASE}/profile.html`);
+    const tabs = page.locator('.portal-tab-link');
+    await expect(tabs).toHaveText(PORTAL_TABS, { timeout: 10_000 });
+  });
 });
 
 // ── Admin nav ─────────────────────────────────────────────────────────────────
@@ -132,9 +143,9 @@ test.describe('Admin nav', () => {
     });
 
     await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
-    await expect(page).toHaveURL(/pipeline\.html/, { timeout: 10_000 });
-
+    // GitHub Pages may strip .html from URLs — wait for nav links to confirm auth succeeded.
     const links = page.locator('.admin-nav .admin-nav-link');
+    await expect(links).toHaveCount(ADMIN_NAV.length, { timeout: 10_000 });
     // Strip the external link arrow suffix from "Customer Portal ↗"
     const texts = await links.allTextContents();
     const normalized = texts.map(t => t.replace(/\s*↗\s*$/, '').trim());

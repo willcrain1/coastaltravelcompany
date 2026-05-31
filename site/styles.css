@@ -737,6 +737,24 @@ nav.scrolled .nav-toggle span {
   line-height: 1.75;
 }
 
+.bg-black .approach-item h4 {
+  color: var(--white);
+}
+
+.bg-black .approach-item p {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bg-black .approach-item {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Services Grid (What We Offer) ──────────────────────── */
+
+.services-feature {
+  grid-column: span 2;
+}
+
 /* ─── Contact Form ────────────────────────────────────────── */
 
 .form-group {
@@ -934,8 +952,10 @@ footer {
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-2, .grid-2-narrow { grid-template-columns: 1fr; gap: 48px; }
   .service-item { grid-template-columns: 60px 1fr; }
-  .service-cta { display: none; }
+  .service-cta { grid-column: 2; text-align: left; padding-top: 16px; }
   .page-hero { padding: 48px 32px; }
+  .services-grid { grid-template-columns: 1fr; }
+  .services-feature { grid-column: span 1; }
 }
 
 @media (max-width: 680px) {
@@ -954,4 +974,5 @@ footer {
   .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
   .form-row { grid-template-columns: 1fr; gap: 0; }
   .page-hero { padding: 36px 24px; min-height: 360px; }
+  .coll-img { height: 300px !important; }
 }

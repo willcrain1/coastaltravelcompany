@@ -4,8 +4,8 @@ import { getAuth } from './jwt.js';
 
 import {
   handleAuthSetupStatus, handleAuthSetup, handleAuthRegister, handleAuthLogin,
-  handleAuthGoogle, handleAuthResetRequest, handleAuthResetConfirm, handleAuthMe,
-  handleAuthVerify, handleAuthResendVerify,
+  handleAuthGoogle, handleAuthResetRequest, handleAuthResetConfirm,
+  handleAuthMe, handleAuthUpdateMe, handleAuthVerify, handleAuthResendVerify,
 } from './auth.js';
 
 import { handleTokenExchange, handleNasProxy } from './gallery-proxy.js';
@@ -13,7 +13,7 @@ import { handleContact } from './contact.js';
 
 import {
   handlePortalContracts, handlePortalGalleries, handleAdminProjectPortalLink,
-  handlePublicProjectPortal, handleAdminProjectMessages,
+  handlePublicProjectPortal, handleAdminProjectMessages, handlePortalMyProject,
 } from './portal.js';
 
 import {
@@ -95,7 +95,8 @@ export async function handleRequest(request, env) {
   if (method === 'POST' && pathname === '/auth/google')         return handleAuthGoogle(request, env);
   if (method === 'POST' && pathname === '/auth/reset-request')  return handleAuthResetRequest(request, env);
   if (method === 'POST' && pathname === '/auth/reset-confirm')  return handleAuthResetConfirm(request, env);
-  if (method === 'GET'  && pathname === '/auth/me')             return handleAuthMe(request, env);
+  if (method === 'GET'   && pathname === '/auth/me')            return handleAuthMe(request, env);
+  if (method === 'PATCH' && pathname === '/auth/me')            return handleAuthUpdateMe(request, env);
   if (method === 'GET'  && pathname === '/auth/verify')         return handleAuthVerify(request, env);
   if (method === 'POST' && pathname === '/auth/resend-verify')  return handleAuthResendVerify(request, env);
 
@@ -150,6 +151,8 @@ export async function handleRequest(request, env) {
   if (method === 'GET' && pathname === '/portal/galleries')  return handlePortalGalleries(request, env);
   if (method === 'GET' && pathname === '/portal/invoices')   return handlePortalInvoices(request, env);
   if (method === 'GET' && pathname === '/portal/contracts')  return handlePortalContracts(request, env);
+  if (pathname === '/portal/my-project' && (method === 'GET' || method === 'POST'))
+    return handlePortalMyProject(request, method, env);
 
   // ── Questionnaire instances ──────────────────────────────────────────────────
   const projectQuestionnairesMatch = pathname.match(/^\/admin\/projects\/([^/]+)\/questionnaires$/);

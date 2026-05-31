@@ -131,8 +131,17 @@ jobs:
         run: npm install
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+      - name: Install Stripe CLI
+        run: |
+          curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee /etc/apt/sources.list.d/stripe.list
+          sudo apt-get update && sudo apt-get install -y stripe
       - name: Run acceptance tests (shard ${{ matrix.shard }}/4)
         run: npm test -- --shard=${{ matrix.shard }}/4
+        env:
+          STRIPE_CLI_API_KEY: ${{ secrets.STRIPE_CLI_API_KEY }}
+          PREPROD_ADMIN_JWT:  ${{ secrets.PREPROD_ADMIN_JWT }}
+          MAILOSAUR_API_KEY:  ${{ secrets.MAILOSAUR_API_KEY }}
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4

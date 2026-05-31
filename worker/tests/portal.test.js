@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   handlePortalContracts, handlePortalGalleries, handleAdminProjectPortalLink,
-  handlePublicProjectPortal, handleAdminProjectMessages,
+  handlePublicProjectPortal, handleAdminProjectMessages, handlePortalMyProject,
 } from '../src/portal.js';
 import { createJWT } from '../src/jwt.js';
 
@@ -249,6 +249,131 @@ describe('handlePublicProjectPortal', () => {
     const req = new Request('http://t', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: 'not json' });
     const r   = await handlePublicProjectPortal(req, 'POST', { DB: db }, 'tok');
     expect(r.status).toBe(400);
+  });
+});
+
+// ── handlePortalMyProject ─────────────────────────────────────────────────────
+
+describe('handlePortalMyProject', () => {
+  it('401 when not authenticated', async () => {
+    const r = await handlePortalMyProject(new Request('http://t/portal/my-project'), 'GET', { JWT_SECRET: SECRET });
+    expect(r.status).toBe(401);
+  });
+  it('503 when DB not configured', async () => {
+    const req = await makeAuthReq('http://t/portal/my-project', 'GET', { sub: 'c@t.com', role: 'client' });
+    const r   = await handlePortalMyProject(req, 'GET', { JWT_SECRET: SECRET });
+    expect(r.status).toBe(503);
+  });
+  it('GET returns { project: null } when no project exists', async () => {
+    const req = await makeAuthReq('http://t/portal/my-project', 'GET', { sub: 'c@t.com', role: 'client' });
+    const r   = await handlePortalMyProject(req, 'GET', { DB: makeDb([]), JWT_SECRET: SECRET });
+    expect(r.status).toBe(200);
+    expect((await r.json()).project).toBeNull();
+  });
+  it('GET returns token and project when project and token exist', async () => {
+    const proj = { id: 'p1', client_name: 'Alice', property: 'Bungalow', location: 'Miami', collection: 'Std', shoot_date: '', stage: 'Inquiry' };
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn()
+        .mockResolvedValueOnce({ results: [proj] })
+        .mockResolvedValueOnce({ results: [{ id: 'tok1' }] }),
+      run: vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = await makeAuthReq('http://t/portal/my-project', 'GET', { sub: 'c@t.com', role: 'client' });
+    const r   = await handlePortalMyProject(req, 'GET', { DB: db, JWT_SECRET: SECRET });
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body.token).toBe('tok1');
+    expect(body.project.property).toBe('Bungalow');
+  });
+  it('GET creates portal token when none exists', async () => {
+    const proj = { id: 'p1', client_name: 'Alice', property: 'Bungalow', location: '', collection: '', shoot_date: '', stage: 'Inquiry' };
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn()
+        .mockResolvedValueOnce({ results: [proj] })
+        .mockResolvedValueOnce({ results: [] }),
+      run: vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = await makeAuthReq('http://t/portal/my-project', 'GET', { sub: 'c@t.com', role: 'client' });
+    const r   = await handlePortalMyProject(req, 'GET', { DB: db, JWT_SECRET: SECRET });
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(typeof body.token).toBe('string');
+    expect(stmt.run).toHaveBeenCalled();
+  });
+  it('POST 503 when DB not configured', async () => {
+    const req = await makeAuthReq('http://t/portal/my-project', 'POST', { sub: 'c@t.com', role: 'client' }, { property: 'Test' });
+    const r   = await handlePortalMyProject(req, 'POST', { JWT_SECRET: SECRET });
+    expect(r.status).toBe(503);
+  });
+  it('POST 409 when project already exists', async () => {
+    const req = await makeAuthReq('http://t/portal/my-project', 'POST', { sub: 'c@t.com', role: 'client' }, { property: 'Test' });
+    const r   = await handlePortalMyProject(req, 'POST', { DB: makeDb([{ id: 'p1' }]), JWT_SECRET: SECRET });
+    expect(r.status).toBe(409);
+  });
+  it('POST 400 when property is missing', async () => {
+    const req = await makeAuthReq('http://t/portal/my-project', 'POST', { sub: 'c@t.com', role: 'client' }, { location: 'Miami' });
+    const r   = await handlePortalMyProject(req, 'POST', { DB: makeDb([]), JWT_SECRET: SECRET });
+    expect(r.status).toBe(400);
+  });
+  it('POST 400 on invalid JSON', async () => {
+    const token = await createJWT({ sub: 'c@t.com', role: 'client', exp: Math.floor(Date.now() / 1000) + 3600 }, SECRET);
+    const request = new Request('http://t/portal/my-project', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: 'not json',
+    });
+    const r = await handlePortalMyProject(request, 'POST', { DB: makeDb([]), JWT_SECRET: SECRET });
+    expect(r.status).toBe(400);
+  });
+  it('POST 201 creates project and returns token', async () => {
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn().mockResolvedValueOnce({ results: [] }),
+      run: vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = await makeAuthReq('http://t/portal/my-project', 'POST', { sub: 'c@t.com', role: 'client' }, { property: 'Bungalow', location: 'Miami' });
+    const r   = await handlePortalMyProject(req, 'POST', { DB: db, JWT_SECRET: SECRET });
+    expect(r.status).toBe(201);
+    const body = await r.json();
+    expect(typeof body.token).toBe('string');
+    expect(body.project.property).toBe('Bungalow');
+    expect(body.project.stage).toBe('Inquiry');
+  });
+  it('POST 201 stores initial message when provided', async () => {
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn().mockResolvedValueOnce({ results: [] }),
+      run: vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = await makeAuthReq('http://t/portal/my-project', 'POST', { sub: 'c@t.com', role: 'client' }, { property: 'Villa', message: 'Looking forward to it!' });
+    const r   = await handlePortalMyProject(req, 'POST', { DB: db, JWT_SECRET: SECRET });
+    expect(r.status).toBe(201);
+    // INSERT for project + token + message = 3 run() calls
+    expect(stmt.run).toHaveBeenCalledTimes(3);
+  });
+  it('POST 201 sends notification email when RESEND_API_KEY set', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all: vi.fn().mockResolvedValueOnce({ results: [] }),
+      run: vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = await makeAuthReq('http://t/portal/my-project', 'POST', { sub: 'c@t.com', role: 'client' }, { property: 'Villa' });
+    const r   = await handlePortalMyProject(req, 'POST', { DB: db, JWT_SECRET: SECRET, RESEND_API_KEY: 'key' });
+    expect(r.status).toBe(201);
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
   });
 });
 
