@@ -143,9 +143,9 @@ test.describe('Admin nav', () => {
     });
 
     await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
-    await expect(page).toHaveURL(/pipeline\.html/, { timeout: 10_000 });
-
+    // GitHub Pages may strip .html from URLs — wait for nav links to confirm auth succeeded.
     const links = page.locator('.admin-nav .admin-nav-link');
+    await expect(links).toHaveCount(ADMIN_NAV.length, { timeout: 10_000 });
     // Strip the external link arrow suffix from "Customer Portal ↗"
     const texts = await links.allTextContents();
     const normalized = texts.map(t => t.replace(/\s*↗\s*$/, '').trim());

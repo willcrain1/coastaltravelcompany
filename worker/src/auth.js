@@ -237,7 +237,9 @@ export async function handleAuthUpdateMe(request, env) {
   if (!payload) return authRequired();
   const user = await getUser(payload.sub, env.KV);
   if (!user) return authRequired();
-  let body; try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
+
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
 
   if (body.name !== undefined) user.name = body.name.trim();
 
