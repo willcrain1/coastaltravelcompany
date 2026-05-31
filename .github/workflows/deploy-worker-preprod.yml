@@ -169,7 +169,7 @@ jobs:
         run: |
           for f in $(ls migrations/*.sql | sort); do
             echo "Applying $f..."
-            npx wrangler d1 execute ctc-preprod --remote --file "$f"
+            npx wrangler d1 migrations apply ctc-preprod --remote --file "$f"
           done
 
   # ── 4. Worker ─────────────────────────────────────────────────────────────────
