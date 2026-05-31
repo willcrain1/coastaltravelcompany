@@ -974,4 +974,5 @@ footer {
   .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
   .form-row { grid-template-columns: 1fr; gap: 0; }
   .page-hero { padding: 36px 24px; min-height: 360px; }
+  .coll-img { height: 300px !important; }
 }
