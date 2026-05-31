@@ -543,13 +543,6 @@
       document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
       document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
-      if (isAdminPreview && jwt) {
-        const meRes = await fetch(WORKER_URL + '/auth/me', {
-          headers: { 'Authorization': 'Bearer ' + jwt },
-        }).catch(() => null);
-        if (meRes?.ok && (await meRes.json()).role === 'admin') showAdminPreviewBanner();
-      }
-
       const headers = { Origin: location.origin };
       if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
       const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers });
@@ -689,9 +682,17 @@
   }
 
   async function loadOrCreate() {
+    const jwt = localStorage.getItem(JWT_KEY);
+
+    if (isAdminPreview && jwt) {
+      const meRes = await fetch(WORKER_URL + '/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + jwt },
+      }).catch(() => null);
+      if (meRes?.ok && (await meRes.json()).role === 'admin') showAdminPreviewBanner();
+    }
+
     if (token) { await load(); return; }
 
-    const jwt = localStorage.getItem(JWT_KEY);
     if (!jwt) {
       window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
       return;
