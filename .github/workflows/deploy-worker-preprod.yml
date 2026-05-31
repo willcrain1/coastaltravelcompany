@@ -161,6 +161,7 @@ jobs:
           binding = "DB"
           database_name = "ctc-preprod"
           database_id = "$D1_ID"
+          migrations_dir = "worker/migrations"
           TOML
       - name: Apply all migrations (idempotent)
         env:
@@ -169,7 +170,7 @@ jobs:
         run: |
           for f in $(ls migrations/*.sql | sort); do
             echo "Applying $f..."
-            npx wrangler d1 migrations apply ctc-preprod --remote --file "$f"
+            npx wrangler d1 migrations apply ctc-preprod --remote
           done
 
   # ── 4. Worker ─────────────────────────────────────────────────────────────────
