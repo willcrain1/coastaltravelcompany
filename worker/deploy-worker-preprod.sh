@@ -170,6 +170,9 @@ name = "$PROD_WORKER_NAME"
 main = "cloudflare-worker.js"
 compatibility_date = "2024-09-23"
 
+[observability]
+enabled = true
+
 [[kv_namespaces]]
 binding = "KV"
 id = "$PROD_KV_ID"
@@ -187,6 +190,9 @@ name = "$CF_WORKER_NAME_PREPROD"
 
 [env.preprod.vars]
 ALLOWED_ORIGIN = "https://preprod.coastaltravelcompany.com"
+
+[env.preprod.observability]
+enabled = true
 
 [[env.preprod.kv_namespaces]]
 binding = "KV"
