@@ -883,7 +883,7 @@
       return;
     }
     el.innerHTML = msgs.map(m => `
-      <div class="note-item" style="background:${m.sender === 'client' ? 'var(--cream)' : '#fff'};">
+      <div class="note-item" style="background:${m.sender === 'client' ? 'var(--surface)' : 'rgba(42,92,69,0.15)'};padding:10px 12px;border-radius:4px;border-bottom:none;margin-bottom:6px;">
         <div class="note-type-label">${m.sender === 'client' ? esc(m.sender_name || 'Client') : 'You'}</div>
         <div class="note-content">${esc(m.content)}</div>
         <div class="note-date">${esc(relTime(m.created_at))}</div>
