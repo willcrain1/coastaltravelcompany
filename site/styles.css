@@ -749,6 +749,12 @@ nav.scrolled .nav-toggle span {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
+/* ─── Services Grid (What We Offer) ──────────────────────── */
+
+.services-feature {
+  grid-column: span 2;
+}
+
 /* ─── Contact Form ────────────────────────────────────────── */
 
 .form-group {
@@ -948,6 +954,8 @@ footer {
   .service-item { grid-template-columns: 60px 1fr; }
   .service-cta { display: none; }
   .page-hero { padding: 48px 32px; }
+  .services-grid { grid-template-columns: 1fr; }
+  .services-feature { grid-column: span 1; }
 }
 
 @media (max-width: 680px) {
