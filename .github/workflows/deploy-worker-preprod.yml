@@ -77,7 +77,36 @@ jobs:
           fi
           echo "d1_id=$D1_ID" >> "$GITHUB_OUTPUT"
 
-  # ── 3. Migrations ─────────────────────────────────────────────────────────────
+  # ── 3. R2 ─────────────────────────────────────────────────────────────────────
+  provision-r2:
+    name: Provision R2 (ctc-assets-preprod)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure R2 bucket exists
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID"
+          EXISTS=$(curl -sf "$BASE/r2/buckets?per_page=100" \
+            -H "Authorization: Bearer $CF_API_TOKEN" | \
+            python3 -c "
+          import json,sys
+          buckets=[b['name'] for b in json.load(sys.stdin).get('result',{}).get('buckets',[]) if b.get('name')=='ctc-assets-preprod']
+          print(buckets[0] if buckets else '')
+          ")
+          if [ -z "$EXISTS" ]; then
+            echo "Creating R2 bucket ctc-assets-preprod..."
+            curl -sf -X POST "$BASE/r2/buckets" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"ctc-assets-preprod"}'
+            echo "Created: ctc-assets-preprod"
+          else
+            echo "Existing: ctc-assets-preprod"
+          fi
+
+  # ── 4. Migrations ─────────────────────────────────────────────────────────────
   run-migrations:
     name: Run D1 migrations
     needs: provision-d1
@@ -107,21 +136,20 @@ jobs:
           binding = "DB"
           database_name = "ctc-preprod"
           database_id = "$D1_ID"
+          migrations_dir = "migrations"
           TOML
       - name: Apply all migrations (idempotent)
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
         run: |
-          for f in $(ls migrations/*.sql | sort); do
-            echo "Applying $f..."
-            npx wrangler d1 execute ctc-preprod --remote --file "$f"
-          done
+          echo "Applying migrations"
+          npx wrangler d1 migrations apply ctc-preprod --remote
 
   # ── 4. Worker ─────────────────────────────────────────────────────────────────
   deploy-worker:
     name: Deploy Worker (preprod)
-    needs: [provision-kv, provision-d1, run-migrations]
+    needs: [provision-kv, provision-d1, provision-r2, run-migrations]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -174,6 +202,10 @@ jobs:
           binding = "DB"
           database_name = "ctc-preprod"
           database_id = "$D1_ID"
+
+          [[env.preprod.r2_buckets]]
+          binding = "ASSETS"
+          bucket_name = "ctc-assets-preprod"
           TOML
       - name: Deploy via wrangler (--env preprod)
         env:

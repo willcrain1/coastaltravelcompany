@@ -1,4 +1,25 @@
+# Dependencies
 node_modules/
-playwright-report/
+dist/
+build/
+
+# Logs and environment
+*.log
+.env
+.env.local
+.env.*.local
+
+# Git and OS metadata
+.git/
+.DS_Store
+Thumbs.db
+
+# Playwright artifacts
 test-results/
-.git
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# Project-specific caches
+.cache/
+.temp/
