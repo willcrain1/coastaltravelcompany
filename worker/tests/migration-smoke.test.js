@@ -13,7 +13,7 @@ const MIGRATIONS_DIR = join(__dir, '../migrations');
 const EXPECTED_TABLES = [
   'automation_logs', 'automation_settings', 'availability_windows',
   'blocked_dates', 'contract_signing_events', 'contract_templates', 'contracts',
-  'invoices', 'project_documents', 'project_messages', 'project_notes',
+  'invoices', 'masquerade_log', 'project_documents', 'project_messages', 'project_notes',
   'project_portal_tokens', 'projects', 'proposals', 'questionnaire_instances',
   'questionnaire_sets', 'scheduling_links', 'service_packages', 'user_role_audit',
   'walkthroughs',
@@ -51,9 +51,9 @@ describe('D1 migration smoke tests', () => {
     }
   });
 
-  it('covers all 15 migration files', () => {
+  it('covers all 16 migration files', () => {
     const files = applyAll(new Database(':memory:'));
-    expect(files).toHaveLength(15);
+    expect(files).toHaveLength(16);
   });
 
   it('migrations are idempotent — re-running does not throw', () => {
