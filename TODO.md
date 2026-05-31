@@ -136,7 +136,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 
 ### Contract template builder
 - [x] Build a contract template editor in `admin/services.html` with a rich-text body and a library of merge fields: `{{client_name}}`, `{{property_name}}`, `{{collection}}`, `{{shoot_date}}`, `{{total_fee}}`, `{{location}}`
-- [ ] Create one default template per collection type (The Editorial Stay, The Fashioned Weekend, The Branded Journey) pre-populated with appropriate scope of work, deliverable list, and license terms
+- [x] Create one default template per collection type (The Editorial Stay, The Fashioned Weekend, The Branded Journey) pre-populated with appropriate scope of work, deliverable list, and license terms
 - [x] Standard contract sections supported: scope of work, deliverables & timeline, fees & payment schedule, cancellation & rescheduling policy, licensing & usage rights, limitation of liability, governing law
 - [x] Admin can preview a rendered contract with merged fields before sending (merge fields applied on template select in pipeline Send Contract panel)
 
@@ -152,7 +152,7 @@ Items are ordered: necessary website fixes first, then by highest revenue impact
 ### Legal audit trail
 - [x] Each signing event (created, view, client_signed, admin_countersigned) records in D1: UTC timestamp, IP address, email address, browser user-agent string, and a SHA-256 hash of the document contents at signing time
 - [x] Certificate of completion shown on the contract page: lists all signing events with timestamps, IPs, and document hashes
-- [ ] Store signed PDFs in Cloudflare R2 keyed by contract ID — the current implementation serves the contract as a printable HTML page with browser print-to-PDF; R2 storage is a future enhancement
+- [x] Store signed contracts in Cloudflare R2 keyed by contract ID — stored as a self-contained signed HTML document (`contracts/{id}/signed.html`) on countersign; served via `GET /contracts/:token/archive` with Content-Disposition attachment; browser print-to-PDF produces the PDF copy
 
 ### Integration option
 - [ ] Evaluate Dropbox Sign (HelloSign) API as an alternative to the custom build above — provides jurisdiction-tested legal compliance, SMS authentication, and audit trail out of the box; trade-off is per-envelope cost (~$0.10–0.40/contract) vs. the custom build which is free per signing

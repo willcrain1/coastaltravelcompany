@@ -17,6 +17,10 @@ binding = "DB"
 database_name = "CTC_PROJECTS"
 database_id = "your-d1-database-id"  # filled in by deploy-worker.sh
 
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "ctc-assets"      # create once: wrangler r2 bucket create ctc-assets
+
 [triggers]
 crons = ["0 * * * *"]   # hourly — runs automation checks (inquiry auto-reply, follow-ups, reminders)
 
@@ -40,6 +44,10 @@ id = "your-preprod-kv-namespace-id"   # CTC_AUTH_PREPROD — filled in by deploy
 binding = "DB"
 database_name = "ctc-preprod"
 database_id = "your-preprod-d1-database-id"  # filled in by deploy-worker-preprod.sh
+
+[[env.preprod.r2_buckets]]
+binding = "ASSETS"
+bucket_name = "ctc-assets-preprod"     # create once: wrangler r2 bucket create ctc-assets-preprod --env preprod
 
 # ── Required secrets ────────────────────────────────────────────────────────
 # Set each secret once via: wrangler secret put <NAME>
