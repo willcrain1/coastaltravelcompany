@@ -737,6 +737,18 @@ nav.scrolled .nav-toggle span {
   line-height: 1.75;
 }
 
+.bg-black .approach-item h4 {
+  color: var(--white);
+}
+
+.bg-black .approach-item p {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bg-black .approach-item {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ─── Contact Form ────────────────────────────────────────── */
 
 .form-group {
