@@ -159,7 +159,6 @@ jobs:
           binding = "DB"
           database_name = "CTC_PROJECTS"
           database_id = "$D1_ID"
-          migrations_dir = "worker/migrations"
           TOML
       - name: Apply all migrations (idempotent)
         env:
