@@ -396,9 +396,12 @@
 <script>
   const WORKER_URL = CTC_CONFIG.workerUrl;
 
-  const JWT_KEY  = 'ctc_jwt';
-  const USER_KEY = 'ctc_user';
+  const JWT_KEY           = 'ctc_jwt';
+  const USER_KEY          = 'ctc_user';
+  const MASQUERADE_TOKEN_KEY = 'ctc_masquerade_token';
+  const MASQUERADE_USER_KEY  = 'ctc_masquerade_user';
   const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
+  const isMasquerade   = new URLSearchParams(window.location.search).has('masquerade');
 
   function portalHref(path, hash = '') {
     return path + (isAdminPreview ? '?preview=1' : '') + hash;
@@ -408,6 +411,19 @@
     localStorage.removeItem(JWT_KEY);
     localStorage.removeItem(USER_KEY);
     window.location.href = '/login.html';
+  }
+
+  async function exitMasquerade() {
+    const masqToken = sessionStorage.getItem(MASQUERADE_TOKEN_KEY);
+    if (masqToken) {
+      await fetch(WORKER_URL + '/admin/masquerade/exit', {
+        method:  'POST',
+        headers: { 'Authorization': 'Bearer ' + masqToken },
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem(MASQUERADE_TOKEN_KEY);
+    sessionStorage.removeItem(MASQUERADE_USER_KEY);
+    window.location.href = '/admin/clients.html';
   }
 
   function encode(obj) {
@@ -531,7 +547,15 @@
   }
 
   async function load() {
-    const token = localStorage.getItem(JWT_KEY);
+    // Masquerade session: use the scoped masquerade JWT stored in sessionStorage
+    const masqToken = isMasquerade ? sessionStorage.getItem(MASQUERADE_TOKEN_KEY) : null;
+    if (isMasquerade && !masqToken) {
+      // Masquerade param present but no token — session missing or expired
+      window.location.href = '/admin/clients.html';
+      return;
+    }
+
+    const token = masqToken || localStorage.getItem(JWT_KEY);
     if (!token) { window.location.href = '/login.html'; return; }
 
     // Verify token and redirect admins to the admin panel
@@ -540,9 +564,15 @@
     }).catch(() => null);
 
     if (!meRes || !meRes.ok) {
-      localStorage.removeItem(JWT_KEY);
-      localStorage.removeItem(USER_KEY);
-      window.location.href = '/login.html';
+      if (isMasquerade) {
+        sessionStorage.removeItem(MASQUERADE_TOKEN_KEY);
+        sessionStorage.removeItem(MASQUERADE_USER_KEY);
+        window.location.href = '/admin/clients.html';
+      } else {
+        localStorage.removeItem(JWT_KEY);
+        localStorage.removeItem(USER_KEY);
+        window.location.href = '/login.html';
+      }
       return;
     }
 
@@ -551,8 +581,23 @@
     accountLink.textContent = user.name || user.email;
     accountLink.title = user.email;
 
+    // Masquerade: show amber banner with client identity and exit button
+    if (isMasquerade && masqToken) {
+      let masqUserName = user.name || user.email;
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(MASQUERADE_USER_KEY) || '{}');
+        masqUserName = saved.name || saved.email || masqUserName;
+      } catch {}
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
+      banner.innerHTML = `Admin View — Viewing portal as <strong>${masqUserName}</strong> &nbsp;&middot;&nbsp; <a href="#" onclick="exitMasquerade();return false;" style="color:#000;text-decoration:underline;">Exit Masquerade</a>`;
+      document.body.prepend(banner);
+      document.querySelector('.portal-shell-nav').style.top = '33px';
+      document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '153px';
+    }
+
     // Admins have a dedicated admin panel; redirect unless previewing the customer view
-    if (user.role === 'admin' && !isAdminPreview) {
+    if (user.role === 'admin' && !isAdminPreview && !isMasquerade) {
       window.location.href = '/admin/pipeline.html';
       return;
     }
@@ -569,7 +614,7 @@
     document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
     // Fetch galleries, contracts, and invoices in parallel
-    const headers = { 'Authorization': 'Bearer ' + token };
+    const headers = { 'Authorization': 'Bearer ' + (masqToken || token) };
     const [galRes, conRes, invRes] = await Promise.all([
       fetch(WORKER_URL + '/portal/galleries',  { headers }).catch(() => null),
       fetch(WORKER_URL + '/portal/contracts',  { headers }).catch(() => null),

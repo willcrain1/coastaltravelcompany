@@ -9,13 +9,14 @@
 ## Router (`worker/src/router.js`)
 - Auth: `/auth/*`
 - Portal: `/portal/*`
-- Admin: `/admin/*`
+- Admin: `/admin/*` (includes `POST /admin/masquerade`, `POST /admin/masquerade/exit`)
 - Public: `/proposals/*`, `/invoices/*`, `/contracts/*`, `/schedule/*`, `/questionnaire/*`
 - Proxy: `/*` (fallthrough to `handleNasProxy`)
 
 ## D1 Schema
 - Source: `worker/migrations/*.sql`
 - DB: `CTC_PROJECTS`
+- `masquerade_log`: audit trail for admin masquerade sessions (016_masquerade_log.sql)
 
 ## Key Flows
 - **Gallery:** `/token` (exchange) -> KV(sid:passphrase) -> NAS Proxy

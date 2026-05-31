@@ -41,6 +41,9 @@ const ALLOWLIST = new Set([
   // Public portal project covered by portal-project.spec.js
   'GET /portal/project/:id',
   'POST /portal/project/:id',
+  // Masquerade endpoints — admin-only flow; exercised via manual QA (item 50)
+  'POST /admin/masquerade',
+  'POST /admin/masquerade/exit',
 ]);
 
 // ── Step 1: Extract routes from router.js ─────────────────────────────────────
