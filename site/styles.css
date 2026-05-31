@@ -952,7 +952,7 @@ footer {
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-2, .grid-2-narrow { grid-template-columns: 1fr; gap: 48px; }
   .service-item { grid-template-columns: 60px 1fr; }
-  .service-cta { display: none; }
+  .service-cta { grid-column: 2; text-align: left; padding-top: 16px; }
   .page-hero { padding: 48px 32px; }
   .services-grid { grid-template-columns: 1fr; }
   .services-feature { grid-column: span 1; }
