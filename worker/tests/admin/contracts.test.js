@@ -4,6 +4,7 @@ import {
   handleAdminProjectContracts, handleAdminProjectContractCountersign,
   handlePublicContractGet, handlePublicContractView,
   handlePublicContractSign, handlePublicContractAudit,
+  handlePublicContractArchive,
 } from '../../src/admin/contracts.js';
 import { createJWT } from '../../src/jwt.js';
 
@@ -280,6 +281,31 @@ describe('handleAdminProjectContractCountersign', () => {
     );
     expect(r.status).toBe(200);
   });
+  it('200 on countersign stores snapshot to R2 and writes r2_key', async () => {
+    const contract  = { id: 'c3', status: 'client_signed', body_hash: 'h', signing_token: 'tok3', title: 'R2Test',
+      body: '<p>body</p>', client_name: 'Carol', client_email: 'carol@t.com',
+      client_signature: 'Carol', client_signature_type: 'typed', client_signed_at: '2026-01-01T00:00:00Z' };
+    const proj      = { id: 'p3', client_name: 'Carol', client_email: 'carol@t.com' };
+    const updated   = { ...contract, status: 'fully_executed' };
+    const db        = makeDb([]);
+    const stmt      = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [contract] })
+      .mockResolvedValueOnce({ results: [proj] })
+      .mockResolvedValueOnce({ results: [updated] });
+    const r2Put     = vi.fn().mockResolvedValue({});
+    const contracts = { put: r2Put };
+    const r         = await handleAdminProjectContractCountersign(
+      new Request('http://t', { method: 'POST', body: '{"signature":"sig","signature_type":"typed"}' }),
+      { DB: db, ASSETS: contracts }, 'p3', 'c3', { email: 'a@t.com' },
+    );
+    expect(r.status).toBe(200);
+    expect(r2Put).toHaveBeenCalledOnce();
+    const [r2Key, html] = r2Put.mock.calls[0];
+    expect(r2Key).toBe('contracts/c3/signed.html');
+    expect(html).toContain('FULLY EXECUTED CONTRACT');
+  });
+
   it('200 on countersign with empty p.email (uses empty string)', async () => {
     const contract = { id: 'c2', status: 'client_signed', body_hash: '', signing_token: 'tok2', title: 'D' };
     const proj     = { id: 'p2', client_name: 'Bob', client_email: '' };
@@ -382,6 +408,59 @@ describe('handlePublicContractSign', () => {
       { DB: makeDb([contract]) }, 'tok',
     );
     expect(r.status).toBe(200);
+  });
+});
+
+describe('handlePublicContractArchive', () => {
+  it('503 when DB missing', async () => {
+    expect((await handlePublicContractArchive(new Request('http://t'), {}, 'tok')).status).toBe(503);
+  });
+  it('404 when contract not found', async () => {
+    const db   = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all.mockResolvedValue({ results: [] });
+    expect((await handlePublicContractArchive(new Request('http://t'), { DB: db }, 'tok')).status).toBe(404);
+  });
+  it('400 when contract is not fully executed', async () => {
+    const contract = { id: 'c1', r2_key: 'contracts/c1/signed.html', status: 'client_signed' };
+    const db       = makeDb([contract]);
+    const stmt     = db.prepare();
+    stmt.all.mockResolvedValue({ results: [contract] });
+    expect((await handlePublicContractArchive(new Request('http://t'), { DB: db }, 'tok')).status).toBe(400);
+  });
+  it('404 when r2_key is empty (R2 storage not configured at countersign time)', async () => {
+    const contract = { id: 'c1', r2_key: '', status: 'fully_executed' };
+    const db       = makeDb([contract]);
+    const stmt     = db.prepare();
+    stmt.all.mockResolvedValue({ results: [contract] });
+    expect((await handlePublicContractArchive(new Request('http://t'), { DB: db }, 'tok')).status).toBe(404);
+  });
+  it('404 when CONTRACTS bucket not bound', async () => {
+    const contract = { id: 'c1', r2_key: 'contracts/c1/signed.html', status: 'fully_executed' };
+    const db       = makeDb([contract]);
+    const stmt     = db.prepare();
+    stmt.all.mockResolvedValue({ results: [contract] });
+    expect((await handlePublicContractArchive(new Request('http://t'), { DB: db }, 'tok')).status).toBe(404);
+  });
+  it('404 when R2 object is missing', async () => {
+    const contract  = { id: 'c1', r2_key: 'contracts/c1/signed.html', status: 'fully_executed' };
+    const db        = makeDb([contract]);
+    const stmt      = db.prepare();
+    stmt.all.mockResolvedValue({ results: [contract] });
+    const contracts = { get: vi.fn().mockResolvedValue(null) };
+    expect((await handlePublicContractArchive(new Request('http://t'), { DB: db, ASSETS: contracts }, 'tok')).status).toBe(404);
+  });
+  it('200 streams HTML file when archive exists', async () => {
+    const contract  = { id: 'c1', r2_key: 'contracts/c1/signed.html', status: 'fully_executed' };
+    const db        = makeDb([contract]);
+    const stmt      = db.prepare();
+    stmt.all.mockResolvedValue({ results: [contract] });
+    const body      = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('<html>')); c.close(); } });
+    const contracts = { get: vi.fn().mockResolvedValue({ body }) };
+    const r         = await handlePublicContractArchive(new Request('http://t'), { DB: db, ASSETS: contracts }, 'tok');
+    expect(r.status).toBe(200);
+    expect(r.headers.get('Content-Type')).toContain('text/html');
+    expect(r.headers.get('Content-Disposition')).toContain('attachment');
   });
 });
 

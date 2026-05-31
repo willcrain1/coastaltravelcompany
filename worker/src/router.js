@@ -55,6 +55,7 @@ import {
   handleAdminProjectContracts, handleAdminProjectContractCountersign,
   handlePublicContractGet, handlePublicContractView,
   handlePublicContractSign, handlePublicContractAudit,
+  handlePublicContractArchive,
 } from './admin/contracts.js';
 
 import {
@@ -215,14 +216,16 @@ export async function handleRequest(request, env) {
   }
 
   // ── Public contract signing ──────────────────────────────────────────────────
-  const publicContractMatch      = pathname.match(/^\/contracts\/([^/]+)$/);
-  const publicContractViewMatch  = pathname.match(/^\/contracts\/([^/]+)\/view$/);
-  const publicContractSignMatch  = pathname.match(/^\/contracts\/([^/]+)\/sign$/);
-  const publicContractAuditMatch = pathname.match(/^\/contracts\/([^/]+)\/audit$/);
-  if (publicContractMatch && method === 'GET')      return handlePublicContractGet(request, env, publicContractMatch[1]);
-  if (publicContractViewMatch && method === 'POST') return handlePublicContractView(request, env, publicContractViewMatch[1]);
-  if (publicContractSignMatch && method === 'POST') return handlePublicContractSign(request, env, publicContractSignMatch[1]);
-  if (publicContractAuditMatch && method === 'GET') return handlePublicContractAudit(request, env, publicContractAuditMatch[1]);
+  const publicContractMatch         = pathname.match(/^\/contracts\/([^/]+)$/);
+  const publicContractViewMatch     = pathname.match(/^\/contracts\/([^/]+)\/view$/);
+  const publicContractSignMatch     = pathname.match(/^\/contracts\/([^/]+)\/sign$/);
+  const publicContractAuditMatch    = pathname.match(/^\/contracts\/([^/]+)\/audit$/);
+  const publicContractArchiveMatch  = pathname.match(/^\/contracts\/([^/]+)\/archive$/);
+  if (publicContractMatch && method === 'GET')         return handlePublicContractGet(request, env, publicContractMatch[1]);
+  if (publicContractViewMatch && method === 'POST')    return handlePublicContractView(request, env, publicContractViewMatch[1]);
+  if (publicContractSignMatch && method === 'POST')    return handlePublicContractSign(request, env, publicContractSignMatch[1]);
+  if (publicContractAuditMatch && method === 'GET')    return handlePublicContractAudit(request, env, publicContractAuditMatch[1]);
+  if (publicContractArchiveMatch && method === 'GET')  return handlePublicContractArchive(request, env, publicContractArchiveMatch[1]);
 
   // ── Invoices ─────────────────────────────────────────────────────────────────
   const projectInvoicesMatch       = pathname.match(/^\/admin\/projects\/([^/]+)\/invoices$/);
