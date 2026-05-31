@@ -4,8 +4,8 @@ import { getAuth } from './jwt.js';
 
 import {
   handleAuthSetupStatus, handleAuthSetup, handleAuthRegister, handleAuthLogin,
-  handleAuthGoogle, handleAuthResetRequest, handleAuthResetConfirm, handleAuthMe,
-  handleAuthUpdateMe, handleAuthVerify, handleAuthResendVerify,
+  handleAuthGoogle, handleAuthResetRequest, handleAuthResetConfirm,
+  handleAuthMe, handleAuthUpdateMe, handleAuthVerify, handleAuthResendVerify,
 } from './auth.js';
 
 import { handleTokenExchange, handleNasProxy } from './gallery-proxy.js';
