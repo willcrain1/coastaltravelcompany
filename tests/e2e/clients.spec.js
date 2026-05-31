@@ -136,7 +136,7 @@ test.describe('Admin Clients Page', () => {
         if (route.request().method() === 'POST') {
           createPayload = JSON.parse(route.request().postData() || '{}');
         }
-        await route.continue();
+        await route.fallback();
       },
     );
 
@@ -191,7 +191,7 @@ test.describe('Admin Clients Page', () => {
         if (route.request().method() === 'PUT') {
           putPayload = JSON.parse(route.request().postData() || '{}');
         }
-        await route.continue();
+        await route.fallback();
       },
     );
 
@@ -219,7 +219,7 @@ test.describe('Admin Clients Page', () => {
       (url) => url.pathname.startsWith('/admin/users/'),
       async (route) => {
         if (route.request().method() === 'DELETE') deleteUrl = route.request().url();
-        await route.continue();
+        await route.fallback();
       },
     );
 

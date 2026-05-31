@@ -303,6 +303,8 @@
 <script>
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+  const WORKER_URL = getWorkerUrl();
+
   const STAGES = [
     'Inquiry', 'Proposal Sent', 'Contract Sent', 'Contract Signed',
     'Retainer Paid', 'Active', 'Delivered', 'Complete',
