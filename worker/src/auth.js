@@ -149,9 +149,9 @@ export async function handleAuthGoogle(request, env) {
   if (!env.GOOGLE_CLIENT_ID) return jsonResponse({ error: 'Google login not configured' }, 503);
   const { credential } = await request.json();
   if (!credential) return jsonResponse({ error: 'Missing credential' }, 400);
-  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
-  if (!res.ok) return jsonResponse({ error: 'Invalid Google token' }, 401);
-  const info = await res.json();
+  const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+  if (!tokenRes.ok) return jsonResponse({ error: 'Invalid Google token' }, 401);
+  const info = await tokenRes.json();
   if (info.aud !== env.GOOGLE_CLIENT_ID) return jsonResponse({ error: 'Token audience mismatch' }, 401);
   if (info.email_verified !== 'true')    return jsonResponse({ error: 'Email not verified' }, 401);
   const email = info.email.toLowerCase();
