@@ -172,7 +172,7 @@ export async function handleAuthGoogle(request, env) {
     let changed = false;
     if (!user.googleLinked) { user.googleLinked = true; changed = true; }
     if (user.verified === false) { user.verified = true; changed = true; }
-    if (changed) await putUser(user, env.KV);
+    if (changed) await putUser(user, env.KV).catch(() => {});
   }
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
