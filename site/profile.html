@@ -268,6 +268,7 @@
     <a class="portal-tab-link active" id="profileTabLink" href="/profile.html">My Profile</a>
   </div>
   <div class="nav-right">
+    <a href="/profile.html" class="nav-account-link" id="navAccountLink"></a>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -360,6 +361,9 @@
     }
 
     currentUser = await res.json();
+
+    const navLink = document.getElementById('navAccountLink');
+    if (navLink) { navLink.textContent = currentUser.name || currentUser.email; navLink.title = currentUser.email; }
 
     document.getElementById('accountTabLink').href = portalHref('/portal.html');
     document.getElementById('projectTabLink').href = portalHref('/portal-project.html');

@@ -428,6 +428,7 @@
     <a class="portal-tab-link" id="profileTabLink" href="/profile.html">My Profile</a>
   </div>
   <div class="nav-right">
+    <a href="/profile.html" class="nav-account-link" id="navAccountLink"></a>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </nav>
@@ -679,16 +680,19 @@
   }
 
   async function loadOrCreate() {
-    if (isAdminPreview) {
-      const meRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
-      if (meRes?.ok && (await meRes.json()).role === 'admin') showAdminPreviewBanner();
-    }
+    // Single /auth/me call: populates nav, validates session, checks admin preview
+    const meRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
+    const me    = meRes?.ok ? await meRes.json().catch(() => null) : null;
+
+    const navLink = document.getElementById('navAccountLink');
+    if (navLink && me) { navLink.textContent = me.name || me.email; navLink.title = me.email; }
+
+    if (isAdminPreview && me?.role === 'admin') showAdminPreviewBanner();
 
     if (token) { await load(); return; }
 
-    // No project token in URL — check if user has a session before showing create form
-    const sessionCheck = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
-    if (!sessionCheck || !sessionCheck.ok) {
+    // No project token — redirect if not authenticated
+    if (!me) {
       window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
       return;
     }
