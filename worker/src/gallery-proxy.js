@@ -125,7 +125,12 @@ export async function handleTokenExchange(request, env) {
   }
   await clearGalleryUnlockCounter(ip, env.KV);
   const sid = crypto.randomUUID();
-  await env.KV.put('tok:' + sid, JSON.stringify({ passphrase, sharePassword: gallery.sharePassword || null }), { expirationTtl: 14400 });
+  await env.KV.put('tok:' + sid, JSON.stringify({
+    passphrase,
+    sharePassword: gallery.sharePassword || null,
+    galleryId,
+    r2Synced: gallery.r2_synced || false,
+  }), { expirationTtl: 14400 });
   return jsonResponse({ sid });
 }
 
@@ -146,6 +151,8 @@ export async function handleNasProxy(request, env) {
   }
 
   let sharePassword = null;
+  let galleryId = null;
+  let r2Synced  = false;
   if (rawSid) {
     const stored = await env.KV.get('tok:' + rawSid);
     if (!stored) {
@@ -155,6 +162,8 @@ export async function handleNasProxy(request, env) {
       const parsed  = JSON.parse(stored);
       passphrase    = parsed.passphrase;
       sharePassword = parsed.sharePassword || null;
+      galleryId     = parsed.galleryId     || null;
+      r2Synced      = parsed.r2Synced      || false;
     } catch {
       passphrase = stored;
     }
@@ -175,6 +184,22 @@ export async function handleNasProxy(request, env) {
 
   if (!await checkRateLimit(passphrase, env.KV)) {
     return jsonResponse({ success: false, error: { code: 429, message: 'Too many requests — try again in a minute' } }, 429);
+  }
+
+  // ── R2 cache: serve thumbnail from R2 when gallery is fully synced ──────────
+  if (r2Synced && galleryId && env.ASSETS && method === 'GET') {
+    const photoId = url.searchParams.get('id');
+    if (photoId && apiMethod === 'SYNO.Foto.Thumbnail') {
+      const r2Key = `galleries/${galleryId}/thumbs/${photoId}.jpg`;
+      const r2Obj = await env.ASSETS.get(r2Key).catch(() => null);
+      if (r2Obj) {
+        const headers = new Headers(CORS);
+        headers.set('Content-Type', 'image/jpeg');
+        headers.set('Cache-Control', 'public, max-age=86400');
+        headers.set('X-Asset-Source', 'r2');
+        return new Response(r2Obj.body, { headers });
+      }
+    }
   }
 
   let nasAuth;
@@ -256,5 +281,6 @@ export async function handleNasProxy(request, env) {
   const resHeaders = new Headers(CORS);
   if (ct) resHeaders.set('Content-Type', ct);
   if (cd) resHeaders.set('Content-Disposition', cd);
+  resHeaders.set('X-Asset-Source', 'nas');
   return new Response(body, { status: nasResponse.status, headers: resHeaders });
 }

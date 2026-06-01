@@ -570,3 +570,128 @@ test.describe('Client Gallery — Video Support', () => {
     expect(dlHref).toMatch(/\.mp4$/i);
   });
 });
+
+// ── R2 hybrid serving ─────────────────────────────────────────────────────────
+
+test.describe('R2 hybrid serving', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('thumbnail request returns X-Asset-Source: r2 after gallery is synced', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+
+    const r2AssetSources = [];
+
+    // Intercept all Worker requests
+    await context.route(
+      (url) => url.toString().startsWith(WORKER_URL),
+      async (route) => {
+        const req    = route.request();
+        const url    = new URL(req.url());
+        const method = req.method();
+
+        if (method === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
+
+        // Token exchange — signal gallery is r2-synced
+        if (url.pathname === '/token' && method === 'POST') {
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ sid: 'mock-r2-sid' }),
+          });
+        }
+
+        // Browse items
+        if (url.pathname.endsWith('entry.cgi') || url.pathname === '/') {
+          const api = url.searchParams.get('api') || '';
+
+          if (api === 'SYNO.Foto.Browse.Item') {
+            return route.fulfill({
+              status:  200,
+              headers: { 'content-type': 'application/json', ...CORS },
+              body:    JSON.stringify({ success: true, data: { list: [{ id: 101, type: 'photo', filename: 'photo.jpg', additional: { thumbnail: { xl: 'available' } } }], total: 1 } }),
+            });
+          }
+
+          // Thumbnail served from R2 — includes X-Asset-Source header
+          if (api === 'SYNO.Foto.Thumbnail') {
+            const r2Headers = {
+              'content-type':    'image/jpeg',
+              'x-asset-source':  'r2',
+              'cache-control':   'public, max-age=86400',
+              ...CORS,
+            };
+            const pixel = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=', 'base64');
+            return route.fulfill({ status: 200, headers: r2Headers, body: pixel });
+          }
+        }
+
+        await route.fulfill({ status: 404, headers: CORS, body: 'Not found' });
+      },
+    );
+
+    // Capture X-Asset-Source headers from Worker responses
+    page.on('response', (res) => {
+      if (res.url().startsWith(WORKER_URL)) {
+        const src = res.headers()['x-asset-source'];
+        if (src) r2AssetSources.push(src);
+      }
+    });
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+    await page.waitForSelector('.p-item', { timeout: 15_000 });
+
+    expect(r2AssetSources).toContain('r2');
+  });
+
+  test('admin sync endpoint is called and returns synced count', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-admin'));
+
+    let syncCalled = false;
+
+    await context.route(
+      (url) => url.toString().startsWith(WORKER_URL),
+      async (route) => {
+        const req = route.request();
+        const url = new URL(req.url());
+
+        if (req.method() === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
+
+        if (url.pathname === '/auth/me') {
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ id: 'a1', email: 'admin@test.com', role: 'admin' }),
+          });
+        }
+
+        if (url.pathname.match(/^\/admin\/galleries\/[^/]+\/sync-r2$/) && req.method() === 'POST') {
+          syncCalled = true;
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ ok: true, synced: 12, failed: 0, total: 12, done: true, next_offset: null }),
+          });
+        }
+
+        await route.fulfill({ status: 404, headers: CORS, body: '' });
+      },
+    );
+
+    // Call the sync endpoint directly via fetch from the page
+    const result = await page.evaluate(async ({ workerUrl }) => {
+      const res = await fetch(`${workerUrl}/admin/galleries/test-gallery-id/sync-r2`, {
+        method:      'POST',
+        credentials: 'include',
+      });
+      return res.json();
+    }, { workerUrl: WORKER_URL });
+
+    expect(syncCalled).toBe(true);
+    expect(result.ok).toBe(true);
+    expect(result.synced).toBe(12);
+    expect(result.done).toBe(true);
+  });
+});

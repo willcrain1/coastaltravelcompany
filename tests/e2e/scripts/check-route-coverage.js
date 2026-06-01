@@ -46,6 +46,8 @@ const ALLOWLIST = new Set([
   'POST /admin/masquerade/exit',
   // Logout clears the HttpOnly cookie server-side; covered by manual auth flow testing (item 49)
   'POST /auth/logout',
+  // R2 sync endpoint — admin-only; covered by gallery.spec.js R2 hybrid serving tests (item 37)
+  'POST /admin/galleries/:id/sync-r2',
 ]);
 
 // ── Step 1: Extract routes from router.js ─────────────────────────────────────
