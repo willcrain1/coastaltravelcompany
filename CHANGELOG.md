@@ -4,6 +4,12 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 36 — Resolve npm Dependency Vulnerabilities in Worker
+
+Upgraded wrangler 3.75.0 → 4.95.0, pulling in a patched miniflare that eliminates the `undici` CRLF injection (high: GHSA-4992-7rv2-5pvq) and `ws` uninitialized memory disclosure (moderate: GHSA-58qx-3vcg-4xpx). vitest stays at 2.1.9 to avoid a breaking change in coverage counting from the 4.x major bump. Added unit tests as part of the upgrade: full masquerade start/exit coverage (`worker/tests/admin/masquerade.test.js`), cookie auth tests for `getAuth`/`makeAuthCookie`/`clearAuthCookie` in `jwt.test.js`, and `handleAuthLogout`/Set-Cookie assertions in `auth.test.js`. Result: 885/885 tests pass, 98.9% statement coverage (all thresholds ≥95%).
+
+---
+
 ### 49 — Cookie Consent & HttpOnly Auth Cookie
 
 **Cookie consent banner:** `site/js/cookie-consent.js` — lightweight first-party consent manager included in `<head>` of every public page. On first visit (or after 12 months) shows a fixed-bottom banner with "Accept All", "Essential Only", and "Manage Preferences" options. Preferences persisted in `localStorage` under `ctc_cookie_consent`. Exposes `window.CTC_Consent.hasAnalytics()` and `window.CTC_Consent.hasMarketing()` for gating GA4/Clarity scripts.
