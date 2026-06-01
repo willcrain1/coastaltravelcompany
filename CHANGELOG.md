@@ -23,6 +23,14 @@ The "Auth Method" pill in the admin clients panel incorrectly labeled any user w
 
 ---
 
+### R2 Cleanup on Gallery Delete
+
+`DELETE /admin/galleries/:id` now purges all R2 assets for the gallery before removing it from KV. The worker paginates through `galleries/{id}/` with `env.ASSETS.list({ prefix, limit: 1000 })` and batch-deletes every object (thumbnails under `thumbs/` and videos under `videos/`) in a `do…while` loop until `truncated` is false. Guarded by `if (env.ASSETS)` so behaviour is unchanged in environments without R2 configured.
+
+**Files changed:** `worker/src/admin/galleries.js`
+
+---
+
 ### 36 — Resolve npm Dependency Vulnerabilities in Worker
 
 Upgraded wrangler 3.75.0 → 4.95.0, pulling in a patched miniflare that eliminates the `undici` CRLF injection (high: GHSA-4992-7rv2-5pvq) and `ws` uninitialized memory disclosure (moderate: GHSA-58qx-3vcg-4xpx). vitest stays at 2.1.9 to avoid a breaking change in coverage counting from the 4.x major bump. Added unit tests as part of the upgrade: full masquerade start/exit coverage (`worker/tests/admin/masquerade.test.js`), cookie auth tests for `getAuth`/`makeAuthCookie`/`clearAuthCookie` in `jwt.test.js`, and `handleAuthLogout`/Set-Cookie assertions in `auth.test.js`. Result: 885/885 tests pass, 98.9% statement coverage (all thresholds ≥95%).

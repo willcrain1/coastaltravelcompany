@@ -46,6 +46,17 @@ export async function handleAdminDeleteGallery(request, env, id) {
       }
     }
   }
+  if (env.ASSETS) {
+    const prefix = `galleries/${id}/`;
+    let cursor;
+    do {
+      const listed = await env.ASSETS.list({ prefix, cursor, limit: 1000 });
+      if (listed.objects.length > 0) {
+        await env.ASSETS.delete(listed.objects.map(o => o.key));
+      }
+      cursor = listed.truncated ? listed.cursor : undefined;
+    } while (cursor);
+  }
   await deleteGallery(id, env.KV);
   return jsonResponse({ ok: true });
 }
