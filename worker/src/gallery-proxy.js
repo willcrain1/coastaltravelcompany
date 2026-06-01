@@ -202,6 +202,41 @@ export async function handleNasProxy(request, env) {
     }
   }
 
+  // ── R2 cache: serve video from R2 (with range request support for seeking) ──
+  if (galleryId && env.ASSETS && method === 'GET' && apiMethod === 'SYNO.Foto.Download') {
+    const unitId = url.searchParams.get('unit_id');
+    if (unitId) {
+      const r2Key     = `galleries/${galleryId}/videos/${unitId}`;
+      const rangeHeader = request.headers.get('Range');
+      let rangeOpt;
+      if (rangeHeader) {
+        const m = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+        if (m) {
+          rangeOpt = { offset: parseInt(m[1], 10) };
+          if (m[2]) rangeOpt.length = parseInt(m[2], 10) - rangeOpt.offset + 1;
+        }
+      }
+      const r2Obj = await env.ASSETS.get(r2Key, rangeOpt ? { range: rangeOpt } : undefined).catch(() => null);
+      if (r2Obj) {
+        const headers = new Headers(CORS);
+        headers.set('Content-Type', r2Obj.httpMetadata?.contentType || 'video/mp4');
+        headers.set('Accept-Ranges', 'bytes');
+        headers.set('Cache-Control', 'public, max-age=86400');
+        headers.set('X-Asset-Source', 'r2');
+        let status = 200;
+        if (r2Obj.range) {
+          const { offset, length } = r2Obj.range;
+          status = 206;
+          headers.set('Content-Range', `bytes ${offset}-${offset + length - 1}/${r2Obj.size}`);
+          headers.set('Content-Length', String(length));
+        } else {
+          headers.set('Content-Length', String(r2Obj.size));
+        }
+        return new Response(r2Obj.body, { status, headers });
+      }
+    }
+  }
+
   let nasAuth;
   try {
     nasAuth = await getSharingSid(passphrase, sharePassword);
