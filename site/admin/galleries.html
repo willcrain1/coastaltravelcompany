@@ -322,7 +322,42 @@
     renderGalleryList();
     toast('Gallery link created');
     btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+
+    syncGalleryToR2(data.id || id);
   });
+
+  async function syncGalleryToR2(galleryId) {
+    const statusEl = document.createElement('p');
+    statusEl.style.cssText = 'margin:10px 0 0;font-size:11px;color:var(--dim);font-family:Montserrat,sans-serif;';
+    statusEl.textContent = 'Syncing thumbnails to CDN…';
+    document.getElementById('resultBox').appendChild(statusEl);
+
+    let offset = 0;
+    let totalSynced = 0;
+
+    while (true) {
+      const { ok, data, status } = await apiFetch(
+        `/admin/galleries/${galleryId}/sync-r2?offset=${offset}`,
+        { method: 'POST' }
+      );
+      if (!ok) {
+        if (status === 503) { statusEl.remove(); return; } // R2 not configured — skip silently
+        statusEl.textContent = `CDN sync failed: ${data?.error || 'unknown error'}`;
+        statusEl.style.color = 'var(--error,#dc2626)';
+        return;
+      }
+      totalSynced += data.synced || 0;
+      if (data.done) {
+        statusEl.textContent = `✓ ${totalSynced} thumbnail${totalSynced !== 1 ? 's' : ''} synced to CDN`;
+        statusEl.style.color = 'var(--ok,#2A5C45)';
+        const idx = galleries.findIndex(g => g.id === galleryId);
+        if (idx >= 0) galleries[idx].r2_synced = true;
+        return;
+      }
+      statusEl.textContent = `Syncing thumbnails to CDN… ${totalSynced} / ${data.total}`;
+      offset = data.next_offset;
+    }
+  }
 
   function copyResult() {
     navigator.clipboard.writeText(currentResultUrl).then(() => toast('Link copied to clipboard'));
