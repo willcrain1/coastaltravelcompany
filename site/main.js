@@ -2,66 +2,6 @@
 const WORKER_URL = (typeof CTC_CONFIG !== 'undefined' && CTC_CONFIG.workerUrl)
   || 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
 
-// ── Cookie Consent Banner ──────────────────────────────────
-(function () {
-  if (localStorage.getItem('ctc_consent')) return;
-
-  const banner = document.createElement('div');
-  banner.id = 'cookie-banner';
-  banner.setAttribute('role', 'dialog');
-  banner.setAttribute('aria-label', 'Cookie consent');
-  banner.innerHTML = `
-    <div class="cookie-inner">
-      <p class="cookie-text">We use cookies for secure login and, with your consent, to understand how visitors use our site. <a href="privacy.html">Privacy Policy</a></p>
-      <div class="cookie-actions">
-        <button class="cookie-btn cookie-btn-accept"    id="ck-accept">Accept All</button>
-        <button class="cookie-btn cookie-btn-essential" id="ck-essential">Essential Only</button>
-        <button class="cookie-btn cookie-btn-manage"    id="ck-manage">Manage Preferences</button>
-      </div>
-    </div>
-    <div class="cookie-prefs" id="ck-prefs" hidden>
-      <div class="cookie-pref-row">
-        <div>
-          <div class="cookie-pref-label">Essential Cookies</div>
-          <div class="cookie-pref-desc">Required for secure login and core site functionality. Cannot be disabled.</div>
-        </div>
-        <span class="cookie-always-on">Always On</span>
-      </div>
-      <div class="cookie-pref-row">
-        <div>
-          <div class="cookie-pref-label">Analytics Cookies</div>
-          <div class="cookie-pref-desc">Help us understand how visitors use our site so we can improve it.</div>
-        </div>
-        <label class="cookie-toggle" aria-label="Analytics cookies">
-          <input type="checkbox" id="ck-analytics">
-          <span class="cookie-toggle-slider"></span>
-        </label>
-      </div>
-      <button class="cookie-btn cookie-btn-accept cookie-save-btn" id="ck-save">Save Preferences</button>
-    </div>
-  `;
-  document.body.appendChild(banner);
-
-  function dismiss(consent) {
-    localStorage.setItem('ctc_consent', JSON.stringify(consent));
-    banner.classList.add('cookie-dismissing');
-    setTimeout(() => banner.remove(), 320);
-  }
-
-  banner.querySelector('#ck-accept').addEventListener('click', () =>
-    dismiss({ essential: true, analytics: true }));
-  banner.querySelector('#ck-essential').addEventListener('click', () =>
-    dismiss({ essential: true, analytics: false }));
-  banner.querySelector('#ck-manage').addEventListener('click', () => {
-    const prefs = banner.querySelector('#ck-prefs');
-    prefs.hidden = !prefs.hidden;
-  });
-  banner.querySelector('#ck-save').addEventListener('click', () => {
-    const analytics = banner.querySelector('#ck-analytics').checked;
-    dismiss({ essential: true, analytics });
-  });
-})();
-
 // ── Nav scroll behavior ────────────────────────────────────
 const nav = document.getElementById('main-nav');
 
