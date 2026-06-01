@@ -38,7 +38,8 @@
     style.textContent = [
       '#ctc-cb{position:fixed;bottom:0;left:0;right:0;background:#1a1a1a;color:#f0f0f0;padding:14px 20px;',
       'z-index:99999;font-family:sans-serif;font-size:13px;display:flex;align-items:center;',
-      'gap:10px;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,.4)}',
+      'gap:10px;flex-wrap:wrap;box-shadow:0 -2px 12px rgba(0,0,0,.4);',
+      '-webkit-transform:translateZ(0);transform:translateZ(0)}',
       '#ctc-cb p{margin:0;flex:1;min-width:180px;line-height:1.5}',
       '#ctc-cb a{color:#7ec8a8;text-underline-offset:2px}',
       '.ctc-cb-btn{padding:7px 15px;border:none;border-radius:4px;font-size:12px;',
