@@ -129,3 +129,26 @@ Per-email and per-IP rate limiting on `POST /auth/login` (5 email / 20 IP failur
 `workstation/splatting/setup-windows.ps1`: installs CUDA-enabled COLMAP, ffmpeg, Node.js, Miniconda + nerfstudio (splatfacto) via winget. Preflight checks for NVIDIA driver, winget, and disk space. Creates `CTC-Splatting\` working directory (incoming, frames, colmap_out, outputs, export, done).
 
 `workstation/splatting/process-scene.ps1`: full per-scene pipeline wrapper — ffmpeg frame extraction → `ns-process-data` (COLMAP) → `ns-train splatfacto` → `ns-export gaussian-splat` → opens export folder and SuperSplat in browser with copy-to-NAS instructions.
+
+---
+
+### 37 — R2 Hybrid Data Load for Gallery Thumbnails & Videos
+
+Gallery thumbnails and videos are now served from Cloudflare R2 instead of the NAS, reducing NAS load and enabling global CDN caching. NAS remains the primary archive; R2 is a transparent cache layer.
+
+**Sync — `worker/src/admin/r2-sync.js` + `POST /admin/galleries/:id/sync-r2`**
+Admin-authenticated endpoint that paginates through a gallery's Synology Photos album in batches of 20. For each item it uploads the `xl` thumbnail to `galleries/{id}/thumbs/{photoId}.jpg`. For video items it also streams the original file (via `SYNO.Foto.Download`) directly to `galleries/{id}/videos/{itemId}` using `ReadableStream` → R2 `put()` to avoid buffering large files in Worker memory. Sets `gallery.r2_synced = true` in KV when all pages complete.
+
+**Auto-sync on creation — `site/admin/galleries.html`**
+After a gallery is saved the admin page automatically drives the paginated sync loop and shows live progress ("Syncing… N / total") in the result box. No separate manual step required.
+
+**Resync button — `site/admin/galleries.html`**
+Each gallery row in the admin list has a **Resync R2** button. Clicking it re-runs the full sync (overwriting existing R2 keys), shows live progress on the button itself, and toasts on completion with a photo/video count. A **CDN ✓** badge appears in the row meta when `r2_synced` is true.
+
+**Worker routing — `worker/src/gallery-proxy.js`**
+- `SYNO.Foto.Thumbnail` GET on r2-synced galleries: checks `galleries/{id}/thumbs/{photoId}.jpg` in R2 first; serves with `Cache-Control: public, max-age=86400` and `X-Asset-Source: r2`. Falls back to NAS on miss.
+- `SYNO.Foto.Download` GET (video playback/download): checks `galleries/{id}/videos/{unitId}` in R2; serves with full HTTP Range request support (206 partial content) for video seeking. Falls back to NAS transparently. No flag check required — a key miss is fast.
+
+**Session token** — `tok:{sid}` now stores `galleryId` and `r2Synced` so the proxy avoids an extra KV lookup per thumbnail request.
+
+**GitHub Actions workflow** — `.github/workflows/sync-gallery-to-r2.yml` manual-dispatch workflow for re-syncing existing galleries; accepts gallery ID (or blank for all) and target environment (preprod / prod). Shell script `worker/scripts/sync-gallery-to-r2.sh` drives the pagination loop.

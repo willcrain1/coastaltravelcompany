@@ -458,36 +458,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 37. Hybrid Data Load Approach
-
-**Goal:** Use the NAS as the primary backup/archive for all original files. Serve active gallery thumbnails, static site assets, and splat files from Cloudflare R2 to reduce NAS load and improve global delivery.
-
-### Phase 1 — R2 infrastructure
-
-- [ ] Create R2 bucket `ctc-assets` in the Cloudflare dashboard; add a second bucket `ctc-assets-preprod` for staging
-- [ ] Bind both buckets in `wrangler.toml`: `ASSETS` binding for prod and preprod environments respectively
-- [ ] Define the key-space layout:
-  - `site/` — static site assets
-  - `galleries/{passphrase}/thumbs/{id}.jpg` — active gallery thumbnails cached from NAS
-  - `splats/{slug}/scene.splat` — 3D splat files
-
-### Phase 2 — NAS → R2 sync
-
-- [ ] Write `worker/scripts/sync-gallery-to-r2.sh`: enumerate active galleries from D1, download thumbnails from NAS, upload to R2
-- [ ] Add `r2_synced BOOLEAN DEFAULT 0` column to `galleries` table in a new D1 migration
-- [ ] Add a GitHub Actions workflow `sync-gallery-to-r2.yml` (manual trigger initially; scheduled cron once validated)
-
-### Phase 3 — Worker routing changes
-
-- [ ] In `worker/src/router.js`: check D1 `r2_synced` flag; if true, serve from R2; if false, fall back to NAS proxy
-- [ ] Add `Cache-Control: public, max-age=86400` to R2-served responses
-- [ ] Add `X-Asset-Source: r2 | nas` response header for observability
-
-### Phase 4 — Acceptance test
-
-- [ ] Add Playwright test: create gallery in admin (preprod), trigger sync, load gallery page, confirm `X-Asset-Source: r2`
-
----
 
 ## 38. Add Real Estate Client Type
 
