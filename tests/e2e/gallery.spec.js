@@ -602,29 +602,23 @@ test.describe('R2 hybrid serving', () => {
           });
         }
 
-        // Browse items
-        if (url.pathname.endsWith('entry.cgi') || url.pathname === '/') {
-          const api = url.searchParams.get('api') || '';
+        // Browse.Item — POST body contains api=SYNO.Foto.Browse.Item (not in URL query)
+        if (method === 'POST') {
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ success: true, data: { list: [{ id: 101, type: 'photo', filename: 'photo.jpg', additional: { thumbnail: { xl: 'available' }, resolution: { width: 800, height: 600 } } }], total: 1 } }),
+          });
+        }
 
-          if (api === 'SYNO.Foto.Browse.Item') {
-            return route.fulfill({
-              status:  200,
-              headers: { 'content-type': 'application/json', ...CORS },
-              body:    JSON.stringify({ success: true, data: { list: [{ id: 101, type: 'photo', filename: 'photo.jpg', additional: { thumbnail: { xl: 'available' } } }], total: 1 } }),
-            });
-          }
-
-          // Thumbnail served from R2 — includes X-Asset-Source header
-          if (api === 'SYNO.Foto.Thumbnail') {
-            const r2Headers = {
-              'content-type':    'image/jpeg',
-              'x-asset-source':  'r2',
-              'cache-control':   'public, max-age=86400',
-              ...CORS,
-            };
-            const pixel = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=', 'base64');
-            return route.fulfill({ status: 200, headers: r2Headers, body: pixel });
-          }
+        // Thumbnail served from R2 — api= is in GET query string
+        if (url.searchParams.get('api') === 'SYNO.Foto.Thumbnail') {
+          const pixel = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=', 'base64');
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'image/jpeg', 'x-asset-source': 'r2', 'cache-control': 'public, max-age=86400', ...CORS },
+            body:    pixel,
+          });
         }
 
         await route.fulfill({ status: 404, headers: CORS, body: 'Not found' });
@@ -680,7 +674,10 @@ test.describe('R2 hybrid serving', () => {
       },
     );
 
-    // Call the sync endpoint directly via fetch from the page
+    // Navigate to any page to get a real origin before making Worker requests
+    await page.goto(STATIC_BASE);
+
+    // Call the sync endpoint via fetch from the page (needs a real origin for CORS)
     const result = await page.evaluate(async ({ workerUrl }) => {
       const res = await fetch(`${workerUrl}/admin/galleries/test-gallery-id/sync-r2`, {
         method:      'POST',
