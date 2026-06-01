@@ -212,10 +212,18 @@
           <span style="color:var(--dim); margin-left:4px;">· ${esc(g.clientName)}</span>
         </label>`).join('');
 
-      const authLabel = u.hasPassword && u.verified === false ? 'Password (unverified)'
-        : u.hasPassword ? 'Password'
-        : 'Google only';
-      const authClass = u.hasPassword ? 'auth-password' : 'auth-google';
+      const hasPwd    = !!u.hasPassword;
+      const hasGoogle = !!u.hasGoogle;
+      const authLabel = hasPwd && hasGoogle && u.verified === false ? 'Password (unverified) + Google'
+        : hasPwd && u.verified === false ? 'Password (unverified)'
+        : hasPwd && hasGoogle ? 'Password + Google'
+        : hasPwd              ? 'Password'
+        : hasGoogle           ? 'Google Only'
+        :                       'No Auth Set';
+      const authClass = hasPwd && hasGoogle ? 'auth-both'
+        : hasPwd                            ? 'auth-password'
+        : hasGoogle                         ? 'auth-google'
+        :                                     'auth-none';
 
       return `
         <div class="user-row">

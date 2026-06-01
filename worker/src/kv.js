@@ -93,6 +93,7 @@ export function stripSensitive(u) {
     galleries: u.galleries || [],
     verified: u.verified !== false,
     hasPassword: !!u.passwordHash,
+    hasGoogle: !!u.googleLinked,
   };
 }
 
