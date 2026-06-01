@@ -1,6 +1,6 @@
 import { ALLOWED_ORIGIN, JWT_EXPIRY_SECS } from './constants.js';
 import { jsonResponse, rateLimitedResponse, authRequired } from './utils.js';
-import { createJWT, getAuth } from './jwt.js';
+import { createJWT, getAuth, makeAuthCookie, clearAuthCookie } from './jwt.js';
 import { getUser, putUser } from './kv.js';
 import { hashPassword, verifyPassword } from './crypto.js';
 import {
@@ -34,7 +34,9 @@ export async function handleAuthSetup(request, env) {
     { sub: user.email, id, role: 'admin', iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
+  const res = jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  return res;
 }
 
 export async function handleAuthRegister(request, env) {
@@ -137,7 +139,9 @@ export async function handleAuthLogin(request, env) {
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  return res;
 }
 
 export async function handleAuthGoogle(request, env) {
@@ -172,7 +176,9 @@ export async function handleAuthGoogle(request, env) {
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  return res;
 }
 
 export async function handleAuthResetRequest(request, env) {
@@ -229,7 +235,23 @@ export async function handleAuthMe(request, env) {
   if (!payload) return authRequired();
   const user = await getUser(payload.sub, env.KV);
   if (!user) return authRequired();
-  return jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
+  const res = jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
+  // Sliding window: refresh cookie on every authenticated /auth/me call
+  if (!payload.masquerade) {
+    const now      = Math.floor(Date.now() / 1000);
+    const newToken = await createJWT(
+      { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
+      env.JWT_SECRET
+    );
+    res.headers.set('Set-Cookie', makeAuthCookie(newToken));
+  }
+  return res;
+}
+
+export async function handleAuthLogout() {
+  const res = jsonResponse({ ok: true });
+  res.headers.set('Set-Cookie', clearAuthCookie());
+  return res;
 }
 
 export async function handleAuthUpdateMe(request, env) {

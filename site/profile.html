@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="config.js"></script>
+  <script src="js/cookie-consent.js"></script>
   <style>
     :root {
       --black: #1C1C1C;
@@ -339,21 +340,17 @@
     return path + (isAdminPreview ? '?preview=1' : '');
   }
 
-  function signOut() {
+  async function signOut() {
     localStorage.removeItem(JWT_KEY);
     localStorage.removeItem(USER_KEY);
+    await fetch(WORKER_URL + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     window.location.href = '/login.html';
   }
 
   let currentUser = null;
 
   async function init() {
-    const jwt = localStorage.getItem(JWT_KEY);
-    if (!jwt) { window.location.href = '/login.html?redirect=/profile.html'; return; }
-
-    const res = await fetch(WORKER_URL + '/auth/me', {
-      headers: { 'Authorization': 'Bearer ' + jwt },
-    }).catch(() => null);
+    const res = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
 
     if (!res || !res.ok) {
       localStorage.removeItem(JWT_KEY);
@@ -400,11 +397,11 @@
     msgEl.className   = '';
     btn.disabled = true;
 
-    const jwt = localStorage.getItem(JWT_KEY);
     const res = await fetch(WORKER_URL + '/auth/me', {
-      method:  'PATCH',
-      headers: { 'Authorization': 'Bearer ' + jwt, 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name }),
+      method:      'PATCH',
+      headers:     { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body:        JSON.stringify({ name }),
     }).catch(() => null);
 
     if (res && res.ok) {
@@ -442,11 +439,11 @@
     }
 
     btn.disabled = true;
-    const jwt = localStorage.getItem(JWT_KEY);
     const res = await fetch(WORKER_URL + '/auth/me', {
-      method:  'PATCH',
-      headers: { 'Authorization': 'Bearer ' + jwt, 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+      method:      'PATCH',
+      headers:     { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body:        JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
     }).catch(() => null);
 
     if (res && res.ok) {

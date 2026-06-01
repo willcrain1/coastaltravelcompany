@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="config.js"></script>
+  <script src="js/cookie-consent.js"></script>
   <style>
     :root {
       --black:  #1C1C1C;
@@ -407,9 +408,10 @@
     return path + (isAdminPreview ? '?preview=1' : '') + hash;
   }
 
-  function signOut() {
+  async function signOut() {
     localStorage.removeItem(JWT_KEY);
     localStorage.removeItem(USER_KEY);
+    await fetch(WORKER_URL + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     window.location.href = '/login.html';
   }
 
@@ -555,13 +557,16 @@
       return;
     }
 
-    const token = masqToken || localStorage.getItem(JWT_KEY);
-    if (!token) { window.location.href = '/login.html'; return; }
+    // Build fetch options: masquerade uses explicit Authorization header; regular sessions use cookie
+    function authFetch(url, opts = {}) {
+      if (masqToken) {
+        return fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'Authorization': 'Bearer ' + masqToken } });
+      }
+      return fetch(url, { ...opts, credentials: 'include' });
+    }
 
-    // Verify token and redirect admins to the admin panel
-    const meRes = await fetch(WORKER_URL + '/auth/me', {
-      headers: { 'Authorization': 'Bearer ' + token },
-    }).catch(() => null);
+    // Verify session
+    const meRes = await authFetch(WORKER_URL + '/auth/me').catch(() => null);
 
     if (!meRes || !meRes.ok) {
       if (isMasquerade) {
@@ -614,11 +619,10 @@
     document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
     // Fetch galleries, contracts, and invoices in parallel
-    const headers = { 'Authorization': 'Bearer ' + (masqToken || token) };
     const [galRes, conRes, invRes] = await Promise.all([
-      fetch(WORKER_URL + '/portal/galleries',  { headers }).catch(() => null),
-      fetch(WORKER_URL + '/portal/contracts',  { headers }).catch(() => null),
-      fetch(WORKER_URL + '/portal/invoices',   { headers }).catch(() => null),
+      authFetch(WORKER_URL + '/portal/galleries').catch(() => null),
+      authFetch(WORKER_URL + '/portal/contracts').catch(() => null),
+      authFetch(WORKER_URL + '/portal/invoices').catch(() => null),
     ]);
 
     if (!galRes || !galRes.ok) {

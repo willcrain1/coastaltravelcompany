@@ -6,6 +6,7 @@ import {
   handleAuthSetupStatus, handleAuthSetup, handleAuthRegister, handleAuthLogin,
   handleAuthGoogle, handleAuthResetRequest, handleAuthResetConfirm,
   handleAuthMe, handleAuthUpdateMe, handleAuthVerify, handleAuthResendVerify,
+  handleAuthLogout,
 } from './auth.js';
 
 import { handleTokenExchange, handleNasProxy } from './gallery-proxy.js';
@@ -107,6 +108,7 @@ export async function handleRequest(request, env) {
   if (method === 'POST' && pathname === '/auth/reset-confirm')  return handleAuthResetConfirm(request, env);
   if (method === 'GET'   && pathname === '/auth/me')            return handleAuthMe(request, env);
   if (method === 'PATCH' && pathname === '/auth/me')            return handleAuthUpdateMe(request, env);
+  if (method === 'POST'  && pathname === '/auth/logout')        return handleAuthLogout();
   if (method === 'GET'  && pathname === '/auth/verify')         return handleAuthVerify(request, env);
   if (method === 'POST' && pathname === '/auth/resend-verify')  return handleAuthResendVerify(request, env);
 

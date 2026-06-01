@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="js/cookie-consent.js"></script>
   <style>
     :root {
       --black: #1C1C1C;
@@ -529,23 +530,21 @@
     document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '125px';
   }
 
-  function signOut() {
+  async function signOut() {
     localStorage.removeItem(JWT_KEY);
     localStorage.removeItem(USER_KEY);
+    await fetch(WORKER_URL + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     window.location.href = '/login.html';
   }
 
   async function load() {
     if (!token) { showError('No portal link found. Please use the link from your email.'); return; }
     try {
-      const jwt = localStorage.getItem(JWT_KEY);
       document.getElementById('accountTabLink').href = portalHref('/portal.html');
       document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
       document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
-      const headers = { Origin: location.origin };
-      if (jwt) headers['Authorization'] = 'Bearer ' + jwt;
-      const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers });
+      const res = await fetch(WORKER_URL + '/portal/project/' + token, { credentials: 'include' });
       if (res.status === 401) {
         window.location.href = '/login.html?redirect=' + encodeURIComponent(location.href);
         return;
@@ -659,13 +658,11 @@
     if (!content) return;
     btn.disabled = true;
     try {
-      const jwt = localStorage.getItem('ctc_jwt');
-      const msgHeaders = { 'Content-Type': 'application/json', Origin: location.origin };
-      if (jwt) msgHeaders['Authorization'] = 'Bearer ' + jwt;
       const res = await fetch(WORKER_URL + '/portal/project/' + token, {
-        method: 'POST',
-        headers: msgHeaders,
-        body: JSON.stringify({ content }),
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body:        JSON.stringify({ content }),
       });
       if (res.ok) {
         const msg = await res.json();
@@ -682,18 +679,16 @@
   }
 
   async function loadOrCreate() {
-    const jwt = localStorage.getItem(JWT_KEY);
-
-    if (isAdminPreview && jwt) {
-      const meRes = await fetch(WORKER_URL + '/auth/me', {
-        headers: { 'Authorization': 'Bearer ' + jwt },
-      }).catch(() => null);
+    if (isAdminPreview) {
+      const meRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
       if (meRes?.ok && (await meRes.json()).role === 'admin') showAdminPreviewBanner();
     }
 
     if (token) { await load(); return; }
 
-    if (!jwt) {
+    // No project token in URL — check if user has a session before showing create form
+    const sessionCheck = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
+    if (!sessionCheck || !sessionCheck.ok) {
       window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
       return;
     }
@@ -702,9 +697,7 @@
     document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
     try {
-      const res = await fetch(WORKER_URL + '/portal/my-project', {
-        headers: { 'Authorization': 'Bearer ' + jwt, 'Origin': location.origin },
-      }).catch(() => null);
+      const res = await fetch(WORKER_URL + '/portal/my-project', { credentials: 'include' }).catch(() => null);
 
       if (!res || res.status === 401) {
         window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
@@ -746,11 +739,11 @@
     btn.textContent = 'Submitting…';
 
     try {
-      const jwt = localStorage.getItem(JWT_KEY);
       const res = await fetch(WORKER_URL + '/portal/my-project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt, 'Origin': location.origin },
-        body: JSON.stringify({ property, location: location_val, message }),
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body:        JSON.stringify({ property, location: location_val, message }),
       });
 
       if (!res.ok) {
