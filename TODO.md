@@ -458,17 +458,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 36. Resolve npm Dependency Vulnerabilities in Worker
-
-**Goal:** Eliminate the 5 known vulnerabilities in `worker/package.json` (4 moderate, 1 high).
-
-- [ ] **undici — CRLF Injection (high):** [GHSA-4992-7rv2-5pvq](https://github.com/advisories/GHSA-4992-7rv2-5pvq) — present via `miniflare` → `undici`
-- [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
-- [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
-- [ ] Verify worker deploys and acceptance tests pass after the upgrade
-
----
-
 ## 37. Hybrid Data Load Approach
 
 **Goal:** Use the NAS as the primary backup/archive for all original files. Serve active gallery thumbnails, static site assets, and splat files from Cloudflare R2 to reduce NAS load and improve global delivery.
