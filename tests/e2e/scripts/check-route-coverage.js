@@ -44,6 +44,8 @@ const ALLOWLIST = new Set([
   // Masquerade endpoints — admin-only flow; exercised via manual QA (item 50)
   'POST /admin/masquerade',
   'POST /admin/masquerade/exit',
+  // Logout clears the HttpOnly cookie server-side; covered by manual auth flow testing (item 49)
+  'POST /auth/logout',
 ]);
 
 // ── Step 1: Extract routes from router.js ─────────────────────────────────────

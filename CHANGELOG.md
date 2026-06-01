@@ -4,6 +4,16 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 49 — Cookie Consent & HttpOnly Auth Cookie
+
+**Cookie consent banner:** `site/js/cookie-consent.js` — lightweight first-party consent manager included in `<head>` of every public page. On first visit (or after 12 months) shows a fixed-bottom banner with "Accept All", "Essential Only", and "Manage Preferences" options. Preferences persisted in `localStorage` under `ctc_cookie_consent`. Exposes `window.CTC_Consent.hasAnalytics()` and `window.CTC_Consent.hasMarketing()` for gating GA4/Clarity scripts.
+
+**HttpOnly auth cookie:** Auth tokens migrated from `localStorage` to a server-set `HttpOnly; Secure; SameSite=None; Path=/; Max-Age=604800` cookie. `POST /auth/login`, `POST /auth/google`, and `POST /auth/setup` all set the `auth_token` cookie in the response. `getAuth()` checks the `Authorization` header first (for masquerade sessions and Playwright/API clients), then falls back to the cookie. `/auth/me` implements a sliding session window by re-issuing the cookie on every authenticated call. `POST /auth/logout` clears the cookie with `Max-Age=0`. All browser `fetch` calls updated to use `credentials: 'include'`; `Authorization` header injection removed from frontend helpers. CORS updated with `Access-Control-Allow-Credentials: true`.
+
+**Files changed:** `worker/src/jwt.js`, `worker/src/auth.js`, `worker/src/constants.js`, `worker/src/router.js`, `site/js/cookie-consent.js` (new), `site/admin/admin-shared.js`, `site/login.html`, `site/portal.html`, `site/portal-project.html`, `site/profile.html`, all public `site/*.html` pages.
+
+---
+
 ### 50 — Admin Masquerade (View as Client)
 Admins can impersonate any client account from `clients.html` and see the portal exactly as that client sees it. "View as Client" button calls `POST /admin/masquerade` (admin-auth required), which issues a short-lived (30-minute) masquerade JWT scoped to the target user's identity. The masquerade JWT is stored in `sessionStorage` and used for all portal API calls. A persistent amber banner on `portal.html` shows the client name and a one-click "Exit Masquerade" link that calls `POST /admin/masquerade/exit`, clears the session, and returns the admin to `clients.html`. Mutating actions (POST/PATCH/PUT/DELETE) are blocked at the Worker router level for any masquerade token, returning 403. Masquerade is non-recursive and cannot target admin accounts. Every session start and exit is written to the `masquerade_log` D1 table (`016_masquerade_log.sql`).
 

@@ -23,9 +23,10 @@ const WORKER_URL  = process.env.WORKER_URL || 'https://coastal-gallery-proxy.the
 const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 
 const CORS = {
-  'access-control-allow-origin':  '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-allow-origin':      STATIC_BASE,
+  'access-control-allow-credentials': 'true',
+  'access-control-allow-methods':     'GET, POST, OPTIONS',
+  'access-control-allow-headers':     'Content-Type, Authorization',
 };
 
 /**
@@ -91,17 +92,23 @@ test.describe('Login Page', () => {
     await expect(page.locator('#forgotLink')).toBeVisible();
   });
 
-  test('successful login stores JWT and redirects to portal', async ({ page, context }) => {
+  test('successful login redirects to portal/admin', async ({ page, context }) => {
+    let authenticated = false;
     await mockWorker(context, {
       'GET /auth/setup-status': (route) => route.fulfill({
         status: 200, headers: { 'content-type': 'application/json', ...CORS },
         body: JSON.stringify({ configured: true }),
       }),
-      'POST /auth/login': (route) => route.fulfill({
-        status: 200, headers: { 'content-type': 'application/json', ...CORS },
-        body: JSON.stringify({ token: 'mock-login-jwt', user: { id: 'u1', email: 'admin@test.com', role: 'admin' } }),
-      }),
-      'GET /auth/me': (route) => adminResponse(route),
+      'POST /auth/login': async (route) => {
+        authenticated = true;
+        await route.fulfill({
+          status: 200, headers: { 'content-type': 'application/json', ...CORS },
+          body: JSON.stringify({ token: 'mock-login-jwt', user: { id: 'u1', email: 'admin@test.com', role: 'admin' } }),
+        });
+      },
+      'GET /auth/me': (route) => authenticated
+        ? adminResponse(route)
+        : route.fulfill({ status: 401, headers: { 'content-type': 'application/json', ...CORS }, body: '{"error":"Unauthorized"}' }),
     });
 
     await page.goto(`${STATIC_BASE}/login.html`);
@@ -110,8 +117,6 @@ test.describe('Login Page', () => {
     await page.click('#loginBtn');
 
     await page.waitForURL(/\/(admin\/pipeline|portal)(\.html)?/, { timeout: 10_000 });
-    const jwt = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
-    expect(jwt).toBe('mock-login-jwt');
   });
 
   test('shows first-time setup card when no admin account exists yet', async ({ page, context }) => {
@@ -251,17 +256,23 @@ test.describe('Google OAuth login (stubbed)', () => {
     await context.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
-  test('successful Google credential stores JWT and redirects to portal', async ({ page, context }) => {
+  test('successful Google credential redirects to portal', async ({ page, context }) => {
+    let authenticated = false;
     await mockWorker(context, {
-      'POST /auth/google': (route) => route.fulfill({
-        status:  200,
-        headers: { 'content-type': 'application/json', ...CORS },
-        body: JSON.stringify({
-          token: 'mock-google-jwt',
-          user:  { id: 'gu1', email: 'google@example.com', role: 'client' },
-        }),
-      }),
-      'GET /auth/me':       (route) => clientResponse(route),
+      'POST /auth/google': async (route) => {
+        authenticated = true;
+        await route.fulfill({
+          status:  200,
+          headers: { 'content-type': 'application/json', ...CORS },
+          body: JSON.stringify({
+            token: 'mock-google-jwt',
+            user:  { id: 'gu1', email: 'google@example.com', role: 'client' },
+          }),
+        });
+      },
+      'GET /auth/me': (route) => authenticated
+        ? clientResponse(route)
+        : route.fulfill({ status: 401, headers: { 'content-type': 'application/json', ...CORS }, body: '{"error":"Unauthorized"}' }),
       'GET /portal/galleries': (route) => route.fulfill({
         status: 200, headers: { 'content-type': 'application/json', ...CORS }, body: '[]',
       }),
@@ -272,27 +283,14 @@ test.describe('Google OAuth login (stubbed)', () => {
 
     await page.goto(`${STATIC_BASE}/login.html`);
 
-    // Directly invoke handleGoogleCredential with a fake credential — bypasses
-    // the Google GSI button which requires a real Google account in the browser.
+    // Directly invoke handleGoogleCredential — bypasses the GSI button (requires real Google account)
     await page.evaluate((workerUrl) => {
-      // Stub the Google GSI script so initGoogle() doesn't error
-      window.google = {
-        accounts: {
-          id: {
-            initialize: () => {},
-            renderButton: () => {},
-          },
-        },
-      };
-      // Call the handler as the GSI callback would
+      window.google = { accounts: { id: { initialize: () => {}, renderButton: () => {} } } };
       window.handleGoogleCredential({ credential: 'fake-google-id-token' });
     }, WORKER_URL);
 
     await page.waitForURL(/\/portal(\.html)?/, { timeout: 10_000 });
     expect(page.url()).toMatch(/\/portal(\.html)?/);
-
-    const jwt = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
-    expect(jwt).toBe('mock-google-jwt');
   });
 
   test('failed Google credential shows error message', async ({ page, context }) => {

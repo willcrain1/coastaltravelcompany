@@ -26,10 +26,11 @@ const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 const PROD_ORIGIN = process.env.BASE_URL   || 'https://coastaltravelcompany.com';
 
 const CORS = {
-  'access-control-allow-origin':   '*',
-  'access-control-allow-methods':  'GET, POST, OPTIONS',
-  'access-control-allow-headers':  'Content-Type, Authorization',
-  'access-control-expose-headers': 'Content-Disposition',
+  'access-control-allow-origin':      STATIC_BASE,
+  'access-control-allow-credentials': 'true',
+  'access-control-allow-methods':     'GET, POST, OPTIONS',
+  'access-control-allow-headers':     'Content-Type, Authorization',
+  'access-control-expose-headers':    'Content-Disposition',
 };
 
 // ── Config helpers ────────────────────────────────────────────────────────────
