@@ -284,3 +284,75 @@ test.describe('Client Portal — Gallery Visibility Reflects Assignment', () => 
     await expect(page.locator('#galleries-content')).toContainText(/no galleries|not yet/i);
   });
 });
+
+// ── Admin → Portal End-to-End Gallery Assignment Flow ─────────────────────────
+
+test.describe('Admin gallery assignment change is reflected in client portal', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('unassigning a gallery in admin removes it from the client portal', async ({ page, context }) => {
+    // Shared mutable state — admin PUT updates this; portal mock reads from it
+    let assignedGalleries = ['gal1'];
+
+    await context.route(
+      (url) => url.toString().startsWith(WORKER_URL),
+      async (route) => {
+        const req    = route.request();
+        const url    = new URL(req.url());
+        const method = req.method();
+        if (method === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
+
+        if (url.pathname === '/auth/me')
+          return json(route, { id: 'admin1', email: 'admin@test.com', role: 'admin' });
+        if (url.pathname === '/admin/galleries' && method === 'GET')
+          return json(route, [MOCK_GALLERY]);
+        if (url.pathname === '/admin/users' && method === 'GET')
+          return json(route, [{ ...MOCK_USER, galleries: assignedGalleries }]);
+        if (url.pathname.match(/^\/admin\/users\/[^/]+$/) && method === 'PUT') {
+          const body = JSON.parse(req.postData() || '{}');
+          if (Array.isArray(body.galleries)) assignedGalleries = body.galleries;
+          return json(route, { ...MOCK_USER, galleries: assignedGalleries });
+        }
+        if (url.pathname === '/portal/galleries')
+          return json(route, assignedGalleries.map(id => id === 'gal1' ? MOCK_GALLERY : null).filter(Boolean));
+        if (url.pathname === '/portal/contracts')
+          return json(route, []);
+        if (url.pathname === '/portal/invoices')
+          return json(route, []);
+
+        await route.fulfill({ status: 404, headers: CORS });
+      },
+    );
+
+    // ── Phase 1: Admin opens clients page and removes the gallery ────────────
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-admin'));
+    await page.goto(`${STATIC_BASE}/admin/clients.html`);
+    await expect(page.locator('#userList')).toBeVisible({ timeout: 10_000 });
+
+    await page.click('.ur-info');
+    const panel = page.locator(`#udetail-${MOCK_USER.id}`);
+    await expect(panel).toHaveClass(/open/, { timeout: 5_000 });
+
+    const checkbox = panel.locator('input[type=checkbox][value="gal1"]');
+    await expect(checkbox).toBeChecked();
+    await checkbox.uncheck();
+    await panel.locator('button:has-text("Save Gallery Access")').click();
+
+    // Wait until the PUT has updated shared state
+    await expect(async () => {
+      expect(assignedGalleries).toHaveLength(0);
+    }).toPass({ timeout: 5_000 });
+
+    // ── Phase 2: Override /auth/me to return client role, navigate to portal ──
+    await context.route(
+      (url) => url.toString().startsWith(WORKER_URL) && new URL(url).pathname === '/auth/me',
+      async (route) => json(route, { id: MOCK_USER.id, email: MOCK_USER.email, role: 'client' }),
+    );
+
+    await page.goto(`${STATIC_BASE}/portal.html`);
+    await expect(page.locator('#galleries-content')).not.toContainText('Loading', { timeout: 10_000 });
+    await expect(page.locator('#galleries-content')).toContainText(/no galleries|not yet/i);
+  });
+});

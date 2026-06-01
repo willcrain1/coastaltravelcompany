@@ -4,6 +4,22 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 43 — Close Playwright e2e Coverage Gaps
+
+**Stripe webhook** (`tests/e2e/webhook.spec.js`): Full live integration test using the Stripe CLI. Creates a project + invoice via preprod Worker API, fires `stripe trigger checkout.session.completed` with `invoice_id` in metadata via `stripe listen --forward-to`, polls until invoice status is `paid`, and asserts the project stage advances to `Retainer Paid`. Skips gracefully when `STRIPE_CLI_API_KEY`, `WORKER_URL` (preprod), or `PREPROD_ADMIN_JWT` are absent. CI wired: Stripe CLI installed in acceptance-tests job; secrets passed via `env:`.
+
+**Admin countersigning** (`tests/e2e/contract.spec.js`): Five tests covering the full pipeline countersign flow — countersign block appears on `client_signed` contracts, admin types name and endpoint is called with correct payload and `signature_type: 'type'`, block hides after successful countersign with contract reloaded as `fully_executed`, empty signature is rejected without calling the API, block is absent when contract is already `fully_executed`.
+
+**Password reset full flow** (`tests/e2e/register.spec.js`): Mock-based tests covering forgot-password submission shows success message, reset-link URL renders reset card, successful reset shows confirmation and redirects to login, password mismatch is caught client-side, and invalid token shows server error. Email-delivery assertion (live Mailosaur intercept) is tracked in item 48.
+
+**Admin user management & gallery assignment** (`tests/e2e/clients.spec.js`): Tests 1–7 cover empty state, user creation via form, row display, gallery-checkbox expansion, gallery assignment save, user deletion, and portal gallery visibility. Added test 8: end-to-end chained flow — user starts with `gal1` assigned; admin unchecks it and saves; shared mutable state confirms `PUT /admin/users/:id` was called with `galleries: []`; same page context navigates to `portal.html` (with `/auth/me` overridden to return client role) and asserts the gallery no longer appears.
+
+**Router-based coverage enforcement** (`tests/e2e/scripts/check-route-coverage.js`): Parses `worker/src/router.js`, checks every route is referenced in at least one spec file or appears in an explicit allowlist with a documented reason. Runs as a pre-Playwright CI step in `ci-pr.yml`.
+
+*Email-confirmation assertions (countersign notification, password reset email delivery via Mailosaur) are tracked in item 48.*
+
+---
+
 ### 29 — Fix Auth Method Display in Admin Clients Page
 
 The "Auth Method" pill in the admin clients panel incorrectly labeled any user without a password hash as "Google Only" — including accounts created by an admin with no password set and no Google login on record.

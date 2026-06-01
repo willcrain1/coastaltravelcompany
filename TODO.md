@@ -571,35 +571,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 43. Close Playwright e2e Coverage Gaps (Remaining)
-
-### Stripe webhook completion
-
-- [ ] Use Stripe CLI (`stripe trigger checkout.session.completed`) in CI to fire a realistic webhook event against the preprod Worker
-- [ ] Assert invoice status changes from `sent` → `paid` in D1 after webhook fires
-- [ ] Assert project stage advances to `Retainer Paid` in the pipeline view
-- [ ] Add `STRIPE_CLI_API_KEY` to GitHub Actions secrets and install `stripe` CLI in the acceptance-tests job
-
-### Admin countersigning
-
-- [ ] Extend `contract.spec.js`: after client signs, log in as admin, navigate to project contracts tab, click countersign
-- [ ] Assert contract status advances to `fully_executed`
-- [ ] Assert both signatures and full audit trail render on the public contract view
-- [ ] Assert both parties receive confirmation emails (gate behind `MAILOSAUR_API_KEY` per item 42)
-
-### Password reset full flow
-
-- [ ] Full token interception: register → intercept real verify token from KV → navigate to verify URL → assert account becomes loginable (requires Mailosaur from item 42 or a Worker test-helper endpoint)
-- [ ] Full reset with email delivery: trigger reset → receive email → follow link → set new password → log in (gate email step behind `MAILOSAUR_API_KEY` per item 42)
-
-### Admin user management and gallery assignment
-
-- [ ] Add a test that creates a new client user via admin UI and assigns a gallery to them
-- [ ] Log in as the new client and assert the assigned gallery appears in their portal
-- [ ] Assert a gallery removed from the user no longer appears in their portal
-
----
-
 ## 46. Advanced Clickstream Analytics & User Behavior Tracking
 
 **Goal:** Understand what visitors are looking at on each page, how long they spend in specific sections, where attention drops off, and what content drives inquiry.
