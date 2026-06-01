@@ -331,6 +331,7 @@ describe('router cross-check', () => {
     const ALLOWLIST = new Set([
       '/portal/project/:id', // magic portal token (not JWT), tested in portal-project.spec.js
       '/token',              // requires any valid JWT + gallery assignment — not a simple public route
+      '/auth/logout',        // clears HttpOnly cookie server-side; no request body, always succeeds
     ]);
 
     // ── Literal path checks: pathname === '/path' ─────────────────────────────

@@ -399,7 +399,7 @@ test.describe('Admin Pipeline — Contract Countersigning', () => {
         countersignPayload = JSON.parse(route.request().postData() || '{}');
         await route.fulfill({
           status:  200,
-          headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+          headers: { 'content-type': 'application/json', 'access-control-allow-origin': STATIC_BASE, 'access-control-allow-credentials': 'true' },
           body:    JSON.stringify({ ok: true }),
         });
       },
