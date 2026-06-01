@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createJWT, verifyJWT, getAuth } from '../src/jwt.js';
+import { createJWT, verifyJWT, getAuth, makeAuthCookie, clearAuthCookie } from '../src/jwt.js';
 
 const SECRET = 'test-secret-for-unit-tests-at-least-32';
 
@@ -61,12 +61,61 @@ describe('getAuth', () => {
     const req = new Request('http://test', { headers: { Authorization: 'Bearer bad.token.here' } });
     expect(await getAuth(req, { JWT_SECRET: SECRET })).toBeNull();
   });
-  it('returns payload for a valid token', async () => {
+  it('returns payload for a valid token in Authorization header', async () => {
     const payload = { sub: 'a@b.com', role: 'client', exp: futureExp() };
     const token   = await createJWT(payload, SECRET);
     const req     = new Request('http://test', { headers: { Authorization: `Bearer ${token}` } });
     const result  = await getAuth(req, { JWT_SECRET: SECRET });
     expect(result.sub).toBe('a@b.com');
     expect(result.role).toBe('client');
+  });
+  it('returns payload for a valid token in auth_token cookie', async () => {
+    const payload = { sub: 'cookie@test.com', role: 'client', exp: futureExp() };
+    const token   = await createJWT(payload, SECRET);
+    const req     = new Request('http://test', { headers: { Cookie: `auth_token=${token}` } });
+    const result  = await getAuth(req, { JWT_SECRET: SECRET });
+    expect(result?.sub).toBe('cookie@test.com');
+  });
+  it('prefers Authorization header over cookie when both present', async () => {
+    const headerPayload = { sub: 'header@test.com', role: 'admin', exp: futureExp() };
+    const cookiePayload = { sub: 'cookie@test.com', role: 'client', exp: futureExp() };
+    const headerToken   = await createJWT(headerPayload, SECRET);
+    const cookieToken   = await createJWT(cookiePayload, SECRET);
+    const req = new Request('http://test', {
+      headers: { Authorization: `Bearer ${headerToken}`, Cookie: `auth_token=${cookieToken}` },
+    });
+    const result = await getAuth(req, { JWT_SECRET: SECRET });
+    expect(result?.sub).toBe('header@test.com');
+  });
+  it('returns null for an invalid cookie token', async () => {
+    const req = new Request('http://test', { headers: { Cookie: 'auth_token=bad.token.here' } });
+    expect(await getAuth(req, { JWT_SECRET: SECRET })).toBeNull();
+  });
+  it('returns null when cookie is present but JWT_SECRET is missing', async () => {
+    const req = new Request('http://test', { headers: { Cookie: 'auth_token=sometoken' } });
+    expect(await getAuth(req, {})).toBeNull();
+  });
+});
+
+describe('makeAuthCookie / clearAuthCookie', () => {
+  it('makeAuthCookie includes the token and required attributes', () => {
+    const cookie = makeAuthCookie('my-jwt-token');
+    expect(cookie).toContain('auth_token=my-jwt-token');
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('Secure');
+    expect(cookie).toContain('SameSite=None');
+    expect(cookie).toContain('Path=/');
+    expect(cookie).toContain('Max-Age=604800');
+  });
+  it('makeAuthCookie accepts a custom maxAge', () => {
+    const cookie = makeAuthCookie('tok', 1800);
+    expect(cookie).toContain('Max-Age=1800');
+  });
+  it('clearAuthCookie sets Max-Age=0 to expire the cookie', () => {
+    const cookie = clearAuthCookie();
+    expect(cookie).toContain('auth_token=;');
+    expect(cookie).toContain('Max-Age=0');
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('Secure');
   });
 });
