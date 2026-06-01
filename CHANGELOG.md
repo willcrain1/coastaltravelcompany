@@ -4,6 +4,25 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 29 — Fix Auth Method Display in Admin Clients Page
+
+The "Auth Method" pill in the admin clients panel incorrectly labeled any user without a password hash as "Google Only" — including accounts created by an admin with no password set and no Google login on record.
+
+**Root cause:** `stripSensitive` in `worker/src/kv.js` only emitted `hasPassword` (derived from `passwordHash`). No field tracked whether the user had ever authenticated via Google, so the UI had no way to distinguish "Google Only" from "No auth set."
+
+**Fix:**
+- `worker/src/auth.js` — `handleAuthGoogle` now sets `googleLinked: true` on the user record whenever a Google sign-in succeeds (both on new-user creation and on subsequent logins). The flag persists in KV alongside the user object.
+- `worker/src/kv.js` — `stripSensitive` now includes `hasGoogle: !!u.googleLinked` in the sanitized user shape returned to admin endpoints.
+- `site/admin/clients.html` — auth label/class logic updated to handle all four states:
+  - **Password + Google** → `auth-both` pill (teal) when both `hasPassword` and `hasGoogle`
+  - **Password** → `auth-password` pill (dim) when only `hasPassword`
+  - **Google Only** → `auth-google` pill (blue) when only `hasGoogle`
+  - **No Auth Set** → `auth-none` pill (red) when neither — e.g. admin-created accounts with no password and no Google login yet
+  - Unverified password accounts retain the `(unverified)` suffix.
+- `site/admin/admin.css` — added `.ud-pill.auth-none` style (red tint) for the new "No Auth Set" state.
+
+---
+
 ### 36 — Resolve npm Dependency Vulnerabilities in Worker
 
 Upgraded wrangler 3.75.0 → 4.95.0, pulling in a patched miniflare that eliminates the `undici` CRLF injection (high: GHSA-4992-7rv2-5pvq) and `ws` uninitialized memory disclosure (moderate: GHSA-58qx-3vcg-4xpx). vitest stays at 2.1.9 to avoid a breaking change in coverage counting from the 4.x major bump. Added unit tests as part of the upgrade: full masquerade start/exit coverage (`worker/tests/admin/masquerade.test.js`), cookie auth tests for `getAuth`/`makeAuthCookie`/`clearAuthCookie` in `jwt.test.js`, and `handleAuthLogout`/Set-Cookie assertions in `auth.test.js`. Result: 885/885 tests pass, 98.9% statement coverage (all thresholds ≥95%).

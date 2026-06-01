@@ -408,14 +408,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 29. Enhance Gallery Admin
-
-**Goal:** Fix issues with the gallery admin page.
-
-- [ ] Auth method is shown as "Google Only" in the UI, but these users can login with password auth + Google. Investigate how "Google Only" is being determined — `thecoastaltravelcompany@gmail.com` has not logged in with Google auth but shows "Google Only"
-
----
-
 ## 30. Customer Photo Sharing
 
 **Goal:** Allow customers to share photo albums with up to 5 users via email invite. Only the primary album user (set by the admin) can share. Primary user can revoke shares and see pending vs. accepted status. All activity visible in `gallery-admin.html`.

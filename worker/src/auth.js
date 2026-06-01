@@ -161,15 +161,18 @@ export async function handleAuthGoogle(request, env) {
       id: crypto.randomUUID(),
       email,
       passwordHash: null,
+      googleLinked: true,
       role: 'client',
       created: Date.now(),
       galleries: [],
       verified: true,
     };
     await putUser(user, env.KV);
-  } else if (user.verified === false) {
-    user.verified = true;
-    await putUser(user, env.KV);
+  } else {
+    let changed = false;
+    if (!user.googleLinked) { user.googleLinked = true; changed = true; }
+    if (user.verified === false) { user.verified = true; changed = true; }
+    if (changed) await putUser(user, env.KV);
   }
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
