@@ -46,6 +46,9 @@
       '#ctc-cb-accept{background:#2A5C45;color:#fff}',
       '#ctc-cb-essential{background:transparent;color:#ccc;border:1px solid #555}',
       '#ctc-cb-prefs{background:transparent;color:#999;border:1px solid #444;font-size:11px}',
+      '@media(max-width:600px){#ctc-cb{flex-direction:column;align-items:stretch;padding:16px}',
+      '#ctc-cb p{min-width:0}',
+      '.ctc-cb-btn{width:100%;padding:12px;font-size:13px;text-align:center}}',
       '#ctc-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);',
       'z-index:100000;align-items:center;justify-content:center}',
       '#ctc-modal.open{display:flex}',
@@ -130,10 +133,6 @@
         modal.querySelector('#ctc-chk-m').checked
       );
       dismiss();
-    });
-    // Close modal on backdrop click
-    modal.addEventListener('click', function (e) {
-      if (e.target === modal) modal.classList.remove('open');
     });
   }
 
