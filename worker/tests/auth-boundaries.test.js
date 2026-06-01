@@ -61,6 +61,7 @@ const ADMIN_ROUTES = [
   ['POST',   '/admin/projects/p1/invoices',              'create invoice'],
   ['GET',    '/admin/walkthroughs',                      'list walkthroughs'],
   ['POST',   '/admin/walkthroughs',                      'create walkthrough'],
+  ['POST',   '/admin/galleries/g1/sync-r2',              'sync gallery to R2'],
 ];
 
 const PORTAL_ROUTES = [

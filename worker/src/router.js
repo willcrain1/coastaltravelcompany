@@ -66,6 +66,7 @@ import {
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 import { handleAdminMasqueradeStart, handleAdminMasqueradeExit } from './admin/masquerade.js';
+import { handleAdminGallerySyncR2 } from './admin/r2-sync.js';
 
 import {
   handlePublicWalkthroughs,
@@ -127,6 +128,8 @@ export async function handleRequest(request, env) {
   // ── Admin: Gallery + User CRUD ───────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/admin/galleries') return handleAdminListGalleries(request, env);
   if (method === 'POST' && pathname === '/admin/galleries') return handleAdminCreateGallery(request, env);
+  const galleryR2Match  = pathname.match(/^\/admin\/galleries\/([^/]+)\/sync-r2$/);
+  if (galleryR2Match && method === 'POST') return handleAdminGallerySyncR2(request, env, galleryR2Match[1]);
   const galleryIdMatch = pathname.match(/^\/admin\/galleries\/([^/]+)$/);
   if (galleryIdMatch) {
     if (method === 'PUT')    return handleAdminUpdateGallery(request, env, galleryIdMatch[1]);
