@@ -384,7 +384,8 @@
       credentials: 'include',
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data = {};
+    try { data = await res.json(); } catch {}
     return { ok: res.ok, status: res.status, data };
   }
 
@@ -479,13 +480,17 @@
   }
 
   async function handleGoogleCredential(response) {
-    const { ok, data } = await api('/auth/google', { credential: response.credential });
-    if (!ok) {
-      showError('loginError', data.error || 'Google sign-in failed.');
-      return;
+    try {
+      const { ok, data } = await api('/auth/google', { credential: response.credential });
+      if (!ok) {
+        showError('loginError', data.error || 'Google sign-in failed.');
+        return;
+      }
+      storeAuth(data.token, data.user);
+      redirect(data.user);
+    } catch (err) {
+      showError('loginError', 'Google sign-in failed. Please try again.');
     }
-    storeAuth(data.token, data.user);
-    redirect(data.user);
   }
 
   // ── Login form ────────────────────────────────────────────────────────────
