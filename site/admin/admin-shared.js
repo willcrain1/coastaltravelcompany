@@ -15,7 +15,8 @@ async function apiFetch(path, opts = {}) {
     opts.body = JSON.stringify(opts.body);
   }
   const res = await fetch(url, { ...opts, headers, credentials: 'include' });
-  const data = await res.json();
+  let data = {};
+  try { data = await res.json(); } catch {}
   return { ok: res.ok, status: res.status, data };
 }
 

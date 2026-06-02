@@ -29,25 +29,43 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
   const nasHeaders = { Cookie: nasAuth.cookie, 'X-SYNO-SHARING': gallery.passphrase };
 
   // ── List items in the shared album ───────────────────────────────────────────
-  const listParams = new URLSearchParams({
-    api:         'SYNO.Foto.Browse.Item',
-    version:     '1',
-    method:      'list',
-    album_id:    '0',
-    offset:      String(offset),
-    limit:       String(BATCH),
-    _sharing_id: gallery.passphrase,
+  // Use POST + form body to match how the gallery proxy calls the NAS browse API.
+  // album_id must NOT be sent — for a sharing session the album is implicit in the
+  // passphrase/sid. Sending album_id:0 targets the personal library and returns a
+  // permission error, which was previously silently swallowed as "0 items".
+  const listBody = new URLSearchParams({
+    api:        'SYNO.Foto.Browse.Item',
+    version:    '4',
+    method:     'list',
+    offset:     String(offset),
+    limit:      String(BATCH),
+    passphrase: gallery.passphrase,
   });
-  if (nasAuth.sid) listParams.set('sid', nasAuth.sid);
+  if (nasAuth.sid) listBody.set('sid', nasAuth.sid);
 
   let items = [], total = 0;
   try {
-    const listRes  = await fetch(NAS_SHARE_API + '?' + listParams, { headers: nasHeaders });
+    const listRes  = await fetch(NAS_SHARE_API, {
+      method:  'POST',
+      headers: { ...nasHeaders, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body:    listBody.toString(),
+    });
     const listData = await listRes.json();
+    if (!listData.success) {
+      return jsonResponse({
+        error: `NAS browse API error (code ${listData?.error?.code ?? 'unknown'})`,
+      }, 502);
+    }
     items = listData?.data?.list  || [];
     total = listData?.data?.total ?? items.length;
   } catch (err) {
     return jsonResponse({ error: 'Failed to list NAS items: ' + err.message }, 502);
+  }
+
+  // Guard: NAS returned no items but total > 0 → stale/inconsistent data, treat as done
+  if (items.length === 0) {
+    return jsonResponse({ ok: true, synced: 0, failed: 0, videosSynced: 0, videosFailed: 0,
+      offset, total, done: true, next_offset: null });
   }
 
   // ── Sync each item: thumbnail for all, full video for video items ─────────────
