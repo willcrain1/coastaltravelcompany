@@ -337,10 +337,16 @@
   async function runGallerySync(galleryId, { onProgress, onDone, onError }) {
     let offset = 0, totalPhotos = 0, totalVideos = 0;
     while (true) {
-      const { ok, data, status } = await apiFetch(
-        `/admin/galleries/${galleryId}/sync-r2?offset=${offset}`,
-        { method: 'POST' }
-      );
+      let ok, data, status;
+      try {
+        ({ ok, data, status } = await apiFetch(
+          `/admin/galleries/${galleryId}/sync-r2?offset=${offset}`,
+          { method: 'POST' }
+        ));
+      } catch (err) {
+        onError(0, { error: err.message || 'Network error during sync' });
+        return;
+      }
       if (!ok) { onError(status, data); return; }
       totalPhotos += data.synced       || 0;
       totalVideos += data.videosSynced || 0;
@@ -350,8 +356,14 @@
         onDone(totalPhotos, totalVideos);
         return;
       }
+      // Guard: if offset didn't advance, bail out to prevent an infinite loop
+      const nextOffset = data.next_offset;
+      if (nextOffset == null || nextOffset <= offset) {
+        onError(0, { error: 'Sync stalled — no progress from NAS' });
+        return;
+      }
       onProgress(totalPhotos + totalVideos, data.total);
-      offset = data.next_offset;
+      offset = nextOffset;
     }
   }
 
@@ -374,6 +386,9 @@
         statusEl.textContent = `CDN sync failed: ${data?.error || 'unknown error'}`;
         statusEl.style.color = 'var(--error,#dc2626)';
       },
+    }).catch(err => {
+      statusEl.textContent = `CDN sync failed: ${err.message || 'unexpected error'}`;
+      statusEl.style.color = 'var(--error,#dc2626)';
     });
   }
 
@@ -394,6 +409,9 @@
         else toast(`Resync failed: ${data?.error || 'unknown error'}`, true);
         if (btn) { btn.disabled = false; btn.textContent = 'Resync R2'; }
       },
+    }).catch(err => {
+      toast(`Resync failed: ${err.message || 'unexpected error'}`, true);
+      if (btn) { btn.disabled = false; btn.textContent = 'Resync R2'; }
     });
   }
 
