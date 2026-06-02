@@ -312,4 +312,41 @@ test.describe('Google OAuth login (stubbed)', () => {
     await expect(page.locator('#loginError')).toContainText(/Google sign-in failed|Invalid/i, { timeout: 5_000 });
     expect(page.url()).not.toMatch(/\/portal(\.html)?/);
   });
+
+  test('worker 500 with non-JSON body shows error instead of silently failing', async ({ page, context }) => {
+    // Simulates Cloudflare returning an HTML error page when the Worker throws an
+    // unhandled exception — previously res.json() threw, the GSI callback swallowed
+    // the rejection, and the user was left on the login page with no feedback.
+    await mockWorker(context, {
+      'POST /auth/google': (route) => route.fulfill({
+        status:  500,
+        headers: { 'content-type': 'text/html', ...CORS },
+        body:    '<html><body>Error 1101: Worker threw an exception</body></html>',
+      }),
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+    await page.evaluate(() => {
+      window.google = { accounts: { id: { initialize: () => {}, renderButton: () => {} } } };
+      window.handleGoogleCredential({ credential: 'fake-token' });
+    });
+
+    await expect(page.locator('#loginError')).toContainText(/Google sign-in failed/i, { timeout: 5_000 });
+    expect(page.url()).not.toMatch(/\/portal(\.html)?/);
+  });
+
+  test('network error during Google auth shows error instead of silently failing', async ({ page, context }) => {
+    await mockWorker(context, {
+      'POST /auth/google': (route) => route.abort(),
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+    await page.evaluate(() => {
+      window.google = { accounts: { id: { initialize: () => {}, renderButton: () => {} } } };
+      window.handleGoogleCredential({ credential: 'fake-token' });
+    });
+
+    await expect(page.locator('#loginError')).toContainText(/Google sign-in failed/i, { timeout: 5_000 });
+    expect(page.url()).not.toMatch(/\/portal(\.html)?/);
+  });
 });
