@@ -6,6 +6,7 @@ import {
   handleAuthSetupStatus, handleAuthSetup, handleAuthRegister, handleAuthLogin,
   handleAuthGoogle, handleAuthResetRequest, handleAuthResetConfirm,
   handleAuthMe, handleAuthUpdateMe, handleAuthVerify, handleAuthResendVerify,
+  handleAuthLogout,
 } from './auth.js';
 
 import { handleTokenExchange, handleNasProxy } from './gallery-proxy.js';
@@ -64,6 +65,8 @@ import {
 } from './admin/invoices.js';
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
+import { handleAdminMasqueradeStart, handleAdminMasqueradeExit } from './admin/masquerade.js';
+import { handleAdminGallerySyncR2 } from './admin/r2-sync.js';
 
 import {
   handlePublicWalkthroughs,
@@ -88,6 +91,14 @@ export async function handleRequest(request, env) {
   const { pathname } = url;
   const method   = request.method;
 
+  // ── Masquerade read-only enforcement ─────────────────────────────────────────
+  // Masquerade tokens carry role='client' so admin routes are already gated.
+  // This blocks mutating portal/auth actions a client could otherwise perform.
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(method) && pathname !== '/admin/masquerade/exit') {
+    const p = await getAuth(request, env);
+    if (p?.masquerade) return jsonResponse({ error: 'Mutating actions are not permitted during a masquerade session' }, 403);
+  }
+
   // ── Auth routes ──────────────────────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/auth/setup-status')   return handleAuthSetupStatus(env);
   if (method === 'POST' && pathname === '/auth/setup')          return handleAuthSetup(request, env);
@@ -98,6 +109,7 @@ export async function handleRequest(request, env) {
   if (method === 'POST' && pathname === '/auth/reset-confirm')  return handleAuthResetConfirm(request, env);
   if (method === 'GET'   && pathname === '/auth/me')            return handleAuthMe(request, env);
   if (method === 'PATCH' && pathname === '/auth/me')            return handleAuthUpdateMe(request, env);
+  if (method === 'POST'  && pathname === '/auth/logout')        return handleAuthLogout();
   if (method === 'GET'  && pathname === '/auth/verify')         return handleAuthVerify(request, env);
   if (method === 'POST' && pathname === '/auth/resend-verify')  return handleAuthResendVerify(request, env);
 
@@ -109,9 +121,15 @@ export async function handleRequest(request, env) {
   if (publicProposalAnalyticsMatch && method === 'POST')   return handlePublicProposalAnalytics(request, env, publicProposalAnalyticsMatch[1]);
   if (publicProposalSelectMatch && method === 'POST')      return handlePublicProposalSelect(request, env, publicProposalSelectMatch[1]);
 
+  // ── Admin: Masquerade ────────────────────────────────────────────────────────
+  if (method === 'POST' && pathname === '/admin/masquerade')       return handleAdminMasqueradeStart(request, env);
+  if (method === 'POST' && pathname === '/admin/masquerade/exit')  return handleAdminMasqueradeExit(request, env);
+
   // ── Admin: Gallery + User CRUD ───────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/admin/galleries') return handleAdminListGalleries(request, env);
   if (method === 'POST' && pathname === '/admin/galleries') return handleAdminCreateGallery(request, env);
+  const galleryR2Match  = pathname.match(/^\/admin\/galleries\/([^/]+)\/sync-r2$/);
+  if (galleryR2Match && method === 'POST') return handleAdminGallerySyncR2(request, env, galleryR2Match[1]);
   const galleryIdMatch = pathname.match(/^\/admin\/galleries\/([^/]+)$/);
   if (galleryIdMatch) {
     if (method === 'PUT')    return handleAdminUpdateGallery(request, env, galleryIdMatch[1]);

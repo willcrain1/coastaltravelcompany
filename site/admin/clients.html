@@ -212,10 +212,18 @@
           <span style="color:var(--dim); margin-left:4px;">· ${esc(g.clientName)}</span>
         </label>`).join('');
 
-      const authLabel = u.hasPassword && u.verified === false ? 'Password (unverified)'
-        : u.hasPassword ? 'Password'
-        : 'Google only';
-      const authClass = u.hasPassword ? 'auth-password' : 'auth-google';
+      const hasPwd    = !!u.hasPassword;
+      const hasGoogle = !!u.hasGoogle;
+      const authLabel = hasPwd && hasGoogle && u.verified === false ? 'Password (unverified) + Google'
+        : hasPwd && u.verified === false ? 'Password (unverified)'
+        : hasPwd && hasGoogle ? 'Password + Google'
+        : hasPwd              ? 'Password'
+        : hasGoogle           ? 'Google Only'
+        :                       'No Auth Set';
+      const authClass = hasPwd && hasGoogle ? 'auth-both'
+        : hasPwd                            ? 'auth-password'
+        : hasGoogle                         ? 'auth-google'
+        :                                     'auth-none';
 
       return `
         <div class="user-row">
@@ -232,6 +240,8 @@
               </div>
             </div>
             <div class="ur-actions">
+              ${u.role === 'client' ? `
+                <button class="btn btn-ghost btn-sm" onclick="viewAsClient('${esc(u.id)}')">View as Client</button>` : ''}
               ${u.email !== currentAdminEmail ? `
                 <button class="btn btn-ghost btn-sm" onclick="changeRole('${esc(u.id)}','${esc(u.role)}','${esc(u.email)}')">
                   ${u.role === 'admin' ? 'Make Client' : 'Make Admin'}
@@ -295,6 +305,17 @@
     if (idx >= 0) users[idx] = data;
     renderUserList();
     toast(`${userEmail} is now ${newRole}`);
+  }
+
+  async function viewAsClient(userId) {
+    const { ok, data } = await apiFetch('/admin/masquerade', {
+      method: 'POST',
+      body:   { target_user_id: userId },
+    });
+    if (!ok) { toast(data.error || 'Failed to start masquerade', true); return; }
+    sessionStorage.setItem('ctc_masquerade_token', data.masquerade_token);
+    sessionStorage.setItem('ctc_masquerade_user', JSON.stringify(data.target_user));
+    window.location.href = '/portal.html?masquerade=1';
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────────

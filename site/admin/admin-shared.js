@@ -5,25 +5,22 @@ const LEGACY_KEY = 'ctc_galleries_v1';
 
 // ── Worker URL ─────────────────────────────────────────────────────────────────
 function getWorkerUrl() { return CTC_CONFIG.workerUrl; }
-function token() { return localStorage.getItem(JWT_KEY) || ''; }
 
 // ── API helper ─────────────────────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
   const url = getWorkerUrl() + path;
-  const headers = { 'Authorization': 'Bearer ' + token(), ...opts.headers };
+  const headers = { ...opts.headers };
   if (opts.body && typeof opts.body !== 'string') {
     headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(opts.body);
   }
-  const res = await fetch(url, { ...opts, headers });
+  const res = await fetch(url, { ...opts, headers, credentials: 'include' });
   const data = await res.json();
   return { ok: res.ok, status: res.status, data };
 }
 
 // ── Auth gate ──────────────────────────────────────────────────────────────────
 async function authGate() {
-  const tok = token();
-  if (!tok) { window.location.href = '/login.html'; return false; }
   try {
     const { ok, data } = await apiFetch('/auth/me', { method: 'GET' });
     if (!ok) { window.location.href = '/login.html'; return false; }
@@ -37,9 +34,10 @@ async function authGate() {
   }
 }
 
-function signOut() {
+async function signOut() {
   localStorage.removeItem(JWT_KEY);
   localStorage.removeItem(USER_KEY);
+  await fetch(getWorkerUrl() + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
   window.location.href = '/login.html';
 }
 

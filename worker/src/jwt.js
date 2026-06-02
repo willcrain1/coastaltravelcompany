@@ -48,7 +48,24 @@ export async function verifyJWT(token, secret) {
 
 export async function getAuth(request, env) {
   if (!env.JWT_SECRET) return null;
+  // Authorization header takes precedence (masquerade sessions, Playwright, API clients)
   const auth = request.headers.get('Authorization') || '';
-  if (!auth.startsWith('Bearer ')) return null;
-  try { return await verifyJWT(auth.slice(7), env.JWT_SECRET); } catch { return null; }
+  if (auth.startsWith('Bearer ')) {
+    try { return await verifyJWT(auth.slice(7), env.JWT_SECRET); } catch { return null; }
+  }
+  // Fall back to HttpOnly cookie for browser sessions
+  const cookie = request.headers.get('Cookie') || '';
+  const match  = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
+  if (match) {
+    try { return await verifyJWT(match[1], env.JWT_SECRET); } catch { return null; }
+  }
+  return null;
+}
+
+export function makeAuthCookie(token, maxAge = 604800) {
+  return `auth_token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAge}`;
+}
+
+export function clearAuthCookie() {
+  return 'auth_token=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0';
 }

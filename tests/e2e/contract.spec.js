@@ -26,9 +26,10 @@ const WORKER_URL  = process.env.WORKER_URL || 'https://coastal-gallery-proxy.the
 const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 
 const CORS = {
-  'access-control-allow-origin':  '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-allow-origin':      STATIC_BASE,
+  'access-control-allow-credentials': 'true',
+  'access-control-allow-methods':     'GET, POST, OPTIONS',
+  'access-control-allow-headers':     'Content-Type, Authorization',
 };
 
 const TOKEN = 'test-contract-token';
@@ -296,9 +297,10 @@ const FULLY_EXECUTED_CONTRACT = {
  */
 function mockAdminWithContracts(context, { contractCallResponses = [[]] } = {}) {
   const adminCors = {
-    'access-control-allow-origin':  '*',
-    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'access-control-allow-headers': 'Content-Type, Authorization',
+    'access-control-allow-origin':      STATIC_BASE,
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods':     'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-headers':     'Content-Type, Authorization',
   };
   let contractsCallIdx = 0;
 
@@ -397,7 +399,7 @@ test.describe('Admin Pipeline — Contract Countersigning', () => {
         countersignPayload = JSON.parse(route.request().postData() || '{}');
         await route.fulfill({
           status:  200,
-          headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
+          headers: { 'content-type': 'application/json', 'access-control-allow-origin': STATIC_BASE, 'access-control-allow-credentials': 'true' },
           body:    JSON.stringify({ ok: true }),
         });
       },

@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <script src="config.js"></script>
+  <script src="js/cookie-consent.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
   <style>
     :root {
@@ -380,15 +381,17 @@
     const res = await fetch(WORKER_URL + path, {
       method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data = {};
+    try { data = await res.json(); } catch {}
     return { ok: res.ok, status: res.status, data };
   }
 
   function storeAuth(token, user) {
-    localStorage.setItem(JWT_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    // Token now arrives as HttpOnly cookie — store only non-sensitive user data
+    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
 
   function redirect(user) {
@@ -403,20 +406,16 @@
 
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
-    // Already logged in?
-    const token = localStorage.getItem(JWT_KEY);
-    if (token) {
-      const res = await fetch(WORKER_URL + '/auth/me', {
-        headers: { 'Authorization': 'Bearer ' + token },
-      }).catch(() => null);
-      if (res && res.ok) {
-        const user = await res.json();
-        redirect(user);
-        return;
-      }
-      localStorage.removeItem(JWT_KEY);
-      localStorage.removeItem(USER_KEY);
+    // Already logged in? Check via cookie-authenticated /auth/me
+    const meRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
+    if (meRes && meRes.ok) {
+      const user = await meRes.json();
+      redirect(user);
+      return;
     }
+    // Clear any stale user data from localStorage
+    localStorage.removeItem(JWT_KEY);
+    localStorage.removeItem(USER_KEY);
 
     const params = new URLSearchParams(window.location.search);
 
@@ -481,13 +480,17 @@
   }
 
   async function handleGoogleCredential(response) {
-    const { ok, data } = await api('/auth/google', { credential: response.credential });
-    if (!ok) {
-      showError('loginError', data.error || 'Google sign-in failed.');
-      return;
+    try {
+      const { ok, data } = await api('/auth/google', { credential: response.credential });
+      if (!ok) {
+        showError('loginError', data.error || 'Google sign-in failed.');
+        return;
+      }
+      storeAuth(data.token, data.user);
+      redirect(data.user);
+    } catch (err) {
+      showError('loginError', 'Google sign-in failed. Please try again.');
     }
-    storeAuth(data.token, data.user);
-    redirect(data.user);
   }
 
   // ── Login form ────────────────────────────────────────────────────────────

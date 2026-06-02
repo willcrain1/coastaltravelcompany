@@ -1,6 +1,6 @@
 import { ALLOWED_ORIGIN, JWT_EXPIRY_SECS } from './constants.js';
 import { jsonResponse, rateLimitedResponse, authRequired } from './utils.js';
-import { createJWT, getAuth } from './jwt.js';
+import { createJWT, getAuth, makeAuthCookie, clearAuthCookie } from './jwt.js';
 import { getUser, putUser } from './kv.js';
 import { hashPassword, verifyPassword } from './crypto.js';
 import {
@@ -34,7 +34,9 @@ export async function handleAuthSetup(request, env) {
     { sub: user.email, id, role: 'admin', iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
+  const res = jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  return res;
 }
 
 export async function handleAuthRegister(request, env) {
@@ -137,7 +139,9 @@ export async function handleAuthLogin(request, env) {
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  return res;
 }
 
 export async function handleAuthGoogle(request, env) {
@@ -145,9 +149,9 @@ export async function handleAuthGoogle(request, env) {
   if (!env.GOOGLE_CLIENT_ID) return jsonResponse({ error: 'Google login not configured' }, 503);
   const { credential } = await request.json();
   if (!credential) return jsonResponse({ error: 'Missing credential' }, 400);
-  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
-  if (!res.ok) return jsonResponse({ error: 'Invalid Google token' }, 401);
-  const info = await res.json();
+  const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+  if (!tokenRes.ok) return jsonResponse({ error: 'Invalid Google token' }, 401);
+  const info = await tokenRes.json();
   if (info.aud !== env.GOOGLE_CLIENT_ID) return jsonResponse({ error: 'Token audience mismatch' }, 401);
   if (info.email_verified !== 'true')    return jsonResponse({ error: 'Email not verified' }, 401);
   const email = info.email.toLowerCase();
@@ -157,22 +161,27 @@ export async function handleAuthGoogle(request, env) {
       id: crypto.randomUUID(),
       email,
       passwordHash: null,
+      googleLinked: true,
       role: 'client',
       created: Date.now(),
       galleries: [],
       verified: true,
     };
     await putUser(user, env.KV);
-  } else if (user.verified === false) {
-    user.verified = true;
-    await putUser(user, env.KV);
+  } else {
+    let changed = false;
+    if (!user.googleLinked) { user.googleLinked = true; changed = true; }
+    if (user.verified === false) { user.verified = true; changed = true; }
+    if (changed) await putUser(user, env.KV).catch(() => {});
   }
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  return res;
 }
 
 export async function handleAuthResetRequest(request, env) {
@@ -229,7 +238,23 @@ export async function handleAuthMe(request, env) {
   if (!payload) return authRequired();
   const user = await getUser(payload.sub, env.KV);
   if (!user) return authRequired();
-  return jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
+  const res = jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
+  // Sliding window: refresh cookie on every authenticated /auth/me call
+  if (!payload.masquerade) {
+    const now      = Math.floor(Date.now() / 1000);
+    const newToken = await createJWT(
+      { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
+      env.JWT_SECRET
+    );
+    res.headers.set('Set-Cookie', makeAuthCookie(newToken));
+  }
+  return res;
+}
+
+export async function handleAuthLogout() {
+  const res = jsonResponse({ ok: true });
+  res.headers.set('Set-Cookie', clearAuthCookie());
+  return res;
 }
 
 export async function handleAuthUpdateMe(request, env) {

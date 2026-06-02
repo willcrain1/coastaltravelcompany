@@ -61,6 +61,7 @@ const ADMIN_ROUTES = [
   ['POST',   '/admin/projects/p1/invoices',              'create invoice'],
   ['GET',    '/admin/walkthroughs',                      'list walkthroughs'],
   ['POST',   '/admin/walkthroughs',                      'create walkthrough'],
+  ['POST',   '/admin/galleries/g1/sync-r2',              'sync gallery to R2'],
 ];
 
 const PORTAL_ROUTES = [
@@ -331,6 +332,7 @@ describe('router cross-check', () => {
     const ALLOWLIST = new Set([
       '/portal/project/:id', // magic portal token (not JWT), tested in portal-project.spec.js
       '/token',              // requires any valid JWT + gallery assignment — not a simple public route
+      '/auth/logout',        // clears HttpOnly cookie server-side; no request body, always succeeds
     ]);
 
     // ── Literal path checks: pathname === '/path' ─────────────────────────────

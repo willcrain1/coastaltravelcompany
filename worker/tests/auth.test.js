@@ -3,6 +3,7 @@ import {
   handleAuthSetupStatus, handleAuthSetup, handleAuthRegister, handleAuthLogin,
   handleAuthMe, handleAuthVerify, handleAuthResendVerify,
   handleAuthResetRequest, handleAuthResetConfirm, handleAuthGoogle,
+  handleAuthLogout,
 } from '../src/auth.js';
 import { createJWT } from '../src/jwt.js';
 
@@ -320,5 +321,76 @@ describe('handleAuthGoogle', () => {
     const r = await handleAuthGoogle(post('http://t', { credential: 'tok' }), env);
     expect(r.status).toBe(200);
     expect((await r.json()).user.email).toBe('verif@test.com');
+  });
+});
+
+// ── HttpOnly cookie: Set-Cookie on auth responses ─────────────────────────────
+
+describe('HttpOnly auth cookie — login sets Set-Cookie', () => {
+  it('handleAuthSetup response sets auth_token cookie', async () => {
+    const env = makeEnv();
+    const r   = await handleAuthSetup(post('http://t', { email: 'admin@test.com', password: 'pass1234' }), env);
+    expect(r.status).toBe(200);
+    const cookie = r.headers.get('Set-Cookie') || '';
+    expect(cookie).toContain('auth_token=');
+    expect(cookie).toContain('HttpOnly');
+  });
+  it('handleAuthLogin response sets auth_token cookie', async () => {
+    const env = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'admin@test.com', password: 'pass1234' }), env);
+    const r = await handleAuthLogin(post('http://t', { email: 'admin@test.com', password: 'pass1234' }), env);
+    expect(r.status).toBe(200);
+    const cookie = r.headers.get('Set-Cookie') || '';
+    expect(cookie).toContain('auth_token=');
+    expect(cookie).toContain('HttpOnly');
+  });
+  it('handleAuthGoogle response sets auth_token cookie on success', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ aud: 'gid', email: 'gcook@test.com', email_verified: 'true' }) }));
+    const r = await handleAuthGoogle(post('http://t', { credential: 'x' }), makeEnv({ GOOGLE_CLIENT_ID: 'gid' }));
+    expect(r.status).toBe(200);
+    const cookie = r.headers.get('Set-Cookie') || '';
+    expect(cookie).toContain('auth_token=');
+    expect(cookie).toContain('HttpOnly');
+  });
+  it('handleAuthMe sets sliding-window cookie for non-masquerade sessions', async () => {
+    const env   = makeEnv();
+    const setup = await handleAuthSetup(post('http://t', { email: 'slide@test.com', password: 'pass1234' }), env);
+    const { token } = await setup.json();
+    const req = new Request('http://t/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+    const r   = await handleAuthMe(req, env);
+    expect(r.status).toBe(200);
+    const cookie = r.headers.get('Set-Cookie') || '';
+    expect(cookie).toContain('auth_token=');
+    expect(cookie).toContain('HttpOnly');
+  });
+  it('handleAuthMe does NOT set cookie for masquerade sessions', async () => {
+    const env   = makeEnv();
+    const masqToken = await (await import('../src/jwt.js')).createJWT(
+      { sub: 'client@test.com', id: 'cid', role: 'client', masquerade: true, exp: Math.floor(Date.now() / 1000) + 1800 },
+      SECRET,
+    );
+    await env.KV.put('user:client@test.com', JSON.stringify({ id: 'cid', email: 'client@test.com', role: 'client' }));
+    await env.KV.put('user_id:cid', 'client@test.com');
+    const req = new Request('http://t/auth/me', { headers: { Authorization: `Bearer ${masqToken}` } });
+    const r   = await handleAuthMe(req, env);
+    expect(r.status).toBe(200);
+    expect(r.headers.get('Set-Cookie')).toBeNull();
+  });
+});
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+
+describe('handleAuthLogout', () => {
+  it('returns 200 with ok:true', async () => {
+    const r = await handleAuthLogout();
+    expect(r.status).toBe(200);
+    expect((await r.json()).ok).toBe(true);
+  });
+  it('clears the auth_token cookie via Max-Age=0', async () => {
+    const r = await handleAuthLogout();
+    const cookie = r.headers.get('Set-Cookie') || '';
+    expect(cookie).toContain('auth_token=;');
+    expect(cookie).toContain('Max-Age=0');
+    expect(cookie).toContain('HttpOnly');
   });
 });

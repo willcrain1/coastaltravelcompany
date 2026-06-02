@@ -4,6 +4,70 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 43 — Close Playwright e2e Coverage Gaps
+
+**Stripe webhook** (`tests/e2e/webhook.spec.js`): Full live integration test using the Stripe CLI. Creates a project + invoice via preprod Worker API, fires `stripe trigger checkout.session.completed` with `invoice_id` in metadata via `stripe listen --forward-to`, polls until invoice status is `paid`, and asserts the project stage advances to `Retainer Paid`. Skips gracefully when `STRIPE_CLI_API_KEY`, `WORKER_URL` (preprod), or `PREPROD_ADMIN_JWT` are absent. CI wired: Stripe CLI installed in acceptance-tests job; secrets passed via `env:`.
+
+**Admin countersigning** (`tests/e2e/contract.spec.js`): Five tests covering the full pipeline countersign flow — countersign block appears on `client_signed` contracts, admin types name and endpoint is called with correct payload and `signature_type: 'type'`, block hides after successful countersign with contract reloaded as `fully_executed`, empty signature is rejected without calling the API, block is absent when contract is already `fully_executed`.
+
+**Password reset full flow** (`tests/e2e/register.spec.js`): Mock-based tests covering forgot-password submission shows success message, reset-link URL renders reset card, successful reset shows confirmation and redirects to login, password mismatch is caught client-side, and invalid token shows server error. Email-delivery assertion (live Mailosaur intercept) is tracked in item 48.
+
+**Admin user management & gallery assignment** (`tests/e2e/clients.spec.js`): Tests 1–7 cover empty state, user creation via form, row display, gallery-checkbox expansion, gallery assignment save, user deletion, and portal gallery visibility. Added test 8: end-to-end chained flow — user starts with `gal1` assigned; admin unchecks it and saves; shared mutable state confirms `PUT /admin/users/:id` was called with `galleries: []`; same page context navigates to `portal.html` (with `/auth/me` overridden to return client role) and asserts the gallery no longer appears.
+
+**Router-based coverage enforcement** (`tests/e2e/scripts/check-route-coverage.js`): Parses `worker/src/router.js`, checks every route is referenced in at least one spec file or appears in an explicit allowlist with a documented reason. Runs as a pre-Playwright CI step in `ci-pr.yml`.
+
+*Email-confirmation assertions (countersign notification, password reset email delivery via Mailosaur) are tracked in item 48.*
+
+---
+
+### 29 — Fix Auth Method Display in Admin Clients Page
+
+The "Auth Method" pill in the admin clients panel incorrectly labeled any user without a password hash as "Google Only" — including accounts created by an admin with no password set and no Google login on record.
+
+**Root cause:** `stripSensitive` in `worker/src/kv.js` only emitted `hasPassword` (derived from `passwordHash`). No field tracked whether the user had ever authenticated via Google, so the UI had no way to distinguish "Google Only" from "No auth set."
+
+**Fix:**
+- `worker/src/auth.js` — `handleAuthGoogle` now sets `googleLinked: true` on the user record whenever a Google sign-in succeeds (both on new-user creation and on subsequent logins). The flag persists in KV alongside the user object.
+- `worker/src/kv.js` — `stripSensitive` now includes `hasGoogle: !!u.googleLinked` in the sanitized user shape returned to admin endpoints.
+- `site/admin/clients.html` — auth label/class logic updated to handle all four states:
+  - **Password + Google** → `auth-both` pill (teal) when both `hasPassword` and `hasGoogle`
+  - **Password** → `auth-password` pill (dim) when only `hasPassword`
+  - **Google Only** → `auth-google` pill (blue) when only `hasGoogle`
+  - **No Auth Set** → `auth-none` pill (red) when neither — e.g. admin-created accounts with no password and no Google login yet
+  - Unverified password accounts retain the `(unverified)` suffix.
+- `site/admin/admin.css` — added `.ud-pill.auth-none` style (red tint) for the new "No Auth Set" state.
+
+---
+
+### R2 Cleanup on Gallery Delete
+
+`DELETE /admin/galleries/:id` now purges all R2 assets for the gallery before removing it from KV. The worker paginates through `galleries/{id}/` with `env.ASSETS.list({ prefix, limit: 1000 })` and batch-deletes every object (thumbnails under `thumbs/` and videos under `videos/`) in a `do…while` loop until `truncated` is false. Guarded by `if (env.ASSETS)` so behaviour is unchanged in environments without R2 configured.
+
+**Files changed:** `worker/src/admin/galleries.js`
+
+---
+
+### 36 — Resolve npm Dependency Vulnerabilities in Worker
+
+Upgraded wrangler 3.75.0 → 4.95.0, pulling in a patched miniflare that eliminates the `undici` CRLF injection (high: GHSA-4992-7rv2-5pvq) and `ws` uninitialized memory disclosure (moderate: GHSA-58qx-3vcg-4xpx). vitest stays at 2.1.9 to avoid a breaking change in coverage counting from the 4.x major bump. Added unit tests as part of the upgrade: full masquerade start/exit coverage (`worker/tests/admin/masquerade.test.js`), cookie auth tests for `getAuth`/`makeAuthCookie`/`clearAuthCookie` in `jwt.test.js`, and `handleAuthLogout`/Set-Cookie assertions in `auth.test.js`. Result: 885/885 tests pass, 98.9% statement coverage (all thresholds ≥95%).
+
+---
+
+### 49 — Cookie Consent & HttpOnly Auth Cookie
+
+**Cookie consent banner:** `site/js/cookie-consent.js` — lightweight first-party consent manager included in `<head>` of every public page. On first visit (or after 12 months) shows a fixed-bottom banner with "Accept All", "Essential Only", and "Manage Preferences" options. Preferences persisted in `localStorage` under `ctc_cookie_consent`. Exposes `window.CTC_Consent.hasAnalytics()` and `window.CTC_Consent.hasMarketing()` for gating GA4/Clarity scripts.
+
+**HttpOnly auth cookie:** Auth tokens migrated from `localStorage` to a server-set `HttpOnly; Secure; SameSite=None; Path=/; Max-Age=604800` cookie. `POST /auth/login`, `POST /auth/google`, and `POST /auth/setup` all set the `auth_token` cookie in the response. `getAuth()` checks the `Authorization` header first (for masquerade sessions and Playwright/API clients), then falls back to the cookie. `/auth/me` implements a sliding session window by re-issuing the cookie on every authenticated call. `POST /auth/logout` clears the cookie with `Max-Age=0`. All browser `fetch` calls updated to use `credentials: 'include'`; `Authorization` header injection removed from frontend helpers. CORS updated with `Access-Control-Allow-Credentials: true`.
+
+**Files changed:** `worker/src/jwt.js`, `worker/src/auth.js`, `worker/src/constants.js`, `worker/src/router.js`, `site/js/cookie-consent.js` (new), `site/admin/admin-shared.js`, `site/login.html`, `site/portal.html`, `site/portal-project.html`, `site/profile.html`, all public `site/*.html` pages.
+
+---
+
+### 50 — Admin Masquerade (View as Client)
+Admins can impersonate any client account from `clients.html` and see the portal exactly as that client sees it. "View as Client" button calls `POST /admin/masquerade` (admin-auth required), which issues a short-lived (30-minute) masquerade JWT scoped to the target user's identity. The masquerade JWT is stored in `sessionStorage` and used for all portal API calls. A persistent amber banner on `portal.html` shows the client name and a one-click "Exit Masquerade" link that calls `POST /admin/masquerade/exit`, clears the session, and returns the admin to `clients.html`. Mutating actions (POST/PATCH/PUT/DELETE) are blocked at the Worker router level for any masquerade token, returning 403. Masquerade is non-recursive and cannot target admin accounts. Every session start and exit is written to the `masquerade_log` D1 table (`016_masquerade_log.sql`).
+
+---
+
 ## 2026
 
 ### P0 — Fix & Expand Acceptance Tests
@@ -108,3 +172,26 @@ Per-email and per-IP rate limiting on `POST /auth/login` (5 email / 20 IP failur
 `workstation/splatting/setup-windows.ps1`: installs CUDA-enabled COLMAP, ffmpeg, Node.js, Miniconda + nerfstudio (splatfacto) via winget. Preflight checks for NVIDIA driver, winget, and disk space. Creates `CTC-Splatting\` working directory (incoming, frames, colmap_out, outputs, export, done).
 
 `workstation/splatting/process-scene.ps1`: full per-scene pipeline wrapper — ffmpeg frame extraction → `ns-process-data` (COLMAP) → `ns-train splatfacto` → `ns-export gaussian-splat` → opens export folder and SuperSplat in browser with copy-to-NAS instructions.
+
+---
+
+### 37 — R2 Hybrid Data Load for Gallery Thumbnails & Videos
+
+Gallery thumbnails and videos are now served from Cloudflare R2 instead of the NAS, reducing NAS load and enabling global CDN caching. NAS remains the primary archive; R2 is a transparent cache layer.
+
+**Sync — `worker/src/admin/r2-sync.js` + `POST /admin/galleries/:id/sync-r2`**
+Admin-authenticated endpoint that paginates through a gallery's Synology Photos album in batches of 20. For each item it uploads the `xl` thumbnail to `galleries/{id}/thumbs/{photoId}.jpg`. For video items it also streams the original file (via `SYNO.Foto.Download`) directly to `galleries/{id}/videos/{itemId}` using `ReadableStream` → R2 `put()` to avoid buffering large files in Worker memory. Sets `gallery.r2_synced = true` in KV when all pages complete.
+
+**Auto-sync on creation — `site/admin/galleries.html`**
+After a gallery is saved the admin page automatically drives the paginated sync loop and shows live progress ("Syncing… N / total") in the result box. No separate manual step required.
+
+**Resync button — `site/admin/galleries.html`**
+Each gallery row in the admin list has a **Resync R2** button. Clicking it re-runs the full sync (overwriting existing R2 keys), shows live progress on the button itself, and toasts on completion with a photo/video count. A **CDN ✓** badge appears in the row meta when `r2_synced` is true.
+
+**Worker routing — `worker/src/gallery-proxy.js`**
+- `SYNO.Foto.Thumbnail` GET on r2-synced galleries: checks `galleries/{id}/thumbs/{photoId}.jpg` in R2 first; serves with `Cache-Control: public, max-age=86400` and `X-Asset-Source: r2`. Falls back to NAS on miss.
+- `SYNO.Foto.Download` GET (video playback/download): checks `galleries/{id}/videos/{unitId}` in R2; serves with full HTTP Range request support (206 partial content) for video seeking. Falls back to NAS transparently. No flag check required — a key miss is fast.
+
+**Session token** — `tok:{sid}` now stores `galleryId` and `r2Synced` so the proxy avoids an extra KV lookup per thumbnail request.
+
+**GitHub Actions workflow** — `.github/workflows/sync-gallery-to-r2.yml` manual-dispatch workflow for re-syncing existing galleries; accepts gallery ID (or blank for all) and target environment (preprod / prod). Shell script `worker/scripts/sync-gallery-to-r2.sh` drives the pagination loop.

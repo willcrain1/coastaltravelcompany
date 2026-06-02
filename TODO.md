@@ -408,14 +408,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 29. Enhance Gallery Admin
-
-**Goal:** Fix issues with the gallery admin page.
-
-- [ ] Auth method is shown as "Google Only" in the UI, but these users can login with password auth + Google. Investigate how "Google Only" is being determined — `thecoastaltravelcompany@gmail.com` has not logged in with Google auth but shows "Google Only"
-
----
-
 ## 30. Customer Photo Sharing
 
 **Goal:** Allow customers to share photo albums with up to 5 users via email invite. Only the primary album user (set by the admin) can share. Primary user can revoke shares and see pending vs. accepted status. All activity visible in `gallery-admin.html`.
@@ -458,47 +450,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 36. Resolve npm Dependency Vulnerabilities in Worker
-
-**Goal:** Eliminate the 5 known vulnerabilities in `worker/package.json` (4 moderate, 1 high).
-
-- [ ] **undici — CRLF Injection (high):** [GHSA-4992-7rv2-5pvq](https://github.com/advisories/GHSA-4992-7rv2-5pvq) — present via `miniflare` → `undici`
-- [ ] **ws — Uninitialized memory disclosure (moderate):** [GHSA-58qx-3vcg-4xpx](https://github.com/advisories/GHSA-58qx-3vcg-4xpx) — present via `miniflare` → `ws`
-- [ ] Fix requires upgrading `wrangler` to ≥ 4.93.0 (`npm audit fix --force` in `worker/`) — test for breaking changes before merging
-- [ ] Verify worker deploys and acceptance tests pass after the upgrade
-
----
-
-## 37. Hybrid Data Load Approach
-
-**Goal:** Use the NAS as the primary backup/archive for all original files. Serve active gallery thumbnails, static site assets, and splat files from Cloudflare R2 to reduce NAS load and improve global delivery.
-
-### Phase 1 — R2 infrastructure
-
-- [ ] Create R2 bucket `ctc-assets` in the Cloudflare dashboard; add a second bucket `ctc-assets-preprod` for staging
-- [ ] Bind both buckets in `wrangler.toml`: `ASSETS` binding for prod and preprod environments respectively
-- [ ] Define the key-space layout:
-  - `site/` — static site assets
-  - `galleries/{passphrase}/thumbs/{id}.jpg` — active gallery thumbnails cached from NAS
-  - `splats/{slug}/scene.splat` — 3D splat files
-
-### Phase 2 — NAS → R2 sync
-
-- [ ] Write `worker/scripts/sync-gallery-to-r2.sh`: enumerate active galleries from D1, download thumbnails from NAS, upload to R2
-- [ ] Add `r2_synced BOOLEAN DEFAULT 0` column to `galleries` table in a new D1 migration
-- [ ] Add a GitHub Actions workflow `sync-gallery-to-r2.yml` (manual trigger initially; scheduled cron once validated)
-
-### Phase 3 — Worker routing changes
-
-- [ ] In `worker/src/router.js`: check D1 `r2_synced` flag; if true, serve from R2; if false, fall back to NAS proxy
-- [ ] Add `Cache-Control: public, max-age=86400` to R2-served responses
-- [ ] Add `X-Asset-Source: r2 | nas` response header for observability
-
-### Phase 4 — Acceptance test
-
-- [ ] Add Playwright test: create gallery in admin (preprod), trigger sync, load gallery page, confirm `X-Asset-Source: r2`
-
----
 
 ## 38. Add Real Estate Client Type
 
@@ -620,35 +571,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 43. Close Playwright e2e Coverage Gaps (Remaining)
-
-### Stripe webhook completion
-
-- [ ] Use Stripe CLI (`stripe trigger checkout.session.completed`) in CI to fire a realistic webhook event against the preprod Worker
-- [ ] Assert invoice status changes from `sent` → `paid` in D1 after webhook fires
-- [ ] Assert project stage advances to `Retainer Paid` in the pipeline view
-- [ ] Add `STRIPE_CLI_API_KEY` to GitHub Actions secrets and install `stripe` CLI in the acceptance-tests job
-
-### Admin countersigning
-
-- [ ] Extend `contract.spec.js`: after client signs, log in as admin, navigate to project contracts tab, click countersign
-- [ ] Assert contract status advances to `fully_executed`
-- [ ] Assert both signatures and full audit trail render on the public contract view
-- [ ] Assert both parties receive confirmation emails (gate behind `MAILOSAUR_API_KEY` per item 42)
-
-### Password reset full flow
-
-- [ ] Full token interception: register → intercept real verify token from KV → navigate to verify URL → assert account becomes loginable (requires Mailosaur from item 42 or a Worker test-helper endpoint)
-- [ ] Full reset with email delivery: trigger reset → receive email → follow link → set new password → log in (gate email step behind `MAILOSAUR_API_KEY` per item 42)
-
-### Admin user management and gallery assignment
-
-- [ ] Add a test that creates a new client user via admin UI and assigns a gallery to them
-- [ ] Log in as the new client and assert the assigned gallery appears in their portal
-- [ ] Assert a gallery removed from the user no longer appears in their portal
-
----
-
 ## 46. Advanced Clickstream Analytics & User Behavior Tracking
 
 **Goal:** Understand what visitors are looking at on each page, how long they spend in specific sections, where attention drops off, and what content drives inquiry.
@@ -716,3 +638,6 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 ### CLAUDE.md cleanup (after tests pass)
 
 - [ ] **Update preprod test checklist in `CLAUDE.md`** — remove manual email verification steps; replace with a note that these are automated via Mailosaur
+
+---
+
