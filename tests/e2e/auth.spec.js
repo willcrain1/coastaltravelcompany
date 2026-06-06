@@ -363,7 +363,10 @@ test.describe('JWT localStorage fallback', () => {
   test('successful password login stores JWT token in localStorage', async ({ page, context }) => {
     let loggedIn = false;
     await mockWorker(context, {
-      'GET /auth/setup-status': (r) => json(r, { configured: true }),
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
       'POST /auth/login': async (route) => {
         loggedIn = true;
         await route.fulfill({
@@ -418,6 +421,10 @@ test.describe('JWT localStorage fallback', () => {
         loggedIn = false;
         await route.fulfill({ status: 200, headers: CORS, body: '{"ok":true}' });
       },
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
     });
 
     await page.addInitScript((jwt) => localStorage.setItem('ctc_jwt', jwt), 'pre-logout-jwt');
@@ -426,7 +433,7 @@ test.describe('JWT localStorage fallback', () => {
     await expect(page.locator('#adminEmail')).toHaveText('admin@test.com', { timeout: 10_000 });
 
     // Trigger sign-out
-    await page.click('#signOutBtn');
+    await page.click('.sign-out-btn');
     await page.waitForURL(/\/login(\.html)?/, { timeout: 10_000 });
 
     // ctc_jwt must be cleared from localStorage by signOut()
@@ -448,7 +455,10 @@ test.describe('Google Sign-In double-init prevention', () => {
 
   test('google.accounts.id.initialize called exactly once regardless of init trigger order', async ({ page, context }) => {
     await mockWorker(context, {
-      'GET /auth/setup-status': (r) => json(r, { configured: true }),
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
       'GET /auth/me': (r) => r.fulfill({ status: 401, headers: CORS, body: '{}' }),
     });
 
