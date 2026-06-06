@@ -108,6 +108,11 @@
     </form>
   </div>
 
+  <h2 class="sh">R2 Storage Usage</h2>
+  <div class="card" id="r2StorageCard" style="margin-bottom:32px;">
+    <div id="r2StorageBody" style="font-family:'Montserrat',sans-serif; font-size:12px; color:var(--dim);">Loading…</div>
+  </div>
+
   <h2 class="sh">Active Galleries</h2>
   <div id="galleryList"></div>
 
@@ -665,6 +670,73 @@
     toast('Walkthrough removed');
   }
 
+  // ── R2 storage usage ─────────────────────────────────────────────────────────
+  function fmtBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2) + ' ' + units[i];
+  }
+
+  async function loadR2Storage() {
+    const body = document.getElementById('r2StorageBody');
+    const { ok, data } = await apiFetch('/admin/galleries/r2-storage', { method: 'GET' });
+    if (!ok) {
+      body.innerHTML = '<span style="color:#c0392b;">Failed to load R2 storage usage'
+        + (data && data.error ? ': ' + esc(data.error) : '') + '</span>';
+      return;
+    }
+
+    const rows = Object.entries(data.galleries).map(([galleryId, g]) => {
+      const gallery   = getGallery(galleryId);
+      const name      = gallery ? gallery.eventName : galleryId;
+      const photoBytes = g.photos.bytes;
+      const videoBytes = g.videos.bytes;
+      const total      = photoBytes + videoBytes;
+      return { galleryId, name, photoCount: g.photos.count, photoBytes, videoCount: g.videos.count, videoBytes, total };
+    }).sort((a, b) => b.total - a.total);
+
+    const rowsHtml = rows.map(r => `
+      <tr>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee);">${esc(r.name)}</td>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee); text-align:right;">${r.photoCount} (${fmtBytes(r.photoBytes)})</td>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee); text-align:right;">${r.videoCount} (${fmtBytes(r.videoBytes)})</td>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee); text-align:right; font-weight:600;">${fmtBytes(r.total)}</td>
+      </tr>`).join('');
+
+    const totalGB = data.totalBytes / (1024 ** 3);
+    const overFreeTier = data.overFreeTier;
+
+    body.innerHTML = `
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="text-transform:uppercase; letter-spacing:0.08em; font-size:10px; color:var(--dim);">
+            <th style="text-align:left; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Album</th>
+            <th style="text-align:right; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Photos</th>
+            <th style="text-align:right; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Videos</th>
+            <th style="text-align:right; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml || '<tr><td colspan="4" style="padding:12px; color:var(--dim);">No data synced to R2 yet.</td></tr>'}</tbody>
+      </table>
+      <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border,#ddd); display:flex; flex-wrap:wrap; gap:24px; align-items:baseline;">
+        <div><strong style="font-size:15px; color:var(--black);">${fmtBytes(data.totalBytes)}</strong> total in R2</div>
+        <div>Cloudflare R2 free tier: <strong>${data.freeTier.storageGB} GB</strong> storage / month</div>
+        ${overFreeTier
+          ? `<div style="color:#c0392b; font-weight:600;">
+               Exceeding free tier by ${data.billableGB.toFixed(2)} GB —
+               estimated cost: ~$${data.estimatedMonthlyCostUSD.toFixed(2)}/month
+               (at $${data.freeTier.pricePerGBOverage}/GB-month)
+             </div>`
+          : `<div style="color:var(--ok,#2e7d32); font-weight:600;">Within free tier (${totalGB.toFixed(2)} / ${data.freeTier.storageGB} GB) — $0/month</div>`
+        }
+      </div>
+      <p style="margin:12px 0 0; font-size:10px; color:var(--dim);">
+        Estimate covers R2 storage only (Standard, $${data.freeTier.pricePerGBOverage}/GB-month beyond ${data.freeTier.storageGB} GB).
+        Class A/B operations have separate free allowances not included here — negligible at this site's traffic.
+      </p>`;
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
@@ -672,6 +744,7 @@
     updateEnvUI();
     await loadGalleries();
     await loadWalkthroughs();
+    loadR2Storage();
   }
 
   init();

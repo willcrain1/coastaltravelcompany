@@ -48,6 +48,9 @@ const ALLOWLIST = new Set([
   'POST /auth/logout',
   // R2 sync endpoint — admin-only; covered by gallery.spec.js R2 hybrid serving tests (item 37)
   'POST /admin/galleries/:id/sync-r2',
+  // R2 storage usage endpoint — admin-only dashboard read; lists live R2 bucket
+  // contents, not feasible to exercise meaningfully without seeded R2 fixtures
+  'GET /admin/galleries/r2-storage',
   // CMS endpoints require GITHUB_TOKEN — covered by cms.spec.js mocking the Worker
   'GET /admin/cms/pages',
   'GET /admin/cms/page',

@@ -187,3 +187,55 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
     next_offset: done ? null : offset + items.length,
   });
 }
+
+// Cloudflare R2 Standard storage pricing (storage only — operations have separate
+// free allowances that are negligible for this site's traffic, so omitted here).
+const R2_FREE_GB    = 10;
+const R2_PRICE_PER_GB = 0.015; // USD per GB-month beyond the free tier
+
+export async function handleAdminR2Storage(request, env) {
+  const payload = await getAuth(request, env);
+  if (!payload) return authRequired();
+  if (payload.role !== 'admin') return forbidden();
+
+  if (!env.ASSETS) return jsonResponse({ error: 'R2 bucket (ASSETS) not bound' }, 503);
+
+  const galleries = {};
+  let totalBytes = 0;
+  let cursor;
+
+  do {
+    const page = await env.ASSETS.list({ prefix: 'galleries/', cursor, limit: 1000 });
+    for (const obj of page.objects) {
+      // Keys look like: galleries/{galleryId}/thumbs/{id}.jpg or galleries/{galleryId}/videos/{id}
+      const m = obj.key.match(/^galleries\/([^/]+)\/(thumbs|videos)\//);
+      if (!m) continue;
+      const [, galleryId, kind] = m;
+      if (!galleries[galleryId]) {
+        galleries[galleryId] = { photos: { count: 0, bytes: 0 }, videos: { count: 0, bytes: 0 } };
+      }
+      const bucket = kind === 'thumbs' ? galleries[galleryId].photos : galleries[galleryId].videos;
+      bucket.count += 1;
+      bucket.bytes += obj.size;
+      totalBytes += obj.size;
+    }
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+
+  const totalGB = totalBytes / (1024 ** 3);
+  const billableGB = Math.max(0, totalGB - R2_FREE_GB);
+  const estimatedMonthlyCost = billableGB * R2_PRICE_PER_GB;
+
+  return jsonResponse({
+    ok: true,
+    totalBytes,
+    galleries,
+    freeTier: {
+      storageGB: R2_FREE_GB,
+      pricePerGBOverage: R2_PRICE_PER_GB,
+    },
+    overFreeTier: totalGB > R2_FREE_GB,
+    billableGB,
+    estimatedMonthlyCostUSD: estimatedMonthlyCost,
+  });
+}
