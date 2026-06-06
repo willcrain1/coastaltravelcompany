@@ -165,7 +165,7 @@ jobs:
         run: npm ci
       - name: Generate wrangler.toml
         env:
-          CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
+          CF_WORKER_NAME: coastal-gallery-proxy
           KV_ID: ${{ needs.provision-kv.outputs.kv_id }}
           D1_ID: ${{ needs.provision-d1.outputs.d1_id }}
         run: |
