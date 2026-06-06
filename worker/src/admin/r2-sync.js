@@ -131,12 +131,14 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
     const isVideo = item.type === 'video' ||
       (item.filename && /\.(mp4|mov|m4v|avi|mkv|webm)$/i.test(item.filename));
     if (isVideo) {
+      // SYNO.Foto.Download rejects requests carrying _sharing_id (error 804) — unlike
+      // Thumbnail/Browse, it expects auth via sid + X-SYNO-SHARING header only, matching
+      // how client-gallery.html's dlUrl() calls it.
       const vidParams = new URLSearchParams({
-        api:         'SYNO.Foto.Download',
-        version:     '1',
-        method:      'download',
-        unit_id:     String(thumbId),
-        _sharing_id: gallery.passphrase,
+        api:     'SYNO.Foto.Download',
+        version: '1',
+        method:  'download',
+        unit_id: String(item.id),
       });
       if (nasAuth.sid) vidParams.set('sid', nasAuth.sid);
 
@@ -149,7 +151,7 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
           videosFailed++;
         } else {
           // Stream body directly to R2 — avoids loading the full file into Worker memory
-          await env.ASSETS.put(`galleries/${galleryId}/videos/${thumbId}`, vidRes.body, {
+          await env.ASSETS.put(`galleries/${galleryId}/videos/${item.id}`, vidRes.body, {
             httpMetadata: { contentType: vidCt, cacheControl: 'public, max-age=86400' },
           });
           videosSynced++;
