@@ -381,7 +381,9 @@
     if (masqToken) {
       return fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'Authorization': 'Bearer ' + masqToken } });
     }
-    return fetch(url, { ...opts, credentials: 'include' });
+    const jwt = localStorage.getItem(JWT_KEY);
+    const headers = jwt ? { ...(opts.headers || {}), 'Authorization': 'Bearer ' + jwt } : (opts.headers || {});
+    return fetch(url, { ...opts, credentials: 'include', headers });
   }
 
   let currentUser = null;

@@ -29,7 +29,7 @@ import { execSync, spawn }  from 'child_process';
 const STRIPE_CLI_API_KEY = process.env.STRIPE_CLI_API_KEY;
 const WORKER_URL         = process.env.WORKER_URL;
 const PREPROD_ADMIN_JWT  = process.env.PREPROD_ADMIN_JWT;
-const DEFAULT_PROD_URL   = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+const DEFAULT_PROD_URL   = 'https://api.coastaltravelcompany.com';
 
 const hasRequiredEnv = !!(
   STRIPE_CLI_API_KEY &&
