@@ -525,8 +525,11 @@
   const WORKER_URL = CTC_CONFIG.workerUrl;
   const JWT_KEY = 'ctc_jwt';
   const USER_KEY = 'ctc_user';
+  const MASQUERADE_TOKEN_KEY = 'ctc_masquerade_token';
+  const MASQUERADE_USER_KEY  = 'ctc_masquerade_user';
   let token = location.hash.slice(1);
   const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
+  const isMasquerade   = !!sessionStorage.getItem(MASQUERADE_TOKEN_KEY);
   let projectData = null;
 
   const STAGES = ['Inquiry','Proposal Sent','Contract Sent','Contract Signed','Retainer Paid','Active','Delivered','Complete'];
@@ -551,6 +554,27 @@
     window.location.href = '/login.html';
   }
 
+  async function exitMasquerade() {
+    const masqToken = sessionStorage.getItem(MASQUERADE_TOKEN_KEY);
+    if (masqToken) {
+      await fetch(WORKER_URL + '/admin/masquerade/exit', {
+        method:  'POST',
+        headers: { 'Authorization': 'Bearer ' + masqToken },
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem(MASQUERADE_TOKEN_KEY);
+    sessionStorage.removeItem(MASQUERADE_USER_KEY);
+    window.location.href = '/admin/clients.html';
+  }
+
+  function authFetch(url, opts = {}) {
+    const masqToken = isMasquerade ? sessionStorage.getItem(MASQUERADE_TOKEN_KEY) : null;
+    if (masqToken) {
+      return fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'Authorization': 'Bearer ' + masqToken } });
+    }
+    return fetch(url, { ...opts, credentials: 'include' });
+  }
+
   async function load() {
     if (!token) { showError('No portal link found. Please use the link from your email.'); return; }
     try {
@@ -558,7 +582,7 @@
       document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
       document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
-      const res = await fetch(WORKER_URL + '/portal/project/' + token, { credentials: 'include' });
+      const res = await authFetch(WORKER_URL + '/portal/project/' + token);
       if (res.status === 401) {
         window.location.href = '/login.html?redirect=' + encodeURIComponent(location.href);
         return;
@@ -672,11 +696,10 @@
     if (!content) return;
     btn.disabled = true;
     try {
-      const res = await fetch(WORKER_URL + '/portal/project/' + token, {
-        method:      'POST',
-        headers:     { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body:        JSON.stringify({ content }),
+      const res = await authFetch(WORKER_URL + '/portal/project/' + token, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ content }),
       });
       if (res.ok) {
         const msg = await res.json();
@@ -693,14 +716,34 @@
   }
 
   async function loadOrCreate() {
-    // Single /auth/me call: populates nav, validates session, checks admin preview
-    const meRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
+    // Masquerade: validate token still present; redirect out if session expired
+    if (isMasquerade && !sessionStorage.getItem(MASQUERADE_TOKEN_KEY)) {
+      window.location.href = '/admin/clients.html';
+      return;
+    }
+
+    // Single /auth/me call: populates nav, validates session, checks admin/masquerade state
+    const meRes = await authFetch(WORKER_URL + '/auth/me').catch(() => null);
     const me    = meRes?.ok ? await meRes.json().catch(() => null) : null;
 
     const navLink = document.getElementById('navAccountLink');
     if (navLink && me) { navLink.textContent = me.name || me.email; navLink.title = me.email; }
 
     if (isAdminPreview && me?.role === 'admin') showAdminPreviewBanner();
+
+    if (isMasquerade && me) {
+      let masqUserName = me.name || me.email;
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(MASQUERADE_USER_KEY) || '{}');
+        masqUserName = saved.name || saved.email || masqUserName;
+      } catch {}
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
+      banner.innerHTML = `Admin View — Viewing portal as <strong>${masqUserName}</strong> &nbsp;&middot;&nbsp; <a href="#" onclick="exitMasquerade();return false;" style="color:#000;text-decoration:underline;">Exit Masquerade</a>`;
+      document.body.prepend(banner);
+      document.querySelector('.portal-shell-nav').style.top = '33px';
+      document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '125px';
+    }
 
     if (token) { await load(); return; }
 
@@ -714,7 +757,7 @@
     document.getElementById('profileTabLink').href  = portalHref('/profile.html');
 
     try {
-      const res = await fetch(WORKER_URL + '/portal/my-project', { credentials: 'include' }).catch(() => null);
+      const res = await authFetch(WORKER_URL + '/portal/my-project').catch(() => null);
 
       if (!res || res.status === 401) {
         window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
