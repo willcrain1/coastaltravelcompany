@@ -428,4 +428,93 @@ describe('handleAdminGallerySyncR2', () => {
     expect(r.status).toBe(502);
     expect((await r.json()).error).toContain('list fetch failed');
   });
+
+  // ── Regression: thumbnail API params (type=unit&size=xl) ─────────────────────
+  // SYNO.Foto.Thumbnail uses `type` for the media kind ('unit') and `size` for the
+  // resolution ('xl'). Passing type='xl' causes the NAS to return a JSON error
+  // response (not an image), which was silently counted as `failed` for all items.
+
+  it('regression: thumbnail request uses type=unit and size=xl (not type=xl)', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    const thumbUrls = [];
+    const mockJpeg  = new Uint8Array([0xff, 0xd8]).buffer;
+
+    // Browse.Item is a POST with params in the body (no query string on the URL).
+    // Thumbnail and Download are GETs with params as query string.
+    // Differentiate by checking for query params on the URL.
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url, opts = {}) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      // getSharingSid: GET to the sharing page (path only, no webapi)
+      if (!urlStr.includes('/webapi/')) {
+        return Promise.resolve({
+          headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=sid123; Path=/' : null },
+        });
+      }
+      // Browse.Item list: POST to entry.cgi with params in body (no query string)
+      if ((opts.method || 'GET').toUpperCase() === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ success: true, data: { list: [{ id: 7 }], total: 1 } }),
+        });
+      }
+      // Thumbnail: GET to entry.cgi with api=SYNO.Foto.Thumbnail in query string
+      const api = new URL(urlStr).searchParams.get('api');
+      if (api === 'SYNO.Foto.Thumbnail') {
+        thumbUrls.push(urlStr);
+        return Promise.resolve({
+          ok: true,
+          headers: { get: () => 'image/jpeg' },
+          arrayBuffer: async () => mockJpeg,
+        });
+      }
+      return Promise.resolve({ ok: false, headers: { get: () => null } });
+    }));
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(body.synced).toBe(1);
+    expect(thumbUrls).toHaveLength(1);
+
+    const thumbUrl  = new URL(thumbUrls[0]);
+    const thumbType = thumbUrl.searchParams.get('type');
+    const thumbSize = thumbUrl.searchParams.get('size');
+    expect(thumbType).toBe('unit'); // NOT 'xl' — that was the bug
+    expect(thumbSize).toBe('xl');
+  });
+
+  it('regression: NAS JSON error response (old type=xl behavior) is counted as failed', async () => {
+    // When the NAS receives an unrecognised type parameter it returns a JSON error
+    // with content-type: application/json and ok=true. The content-type guard must
+    // catch this and increment `failed`, not `synced`.
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ // getSharingSid
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({ // Browse.Item list
+        ok: true,
+        json: async () => ({ success: true, data: { list: [{ id: 1 }, { id: 2 }], total: 2 } }),
+      })
+      .mockResolvedValue({ // All thumbnail fetches return JSON error (NAS rejects bad type param)
+        ok: true,
+        headers: { get: () => 'application/json' },
+        arrayBuffer: async () => new TextEncoder().encode('{"success":false,"error":{"code":105}}').buffer,
+      }),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.synced).toBe(0);
+    expect(body.failed).toBe(2);
+    // Gallery must NOT be marked synced when nothing actually landed in R2
+    const updated = JSON.parse(await env.KV.get('gallery:gal1'));
+    expect(updated.r2_synced).toBeFalsy();
+  });
 });

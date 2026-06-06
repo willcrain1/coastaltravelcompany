@@ -20,7 +20,7 @@
 import { test, expect } from '@playwright/test';
 import sharp            from 'sharp';
 
-const WORKER_URL  = process.env.WORKER_URL || 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+const WORKER_URL  = process.env.WORKER_URL || 'https://api.coastaltravelcompany.com';
 const SHARE_URL   = 'https://coastaltravelcompany.quickconnect.to/mo/sharing/mBKkAF4Q8';
 const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 const PROD_ORIGIN = process.env.BASE_URL   || 'https://coastaltravelcompany.com';
