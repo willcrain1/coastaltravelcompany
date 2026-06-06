@@ -152,6 +152,7 @@ jobs:
     name: Deploy Worker (preprod)
     needs: [provision-kv, provision-d1, provision-r2, run-migrations]
     runs-on: ubuntu-latest
+    environment: preprod
     defaults:
       run:
         working-directory: worker
