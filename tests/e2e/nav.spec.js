@@ -9,7 +9,7 @@
  *  8. portal-project.html tab nav shows exactly: My Account, My Project
  *
  * Admin panel (authenticated admin):
- *  9. pipeline.html admin nav shows exactly: Pipeline, Galleries, Clients, Services, Customer Portal
+ *  9. pipeline.html admin nav shows exactly: Pipeline, Galleries, Clients, Services, Content, Customer Portal
  */
 
 import { test, expect } from '@playwright/test';
@@ -26,7 +26,7 @@ const CORS = {
 
 const PUBLIC_NAV = ['Home', 'About', 'Services', 'Collections', 'Contact', 'Account'];
 const PORTAL_TABS = ['My Account', 'My Project', 'My Profile'];
-const ADMIN_NAV = ['Pipeline', 'Galleries', 'Clients', 'Services', 'Customer Portal'];
+const ADMIN_NAV = ['Pipeline', 'Galleries', 'Clients', 'Services', 'Content', 'Customer Portal'];
 
 function mockWorker(context, handlers) {
   return context.route(
