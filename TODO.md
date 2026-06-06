@@ -14,16 +14,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 5. Online Booking — Remaining Billing Automation Hooks
-
-All pipeline, proposal, questionnaire, scheduling, portal, and most automation work is complete (see CHANGELOG). Three billing-triggered automation hooks remain (no longer blocked — item 7 billing code is done):
-
-- [ ] **Contract signed** → auto-send deposit invoice, advance stage to "Retainer Paid" when deposit clears
-- [ ] **Invoice due in 3 days** → payment reminder email
-- [ ] **Final payment received** → thank-you email, stage advances to "Active"
-
----
-
 ## 11. 3D Property Walkthroughs (Gaussian Splatting)
 
 **Goal:** Offer immersive, photorealistic 3D walkthroughs of hotel rooms, lobbies, and outdoor spaces as a premium deliverable — captured via Gaussian Splatting and embedded on the client portal and public portfolio.
@@ -211,7 +201,7 @@ All pipeline, proposal, questionnaire, scheduling, portal, and most automation w
 
 ---
 
-## 18. Admin Content Editor (CMS)
+## ~~18. Admin Content Editor (CMS)~~ ✅ Done
 
 **Goal:** Allow the admin to update text and photos on every public page from the browser — no HTML editing or git required.
 

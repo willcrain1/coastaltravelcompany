@@ -4,6 +4,20 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 5 — Online Booking: Billing Automation Hooks
+
+Three billing-triggered automation hooks wired into the hourly cron scheduler and the invoice paid event:
+
+**Contract signed → deposit invoice** (`worker/src/admin/automations.js`, `contract_signed_deposit_invoice`): Hourly cron finds projects in `Contract Signed` stage with no existing invoices. If an approved proposal with a selected package exists, auto-creates a 50%-deposit invoice (line item: "Deposit — [Package Name]", due 7 days out), records it in `project_documents`, sends the invoice email directly to the client, and logs the action. If no approved proposal/package is found, sends the admin a notification to create the invoice manually. Deduplication via `automation_logs` prevents repeat sends.
+
+**Invoice due in 3 days → payment reminder** (`worker/src/admin/automations.js`, `invoice_due_reminder`): Hourly cron queries all `sent` invoices whose `due_date` falls within today through 3 days from now. For each, sends a payment reminder email with a direct pay link. Deduplication is per-invoice (invoice ID stored as action in `automation_logs`) so a second invoice for the same project can still generate its own reminder.
+
+**Final payment received → thank-you + stage advance** (`worker/src/admin/invoices.js`): When an invoice is marked paid — either via Stripe webhook (`checkout.session.completed`) or admin manual marking (PUT `/admin/invoices/:id`) — the handler now queries for any remaining unpaid/non-void invoices on the same project. If none remain, the project stage advances to `Active` (instead of `Retainer Paid`) and a "Booking confirmed — thank you!" email is sent to the client. Intermediate payments (deposit before final) still advance to `Retainer Paid` and send the standard payment-received email.
+
+**Migration** (`worker/migrations/017_billing_automation_hooks.sql`): Seeds three new `automation_settings` rows (`a7`–`a9`) for the new trigger keys, all disabled by default so the admin can enable them via the automations panel.
+
+---
+
 ### 43 — Close Playwright e2e Coverage Gaps
 
 **Stripe webhook** (`tests/e2e/webhook.spec.js`): Full live integration test using the Stripe CLI. Creates a project + invoice via preprod Worker API, fires `stripe trigger checkout.session.completed` with `invoice_id` in metadata via `stripe listen --forward-to`, polls until invoice status is `paid`, and asserts the project stage advances to `Retainer Paid`. Skips gracefully when `STRIPE_CLI_API_KEY`, `WORKER_URL` (preprod), or `PREPROD_ADMIN_JWT` are absent. CI wired: Stripe CLI installed in acceptance-tests job; secrets passed via `env:`.

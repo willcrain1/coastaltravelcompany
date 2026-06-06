@@ -250,6 +250,76 @@ describe('handlePublicProjectPortal', () => {
     const r   = await handlePublicProjectPortal(req, 'POST', { DB: db }, 'tok');
     expect(r.status).toBe(400);
   });
+
+  it('401 when client has an account but request is unauthenticated', async () => {
+    const kv   = makeKv();
+    const proj = { id: 'p1', client_name: 'Alice', client_email: 'a@t.com', stage: 'Active' };
+    await kv.put('user:a@t.com', JSON.stringify({ id: 'u1', email: 'a@t.com', role: 'client' }));
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all:  vi.fn()
+        .mockResolvedValueOnce({ results: [{ project_id: 'p1' }] })
+        .mockResolvedValueOnce({ results: [proj] }),
+      run:  vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = new Request('http://t/portal/project/tok', { method: 'GET' });
+    const r   = await handlePublicProjectPortal(req, 'GET', { DB: db, KV: kv, JWT_SECRET: SECRET }, 'tok');
+    expect(r.status).toBe(401);
+  });
+
+  it('403 when authenticated as wrong email (client has account)', async () => {
+    const kv   = makeKv();
+    const proj = { id: 'p1', client_name: 'Alice', client_email: 'a@t.com', stage: 'Active' };
+    await kv.put('user:a@t.com', JSON.stringify({ id: 'u1', email: 'a@t.com', role: 'client' }));
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all:  vi.fn()
+        .mockResolvedValueOnce({ results: [{ project_id: 'p1' }] })
+        .mockResolvedValueOnce({ results: [proj] }),
+      run:  vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = await makeAuthReq('http://t/portal/project/tok', 'GET', { sub: 'other@t.com', role: 'client' });
+    const r   = await handlePublicProjectPortal(req, 'GET', { DB: db, KV: kv, JWT_SECRET: SECRET }, 'tok');
+    expect(r.status).toBe(403);
+  });
+
+  it('403 on POST when client has account and project is Complete', async () => {
+    const kv   = makeKv();
+    const proj = { id: 'p1', client_name: 'Alice', client_email: 'a@t.com', stage: 'Complete' };
+    await kv.put('user:a@t.com', JSON.stringify({ id: 'u1', email: 'a@t.com', role: 'client' }));
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all:  vi.fn()
+        .mockResolvedValueOnce({ results: [{ project_id: 'p1' }] })
+        .mockResolvedValueOnce({ results: [proj] }),
+      run:  vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db  = { prepare: vi.fn().mockReturnValue(stmt) };
+    const req = await makeAuthReq('http://t/portal/project/tok', 'POST', { sub: 'a@t.com', role: 'client' }, { content: 'Hi' });
+    const r   = await handlePublicProjectPortal(req, 'POST', { DB: db, KV: kv, JWT_SECRET: SECRET }, 'tok');
+    expect(r.status).toBe(403);
+  });
+
+  it('410 when no account and project is Complete', async () => {
+    const kv   = makeKv();
+    const proj = { id: 'p1', client_name: 'Alice', client_email: 'a@t.com', stage: 'Complete' };
+    const stmt = {
+      bind: vi.fn().mockReturnThis(),
+      all:  vi.fn()
+        .mockResolvedValueOnce({ results: [{ project_id: 'p1' }] })
+        .mockResolvedValueOnce({ results: [proj] }),
+      run:  vi.fn().mockResolvedValue({}),
+    };
+    stmt.bind.mockReturnValue(stmt);
+    const db = { prepare: vi.fn().mockReturnValue(stmt) };
+    const r  = await handlePublicProjectPortal(new Request('http://t/portal/project/tok'), 'GET', { DB: db, KV: kv }, 'tok');
+    expect(r.status).toBe(410);
+  });
 });
 
 // ── handlePortalMyProject ─────────────────────────────────────────────────────

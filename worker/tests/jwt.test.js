@@ -95,27 +95,81 @@ describe('getAuth', () => {
     const req = new Request('http://test', { headers: { Cookie: 'auth_token=sometoken' } });
     expect(await getAuth(req, {})).toBeNull();
   });
+
+  // ── Bearer-to-cookie fallthrough (regression guard) ───────────────────────
+  // When a cross-origin Bearer token is expired or invalid, getAuth must fall
+  // through to the HttpOnly cookie so sliding-window refresh still works.
+
+  it('falls through to cookie when Bearer token is expired', async () => {
+    const expired     = await createJWT({ sub: 'exp@t.com', exp: pastExp() }, SECRET);
+    const cookieTok   = await createJWT({ sub: 'exp@t.com', exp: futureExp() }, SECRET);
+    const req = new Request('http://test', {
+      headers: { Authorization: `Bearer ${expired}`, Cookie: `auth_token=${cookieTok}` },
+    });
+    const result = await getAuth(req, { JWT_SECRET: SECRET });
+    expect(result?.sub).toBe('exp@t.com');
+  });
+
+  it('falls through to cookie when Bearer token has a bad signature', async () => {
+    const cookieTok = await createJWT({ sub: 'badsig@t.com', exp: futureExp() }, SECRET);
+    const req = new Request('http://test', {
+      headers: { Authorization: 'Bearer bad.invalid.token', Cookie: `auth_token=${cookieTok}` },
+    });
+    const result = await getAuth(req, { JWT_SECRET: SECRET });
+    expect(result?.sub).toBe('badsig@t.com');
+  });
+
+  it('returns null when both Bearer and cookie are expired', async () => {
+    const expBearer = await createJWT({ sub: 'both@t.com', exp: pastExp() }, SECRET);
+    const expCookie = await createJWT({ sub: 'both@t.com', exp: pastExp() }, SECRET);
+    const req = new Request('http://test', {
+      headers: { Authorization: `Bearer ${expBearer}`, Cookie: `auth_token=${expCookie}` },
+    });
+    expect(await getAuth(req, { JWT_SECRET: SECRET })).toBeNull();
+  });
+
+  it('returns null when both Bearer and cookie are invalid', async () => {
+    const req = new Request('http://test', {
+      headers: { Authorization: 'Bearer totally.bad.token', Cookie: 'auth_token=also.bad.token' },
+    });
+    expect(await getAuth(req, { JWT_SECRET: SECRET })).toBeNull();
+  });
 });
 
 describe('makeAuthCookie / clearAuthCookie', () => {
-  it('makeAuthCookie includes the token and required attributes', () => {
+  it('makeAuthCookie without domain uses SameSite=None (cross-origin workers.dev)', () => {
     const cookie = makeAuthCookie('my-jwt-token');
     expect(cookie).toContain('auth_token=my-jwt-token');
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('Secure');
     expect(cookie).toContain('SameSite=None');
+    expect(cookie).not.toContain('Domain=');
     expect(cookie).toContain('Path=/');
     expect(cookie).toContain('Max-Age=604800');
+  });
+  it('makeAuthCookie with domain uses SameSite=Lax and sets Domain (custom domain)', () => {
+    const cookie = makeAuthCookie('my-jwt-token', 604800, 'preprod.coastaltravelcompany.com');
+    expect(cookie).toContain('auth_token=my-jwt-token');
+    expect(cookie).toContain('SameSite=Lax');
+    expect(cookie).toContain('Domain=preprod.coastaltravelcompany.com');
+    expect(cookie).not.toContain('SameSite=None');
   });
   it('makeAuthCookie accepts a custom maxAge', () => {
     const cookie = makeAuthCookie('tok', 1800);
     expect(cookie).toContain('Max-Age=1800');
   });
-  it('clearAuthCookie sets Max-Age=0 to expire the cookie', () => {
+  it('clearAuthCookie without domain uses SameSite=None', () => {
     const cookie = clearAuthCookie();
     expect(cookie).toContain('auth_token=;');
     expect(cookie).toContain('Max-Age=0');
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('Secure');
+    expect(cookie).toContain('SameSite=None');
+  });
+  it('clearAuthCookie with domain uses SameSite=Lax and sets Domain', () => {
+    const cookie = clearAuthCookie('preprod.coastaltravelcompany.com');
+    expect(cookie).toContain('SameSite=Lax');
+    expect(cookie).toContain('Domain=preprod.coastaltravelcompany.com');
+    expect(cookie).toContain('Max-Age=0');
   });
 });

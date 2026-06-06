@@ -148,6 +148,22 @@ describe('handleAdminInvoice', () => {
     );
     expect(r.status).toBe(200);
   });
+  it('200 on PUT sends booking-confirmed email when final payment received', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const inv = { id: 'inv1', status: 'draft', line_items: '[]', tax_cents: 0, due_date: '', notes: '', paid_at: '', project_id: 'p1', client_name: 'Alice', client_email: 'a@t.com' };
+    const db  = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [inv] })
+      .mockResolvedValueOnce({ results: [] })
+      .mockResolvedValueOnce({ results: [{ ...inv, status: 'paid' }] });
+    const r = await handleAdminInvoice(
+      await adminReq('PUT', { status: 'paid' }),
+      'PUT', { JWT_SECRET: SECRET, DB: db, RESEND_API_KEY: 'key' }, 'inv1',
+    );
+    expect(r.status).toBe(200);
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith('https://api.resend.com/emails', expect.any(Object));
+  });
   it('200 on PUT with line_items updates totals', async () => {
     const inv = { id: 'inv1', status: 'draft', line_items: '[]', tax_cents: 0, due_date: '', notes: '', paid_at: '', project_id: 'p1' };
     const db  = makeDb([inv]);

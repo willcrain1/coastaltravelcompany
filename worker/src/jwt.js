@@ -48,12 +48,14 @@ export async function verifyJWT(token, secret) {
 
 export async function getAuth(request, env) {
   if (!env.JWT_SECRET) return null;
-  // Authorization header takes precedence (masquerade sessions, Playwright, API clients)
+  // Authorization header takes precedence (masquerade sessions, Playwright, API clients).
+  // On invalid/expired Bearer token, fall through to the HttpOnly cookie so that a
+  // refreshed cookie can still auth the session (avoids lockout on localStorage expiry).
   const auth = request.headers.get('Authorization') || '';
   if (auth.startsWith('Bearer ')) {
-    try { return await verifyJWT(auth.slice(7), env.JWT_SECRET); } catch { return null; }
+    try { return await verifyJWT(auth.slice(7), env.JWT_SECRET); } catch {}
   }
-  // Fall back to HttpOnly cookie for browser sessions
+  // HttpOnly cookie — primary auth for cookie-capable browsers
   const cookie = request.headers.get('Cookie') || '';
   const match  = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
   if (match) {
@@ -62,10 +64,16 @@ export async function getAuth(request, env) {
   return null;
 }
 
-export function makeAuthCookie(token, maxAge = 604800) {
-  return `auth_token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAge}`;
+export function makeAuthCookie(token, maxAge = 604800, domain = '') {
+  const base = `auth_token=${token}; HttpOnly; Secure; Path=/; Max-Age=${maxAge}`;
+  return domain
+    ? `${base}; SameSite=Lax; Domain=${domain}`
+    : `${base}; SameSite=None`;
 }
 
-export function clearAuthCookie() {
-  return 'auth_token=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0';
+export function clearAuthCookie(domain = '') {
+  const base = 'auth_token=; HttpOnly; Secure; Path=/; Max-Age=0';
+  return domain
+    ? `${base}; SameSite=Lax; Domain=${domain}`
+    : `${base}; SameSite=None`;
 }

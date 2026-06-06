@@ -3,7 +3,7 @@ import {
   handleAuthSetupStatus, handleAuthSetup, handleAuthRegister, handleAuthLogin,
   handleAuthMe, handleAuthVerify, handleAuthResendVerify,
   handleAuthResetRequest, handleAuthResetConfirm, handleAuthGoogle,
-  handleAuthLogout,
+  handleAuthLogout, handleAuthUpdateMe,
 } from '../src/auth.js';
 import { createJWT } from '../src/jwt.js';
 
@@ -378,6 +378,40 @@ describe('HttpOnly auth cookie — login sets Set-Cookie', () => {
   });
 });
 
+// ── Login response body includes token (localStorage JWT fallback) ────────────
+// Regression guard: storeAuth() in login.html writes token to localStorage so
+// admin-shared.js can send it as Authorization: Bearer for cross-origin requests
+// that cannot rely on SameSite=None cookies (.workers.dev domain).
+
+describe('login response body includes token for localStorage storage', () => {
+  it('handleAuthSetup body includes token field', async () => {
+    const env = makeEnv();
+    const r   = await handleAuthSetup(post('http://t', { email: 'ls@test.com', password: 'pass1234' }), env);
+    const b   = await r.json();
+    expect(b.token).toBeTruthy();
+    expect(typeof b.token).toBe('string');
+    expect(b.token.split('.').length).toBe(3);
+  });
+  it('handleAuthLogin body includes token field', async () => {
+    const env = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'ls2@test.com', password: 'pass1234' }), env);
+    const r = await handleAuthLogin(post('http://t', { email: 'ls2@test.com', password: 'pass1234' }), env);
+    const b = await r.json();
+    expect(b.token).toBeTruthy();
+    expect(typeof b.token).toBe('string');
+    expect(b.token.split('.').length).toBe(3);
+  });
+  it('handleAuthGoogle body includes token field', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ aud: 'gid', email: 'gls@test.com', email_verified: 'true' }),
+    }));
+    const r = await handleAuthGoogle(post('http://t', { credential: 'x' }), makeEnv({ GOOGLE_CLIENT_ID: 'gid' }));
+    const b = await r.json();
+    expect(b.token).toBeTruthy();
+    expect(b.token.split('.').length).toBe(3);
+  });
+});
+
 // ── Logout ────────────────────────────────────────────────────────────────────
 
 describe('handleAuthLogout', () => {
@@ -392,5 +426,93 @@ describe('handleAuthLogout', () => {
     expect(cookie).toContain('auth_token=;');
     expect(cookie).toContain('Max-Age=0');
     expect(cookie).toContain('HttpOnly');
+  });
+});
+
+// ── handleAuthUpdateMe ────────────────────────────────────────────────────────
+
+describe('handleAuthUpdateMe', () => {
+  it('401 when not authenticated', async () => {
+    const r = await handleAuthUpdateMe(new Request('http://t', { method: 'PUT', body: '{}', headers: { 'Content-Type': 'application/json' } }), makeEnv());
+    expect(r.status).toBe(401);
+  });
+
+  it('400 when body is invalid JSON', async () => {
+    const env   = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'upd@test.com', password: 'pass1234' }), env);
+    const login = await handleAuthLogin(post('http://t', { email: 'upd@test.com', password: 'pass1234' }), env);
+    const { token } = await login.json();
+    const req = new Request('http://t', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: 'not json' });
+    const r   = await handleAuthUpdateMe(req, env);
+    expect(r.status).toBe(400);
+  });
+
+  it('200 updates display name', async () => {
+    const env   = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'nameupd@test.com', password: 'pass1234' }), env);
+    const login = await handleAuthLogin(post('http://t', { email: 'nameupd@test.com', password: 'pass1234' }), env);
+    const { token } = await login.json();
+    const req = new Request('http://t', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Alice' }) });
+    const r   = await handleAuthUpdateMe(req, env);
+    expect(r.status).toBe(200);
+    expect((await r.json()).name).toBe('Alice');
+  });
+
+  it('400 when newPassword provided without currentPassword', async () => {
+    const env   = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'np1@test.com', password: 'pass1234' }), env);
+    const login = await handleAuthLogin(post('http://t', { email: 'np1@test.com', password: 'pass1234' }), env);
+    const { token } = await login.json();
+    const req = new Request('http://t', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword: 'newpass12' }) });
+    const r   = await handleAuthUpdateMe(req, env);
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toContain('Current password');
+  });
+
+  it('400 when newPassword is too short', async () => {
+    const env   = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'np2@test.com', password: 'pass1234' }), env);
+    const login = await handleAuthLogin(post('http://t', { email: 'np2@test.com', password: 'pass1234' }), env);
+    const { token } = await login.json();
+    const req = new Request('http://t', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword: 'short', currentPassword: 'pass1234' }) });
+    const r   = await handleAuthUpdateMe(req, env);
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toContain('8 characters');
+  });
+
+  it('400 when currentPassword is incorrect', async () => {
+    const env   = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'np3@test.com', password: 'pass1234' }), env);
+    const login = await handleAuthLogin(post('http://t', { email: 'np3@test.com', password: 'pass1234' }), env);
+    const { token } = await login.json();
+    const req = new Request('http://t', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword: 'newpass12', currentPassword: 'wrongpass' }) });
+    const r   = await handleAuthUpdateMe(req, env);
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toContain('incorrect');
+  });
+
+  it('200 updates password when currentPassword is correct', async () => {
+    const env   = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'np4@test.com', password: 'pass1234' }), env);
+    const login = await handleAuthLogin(post('http://t', { email: 'np4@test.com', password: 'pass1234' }), env);
+    const { token } = await login.json();
+    const req = new Request('http://t', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword: 'newpass12', currentPassword: 'pass1234' }) });
+    const r   = await handleAuthUpdateMe(req, env);
+    expect(r.status).toBe(200);
+    // Verify new password works
+    const newLogin = await handleAuthLogin(post('http://t', { email: 'np4@test.com', password: 'newpass12' }), env);
+    expect(newLogin.status).toBe(200);
+  });
+
+  it('400 when user has no password (Google account)', async () => {
+    const env = makeEnv();
+    // Create a Google-only user with no passwordHash
+    await env.KV.put('user:googleonly@test.com', JSON.stringify({ id: 'gid', email: 'googleonly@test.com', role: 'client', verified: true }));
+    await env.KV.put('user_id:gid', 'googleonly@test.com');
+    const token = await (await import('../src/jwt.js')).createJWT({ sub: 'googleonly@test.com', id: 'gid', role: 'client', exp: Math.floor(Date.now() / 1000) + 3600 }, SECRET);
+    const req = new Request('http://t', { method: 'PUT', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ newPassword: 'newpass12', currentPassword: 'anything' }) });
+    const r   = await handleAuthUpdateMe(req, env);
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toContain('No password set');
   });
 });

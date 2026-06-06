@@ -8,6 +8,10 @@ compatibility_date = "2024-09-23"
 [observability]
 enabled = true
 
+[vars]
+CMS_BRANCH = "master"
+# GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"  # optional — set via GOOGLE_CLIENT_ID Actions variable
+
 [[kv_namespaces]]
 binding = "KV"
 id = "your-kv-namespace-id"   # filled in by deploy-worker.sh
@@ -32,6 +36,8 @@ name = "your-worker-name-preprod"
 
 [env.preprod.vars]
 ALLOWED_ORIGIN = "https://preprod.coastaltravelcompany.com"
+CMS_BRANCH = "preprod"
+# GOOGLE_CLIENT_ID = "123456789-abc.apps.googleusercontent.com"  # same value as prod
 
 [env.preprod.observability]
 enabled = true

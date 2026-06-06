@@ -84,8 +84,24 @@ export async function handleAdminInvoice(request, method, env, invoiceId) {
       'UPDATE invoices SET status=?,due_date=?,notes=?,line_items=?,subtotal_cents=?,tax_cents=?,total_cents=?,paid_at=?,updated_at=? WHERE id=?'
     ).bind(status, due_date, notes, JSON.stringify(lineItems), totals.subtotal_cents, totals.tax_cents, totals.total_cents, paid_at, now, invoiceId).run();
     if (status === 'paid' && inv.status !== 'paid') {
+      const { results: unpaid } = await env.DB.prepare(
+        "SELECT id FROM invoices WHERE project_id=? AND status NOT IN ('paid','void')"
+      ).bind(inv.project_id).all();
+      const isFinalPayment = unpaid.length === 0;
       await env.DB.prepare('UPDATE projects SET stage=?,updated_at=? WHERE id=?')
-        .bind('Retainer Paid', now, inv.project_id).run();
+        .bind(isFinalPayment ? 'Active' : 'Retainer Paid', now, inv.project_id).run();
+      if (isFinalPayment && env.RESEND_API_KEY && inv.client_email) {
+        fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+            to: [inv.client_email],
+            subject: 'Booking confirmed — thank you!',
+            html: `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(inv.client_name)},</p><p style="font-family:sans-serif;font-size:15px">We've received your final payment — your booking is fully confirmed. We can't wait to work with you!</p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`,
+          }),
+        }).catch(() => {});
+      }
     }
     const { results: updated } = await env.DB.prepare('SELECT * FROM invoices WHERE id=?').bind(invoiceId).all();
     return jsonResponse(updated[0]);
@@ -225,8 +241,12 @@ export async function handleStripeWebhook(request, env) {
         await env.DB.prepare(
           'UPDATE invoices SET status=?,paid_at=?,stripe_payment_intent_id=?,updated_at=? WHERE id=?'
         ).bind('paid', now, session.payment_intent || '', now, invoiceId).run();
+        const { results: unpaid } = await env.DB.prepare(
+          "SELECT id FROM invoices WHERE project_id=? AND status NOT IN ('paid','void')"
+        ).bind(inv.project_id).all();
+        const isFinalPayment = unpaid.length === 0;
         await env.DB.prepare('UPDATE projects SET stage=?,updated_at=? WHERE id=?')
-          .bind('Retainer Paid', now, inv.project_id).run();
+          .bind(isFinalPayment ? 'Active' : 'Retainer Paid', now, inv.project_id).run();
         const publicUrl = `${ALLOWED_ORIGIN}/invoice.html#${inv.magic_token}`;
         if (env.RESEND_API_KEY && inv.client_email) {
           fetch('https://api.resend.com/emails', {
@@ -235,8 +255,10 @@ export async function handleStripeWebhook(request, env) {
             body: JSON.stringify({
               from: 'Coastal Travel Company <noreply@coastaltravelcompany.com>',
               to:   [inv.client_email],
-              subject: `Payment received — ${inv.invoice_number}`,
-              html: `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(inv.client_name)},</p><p style="font-family:sans-serif;font-size:15px">Thank you! We received your payment of <strong>$${(inv.total_cents / 100).toFixed(2)}</strong> for invoice ${escHtml(inv.invoice_number)}.</p><p><a href="${publicUrl}" style="color:#2A5C45;">View receipt →</a></p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`,
+              subject: isFinalPayment ? 'Booking confirmed — thank you!' : `Payment received — ${inv.invoice_number}`,
+              html: isFinalPayment
+                ? `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(inv.client_name)},</p><p style="font-family:sans-serif;font-size:15px">We've received your final payment — your booking is fully confirmed. We can't wait to work with you!</p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`
+                : `<p style="font-family:sans-serif;font-size:15px">Hi ${escHtml(inv.client_name)},</p><p style="font-family:sans-serif;font-size:15px">Thank you! We received your payment of <strong>$${(inv.total_cents / 100).toFixed(2)}</strong> for invoice ${escHtml(inv.invoice_number)}.</p><p><a href="${publicUrl}" style="color:#2A5C45;">View receipt →</a></p><p style="font-family:sans-serif;font-size:15px">Warmly,<br>Coastal Travel Company</p>`,
             }),
           }).catch(() => {});
         }
