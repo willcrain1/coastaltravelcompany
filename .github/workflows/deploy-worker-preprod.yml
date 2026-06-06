@@ -13,6 +13,7 @@ jobs:
   provision-kv:
     name: Provision KV (CTC_AUTH_PREPROD)
     runs-on: ubuntu-latest
+    environment: preprod
     outputs:
       kv_id: ${{ steps.kv.outputs.kv_id }}
     steps:
@@ -216,11 +217,12 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET_PREPROD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_PREPROD }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_PREPROD }}
+          CMS_GITHUB_TOKEN: ${{ secrets.CMS_GITHUB_TOKEN }}
         run: |
           push_secret() {
             local name=$1 value=$2
@@ -232,6 +234,7 @@ jobs:
           push_secret GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
           push_secret STRIPE_SECRET_KEY "$STRIPE_SECRET_KEY"
           push_secret STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET"
+          push_secret CMS_GITHUB_TOKEN "$CMS_GITHUB_TOKEN"
 
   # ── 5. Site ───────────────────────────────────────────────────────────────────
   deploy-site:

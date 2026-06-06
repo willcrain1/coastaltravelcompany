@@ -135,6 +135,10 @@ fi
 
 # ── Generate wrangler.toml ────────────────────────────────────────────────────
 echo "Generating wrangler.toml..."
+
+GOOGLE_LINE=""
+[ -n "$GOOGLE_CLIENT_ID" ] && GOOGLE_LINE="GOOGLE_CLIENT_ID = \"$GOOGLE_CLIENT_ID\""
+
 cat > "$SCRIPT_DIR/wrangler.toml" <<TOML
 name = "$CF_WORKER_NAME"
 main = "cloudflare-worker.js"
@@ -142,6 +146,10 @@ compatibility_date = "2024-09-23"
 
 [observability]
 enabled = true
+
+[vars]
+CMS_BRANCH = "master"
+$GOOGLE_LINE
 
 [[kv_namespaces]]
 binding = "KV"

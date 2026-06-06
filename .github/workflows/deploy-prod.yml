@@ -13,6 +13,7 @@ jobs:
   provision-kv:
     name: Provision KV (CTC_AUTH)
     runs-on: ubuntu-latest
+    environment: prod
     outputs:
       kv_id: ${{ steps.kv.outputs.kv_id }}
     steps:
@@ -203,6 +204,7 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          CMS_GITHUB_TOKEN: ${{ secrets.CMS_GITHUB_TOKEN }}
         run: |
           push_secret() {
             local name=$1 value=$2
@@ -214,6 +216,7 @@ jobs:
           push_secret GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
           push_secret STRIPE_SECRET_KEY "$STRIPE_SECRET_KEY"
           push_secret STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET"
+          push_secret CMS_GITHUB_TOKEN "$CMS_GITHUB_TOKEN"
 
   # ── 5. Site ───────────────────────────────────────────────────────────────────
   deploy-site:

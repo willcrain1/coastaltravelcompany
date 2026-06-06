@@ -201,7 +201,7 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 18. Admin Content Editor (CMS)
+## ~~18. Admin Content Editor (CMS)~~ ✅ Done
 
 **Goal:** Allow the admin to update text and photos on every public page from the browser — no HTML editing or git required.
 
