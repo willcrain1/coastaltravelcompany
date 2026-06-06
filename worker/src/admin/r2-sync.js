@@ -99,11 +99,16 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
 
     try {
       const thumbRes = await fetch(NAS_SHARE_API + '?' + thumbParams, { headers: nasHeaders });
-      if (!thumbRes.ok) { failed++; }
-      else {
+      if (!thumbRes.ok) {
+        console.error(`[r2-sync] thumb fetch HTTP ${thumbRes.status} for item ${item.id}`);
+        failed++;
+      } else {
         const ct = thumbRes.headers.get('Content-Type') || '';
-        if (!ct.startsWith('image/')) { failed++; }
-        else {
+        if (!ct.startsWith('image/')) {
+          const body = await thumbRes.text();
+          console.error(`[r2-sync] thumb non-image content-type "${ct}" for item ${item.id}:`, body.slice(0, 300));
+          failed++;
+        } else {
           const bytes = await thumbRes.arrayBuffer();
           await env.ASSETS.put(`galleries/${galleryId}/thumbs/${item.id}.jpg`, bytes, {
             httpMetadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=86400' },
@@ -111,7 +116,8 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
           synced++;
         }
       }
-    } catch {
+    } catch (err) {
+      console.error(`[r2-sync] thumb exception for item ${item.id}:`, err.message);
       failed++;
     }
 
@@ -130,6 +136,7 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
         const vidRes = await fetch(NAS_SHARE_API + '?' + vidParams, { headers: nasHeaders });
         const vidCt  = vidRes.headers.get('Content-Type') || '';
         if (!vidRes.ok || !vidCt.startsWith('video/')) {
+          console.error(`[r2-sync] video fetch HTTP ${vidRes.status} content-type "${vidCt}" for item ${item.id}`);
           videosFailed++;
         } else {
           // Stream body directly to R2 — avoids loading the full file into Worker memory
