@@ -147,6 +147,10 @@ compatibility_date = "2024-09-23"
 [observability]
 enabled = true
 
+routes = [
+  { pattern = "api.coastaltravelcompany.com", custom_domain = true }
+]
+
 [vars]
 CMS_BRANCH = "master"
 $GOOGLE_LINE

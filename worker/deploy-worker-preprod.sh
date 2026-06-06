@@ -196,13 +196,17 @@ crons = ["0 * * * *"]
 [env.preprod]
 name = "$CF_WORKER_NAME_PREPROD"
 
+[env.preprod.observability]
+enabled = true
+
+routes = [
+  { pattern = "api.preprod.coastaltravelcompany.com", custom_domain = true }
+]
+
 [env.preprod.vars]
 ALLOWED_ORIGIN = "https://preprod.coastaltravelcompany.com"
 CMS_BRANCH = "preprod"
 $GOOGLE_LINE
-
-[env.preprod.observability]
-enabled = true
 
 [[env.preprod.kv_namespaces]]
 binding = "KV"
