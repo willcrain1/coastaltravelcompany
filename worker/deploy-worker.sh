@@ -143,6 +143,7 @@ cat > "$SCRIPT_DIR/wrangler.toml" <<TOML
 name = "$CF_WORKER_NAME"
 main = "cloudflare-worker.js"
 compatibility_date = "2024-09-23"
+workers_dev = false
 
 [observability]
 enabled = true
