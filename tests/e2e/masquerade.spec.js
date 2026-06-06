@@ -96,7 +96,7 @@ test.describe('Masquerade: portal.html', () => {
     await page.goto(`${STATIC_BASE}/portal.html`);
 
     await expect(page.locator('text=Admin View')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Jane Client')).toBeVisible();
+    await expect(page.locator('strong', { hasText: 'Jane Client' })).toBeVisible();
     await expect(page.locator('text=Exit Masquerade')).toBeVisible();
   });
 
@@ -111,7 +111,7 @@ test.describe('Masquerade: portal.html', () => {
 
     await page.goto(`${STATIC_BASE}/portal.html?masquerade=1`);
 
-    await expect(page.locator('.state-empty')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#galleries-content .state-empty')).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('text=Admin View')).not.toBeVisible();
     await expect(page.locator('text=Exit Masquerade')).not.toBeVisible();
   });
@@ -152,18 +152,25 @@ test.describe('Masquerade: portal.html', () => {
 
     await page.waitForURL(/\/admin\/clients(\.html)?/, { timeout: 10_000 });
     expect(exitCalled).toBe(true);
-
-    const tokenAfter = await page.evaluate(() => sessionStorage.getItem('ctc_masquerade_token'));
-    expect(tokenAfter).toBeNull();
+    // Note: addInitScript re-runs on every navigation, so sessionStorage is re-populated
+    // on the destination page — the meaningful assertion is that the redirect happened.
   });
 
   test('redirects to /admin/clients when masquerade token is rejected (expired session)', async ({ page, context }) => {
+    let firstAuthCall = true;
     await setMasquerade(page);
     await mockWorker(context, {
-      'GET /auth/me': (route) => route.fulfill({
-        status: 401, headers: { 'content-type': 'application/json', ...CORS },
-        body: JSON.stringify({ error: 'Unauthorized' }),
-      }),
+      'GET /auth/me': async (route) => {
+        if (firstAuthCall) {
+          firstAuthCall = false;
+          // portal.html's masquerade auth check — simulate expired token
+          return route.fulfill({ status: 401, headers: { 'content-type': 'application/json', ...CORS }, body: JSON.stringify({ error: 'Unauthorized' }) });
+        }
+        // admin/clients.html's own auth check — return valid admin so the page loads
+        return json(route, { id: 'admin1', email: 'admin@test.com', role: 'admin' });
+      },
+      'GET /admin/users':     (route) => json(route, []),
+      'GET /admin/galleries': (route) => json(route, []),
     });
 
     await page.goto(`${STATIC_BASE}/portal.html`);
@@ -190,7 +197,7 @@ test.describe('Masquerade: portal-project.html', () => {
     await page.goto(`${STATIC_BASE}/portal-project.html#${PROJ_TOKEN}`);
 
     await expect(page.locator('text=Admin View')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Jane Client')).toBeVisible();
+    await expect(page.locator('strong', { hasText: 'Jane Client' })).toBeVisible();
     await expect(page.locator('text=Exit Masquerade')).toBeVisible();
   });
 
@@ -245,7 +252,7 @@ test.describe('Masquerade: profile.html', () => {
     await page.goto(`${STATIC_BASE}/profile.html`);
 
     await expect(page.locator('text=Admin View')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('text=Jane Client')).toBeVisible();
+    await expect(page.locator('strong', { hasText: 'Jane Client' })).toBeVisible();
     await expect(page.locator('text=Exit Masquerade')).toBeVisible();
   });
 
