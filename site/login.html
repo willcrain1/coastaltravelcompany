@@ -409,14 +409,26 @@
 
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
-    // Already logged in? Check via cookie-authenticated /auth/me
-    const meRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
-    if (meRes && meRes.ok) {
-      const user = await meRes.json();
-      redirect(user);
+    // Check cookie first (fast path), then fall back to localStorage Bearer token.
+    // Browsers with third-party cookie blocking (cross-origin .workers.dev) will
+    // fail the cookie check but may still have a valid JWT in localStorage.
+    const cookieRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
+    if (cookieRes && cookieRes.ok) {
+      redirect(await cookieRes.json());
       return;
     }
-    // Clear any stale user data from localStorage
+    const storedJwt = localStorage.getItem(JWT_KEY);
+    if (storedJwt) {
+      const bearerRes = await fetch(WORKER_URL + '/auth/me', {
+        credentials: 'include',
+        headers: { Authorization: 'Bearer ' + storedJwt },
+      }).catch(() => null);
+      if (bearerRes && bearerRes.ok) {
+        redirect(await bearerRes.json());
+        return;
+      }
+    }
+    // Both checks failed — clear any stale credentials
     localStorage.removeItem(JWT_KEY);
     localStorage.removeItem(USER_KEY);
 

@@ -442,6 +442,118 @@ test.describe('JWT localStorage fallback', () => {
   });
 });
 
+// ── login.html init() Bearer fallback (cross-origin cookie regression guard) ──
+// Regression guard for the fix that makes init() check Bearer before clearing
+// the localStorage JWT.
+//
+// OLD bug: init() called /auth/me with cookie only → got 401 (cookie blocked) →
+// immediately ran localStorage.removeItem('ctc_jwt') → wiped valid credentials.
+// The user was shown the login page even though they had a valid JWT, and every
+// visit to login.html silently destroyed the token.
+//
+// Fix: init() now tries Bearer from localStorage BEFORE clearing credentials.
+// Only clears when both cookie AND Bearer are rejected.
+
+test.describe('login.html init() Bearer fallback', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('init() redirects and preserves JWT when cookie is blocked but Bearer is valid', async ({ page, context }) => {
+    // Simulate cross-origin cookie blocking: cookie-only requests get 401,
+    // Bearer requests get 200. This is the exact scenario that broke preprod.
+    await mockWorker(context, {
+      'GET /auth/me': async (route, req) => {
+        const auth = req.headers()['authorization'] || '';
+        if (auth.startsWith('Bearer valid-cookie-blocked-jwt')) return adminResponse(route);
+        return route.fulfill({ status: 401, headers: CORS, body: '{"error":"cookie blocked"}' });
+      },
+    });
+
+    await page.addInitScript((jwt) => localStorage.setItem('ctc_jwt', jwt), 'valid-cookie-blocked-jwt');
+    await page.goto(`${STATIC_BASE}/login.html`);
+
+    // init() must redirect via Bearer fallback — NOT show the login form
+    await page.waitForURL(/\/pipeline(\.html)?/, { timeout: 10_000 });
+
+    // JWT must NOT have been cleared by the failed cookie check
+    const stored = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
+    expect(stored).toBe('valid-cookie-blocked-jwt');
+  });
+
+  test('init() clears stale JWT when both cookie and Bearer are rejected', async ({ page, context }) => {
+    // Both checks fail → stale credentials should be cleaned up
+    await mockWorker(context, {
+      'GET /auth/me': (route) => route.fulfill({ status: 401, headers: CORS, body: '{"error":"invalid"}' }),
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
+    });
+
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'stale-or-expired-jwt'));
+    await page.goto(`${STATIC_BASE}/login.html`);
+
+    // Should land on the login form, not redirect
+    await expect(page.locator('#loginCard')).not.toHaveClass(/hidden/, { timeout: 5_000 });
+
+    // Stale JWT must be cleared so it doesn't cause confusion on next visit
+    const stored = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
+    expect(stored).toBeNull();
+  });
+
+  test('init() does not redirect when no JWT is stored and cookie is absent', async ({ page, context }) => {
+    // Baseline: unauthenticated visit with nothing in localStorage should show login form
+    await mockWorker(context, {
+      'GET /auth/me': (route) => route.fulfill({ status: 401, headers: CORS, body: '{"error":"unauth"}' }),
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+    await expect(page.locator('#loginCard')).not.toHaveClass(/hidden/, { timeout: 5_000 });
+    expect(page.url()).toMatch(/\/login(\.html)?/);
+  });
+
+  test('Google sign-in stores JWT and redirects admin to pipeline', async ({ page, context }) => {
+    // End-to-end regression guard: after a successful /auth/google call,
+    // storeAuth() must persist the token so the admin page can auth via Bearer.
+    await mockWorker(context, {
+      'GET /auth/me': async (route, req) => {
+        const auth = req.headers()['authorization'] || '';
+        if (auth.startsWith('Bearer google-issued-jwt')) return adminResponse(route);
+        return route.fulfill({ status: 401, headers: CORS, body: '{"error":"cookie blocked"}' });
+      },
+      'POST /auth/google': (route) => route.fulfill({
+        status: 200,
+        headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ token: 'google-issued-jwt', user: { id: 'u1', email: 'admin@test.com', role: 'admin' } }),
+      }),
+    });
+
+    await context.route('https://accounts.google.com/gsi/client', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/javascript', body: '' }),
+    );
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+
+    // Trigger Google credential callback directly (bypasses actual OAuth flow)
+    await page.evaluate(() => {
+      window.google = { accounts: { id: { initialize: () => {}, renderButton: () => {} } } };
+      window.handleGoogleCredential({ credential: 'fake-google-token' });
+    });
+
+    // Must be redirected to admin panel (Bearer auth succeeded)
+    await page.waitForURL(/\/pipeline(\.html)?/, { timeout: 10_000 });
+
+    // JWT must be in localStorage so subsequent page loads also work
+    const stored = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
+    expect(stored).toBe('google-issued-jwt');
+  });
+});
+
 // ── Google Sign-In double-init prevention ─────────────────────────────────────
 // Regression guard for the googleInitialized flag added to initGoogle().
 // Without the guard, the script onload, window.load, and init() all call
