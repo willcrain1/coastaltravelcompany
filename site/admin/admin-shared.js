@@ -14,6 +14,11 @@ async function apiFetch(path, opts = {}) {
     headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(opts.body);
   }
+  // Include stored JWT as Bearer token — fallback for browsers that block
+  // cross-origin cookies (.workers.dev is a different eTLD+1 from the static site).
+  // The server accepts either cookie or Bearer; cookie is preferred when both present.
+  const jwt = localStorage.getItem(JWT_KEY);
+  if (jwt && !headers['Authorization']) headers['Authorization'] = 'Bearer ' + jwt;
   const res = await fetch(url, { ...opts, headers, credentials: 'include' });
   let data = {};
   try { data = await res.json(); } catch {}

@@ -350,3 +350,146 @@ test.describe('Google OAuth login (stubbed)', () => {
     expect(page.url()).not.toMatch(/\/portal(\.html)?/);
   });
 });
+
+// ── JWT localStorage fallback (cross-origin cookie regression guard) ──────────
+// Regression guard for the fix that restores localStorage JWT storage so that
+// browsers which block cross-origin (.workers.dev) cookies still stay logged in.
+
+test.describe('JWT localStorage fallback', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('successful password login stores JWT token in localStorage', async ({ page, context }) => {
+    let loggedIn = false;
+    await mockWorker(context, {
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
+      'POST /auth/login': async (route) => {
+        loggedIn = true;
+        await route.fulfill({
+          status: 200,
+          headers: { 'content-type': 'application/json', ...CORS },
+          body: JSON.stringify({ token: 'stored-admin-jwt', user: { id: 'u1', email: 'admin@test.com', role: 'admin' } }),
+        });
+      },
+      'GET /auth/me': (route) => loggedIn
+        ? adminResponse(route)
+        : route.fulfill({ status: 401, headers: CORS, body: '{"error":"Unauthorized"}' }),
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+    await page.fill('#loginEmail',    'admin@test.com');
+    await page.fill('#loginPassword', 'password123');
+    await page.click('#loginBtn');
+
+    await page.waitForURL(/pipeline/, { timeout: 10_000 });
+
+    const stored = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
+    expect(stored).toBe('stored-admin-jwt');
+  });
+
+  test('admin panel loads via Bearer token when cross-origin cookie is blocked', async ({ page, context }) => {
+    // Simulates third-party cookie blocking: /auth/me only returns 200 for requests
+    // that carry Authorization: Bearer — no cookie accepted.
+    await mockWorker(context, {
+      'GET /auth/me': async (route, req) => {
+        const auth = req.headers()['authorization'] || '';
+        if (auth.startsWith('Bearer mock-admin-jwt')) return adminResponse(route);
+        return route.fulfill({ status: 401, headers: CORS, body: '{"error":"cookie blocked"}' });
+      },
+    });
+
+    // Simulate post-login state: storeAuth() wrote the JWT to localStorage
+    await page.addInitScript((jwt) => localStorage.setItem('ctc_jwt', jwt), 'mock-admin-jwt');
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+
+    // apiFetch must send Authorization: Bearer so authGate passes without a cookie
+    await expect(page.locator('#adminEmail')).toHaveText('admin@test.com', { timeout: 10_000 });
+    expect(page.url()).toContain('pipeline.html');
+  });
+
+  test('sign-out removes JWT from localStorage', async ({ page, context }) => {
+    let loggedIn = true;
+    await mockWorker(context, {
+      'GET /auth/me': (route) => loggedIn
+        ? adminResponse(route)
+        : route.fulfill({ status: 401, headers: CORS, body: '{"error":"Unauthorized"}' }),
+      'POST /auth/logout': async (route) => {
+        loggedIn = false;
+        await route.fulfill({ status: 200, headers: CORS, body: '{"ok":true}' });
+      },
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
+    });
+
+    await page.addInitScript((jwt) => localStorage.setItem('ctc_jwt', jwt), 'pre-logout-jwt');
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+
+    await expect(page.locator('#adminEmail')).toHaveText('admin@test.com', { timeout: 10_000 });
+
+    // Trigger sign-out
+    await page.click('.sign-out-btn');
+    await page.waitForURL(/\/login(\.html)?/, { timeout: 10_000 });
+
+    // ctc_jwt must be cleared from localStorage by signOut()
+    const stored = await page.evaluate(() => localStorage.getItem('ctc_jwt'));
+    expect(stored).toBeNull();
+  });
+});
+
+// ── Google Sign-In double-init prevention ─────────────────────────────────────
+// Regression guard for the googleInitialized flag added to initGoogle().
+// Without the guard, the script onload, window.load, and init() all call
+// initGoogle() simultaneously — renderButton() on the same container crashes
+// with "removeChild: node is no longer a child of this node".
+
+test.describe('Google Sign-In double-init prevention', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('google.accounts.id.initialize called exactly once regardless of init trigger order', async ({ page, context }) => {
+    await mockWorker(context, {
+      'GET /auth/setup-status': (route) => route.fulfill({
+        status: 200, headers: { 'content-type': 'application/json', ...CORS },
+        body: JSON.stringify({ configured: true }),
+      }),
+      'GET /auth/me': (r) => r.fulfill({ status: 401, headers: CORS, body: '{}' }),
+    });
+
+    // Return an empty stub for the GSI script so the onload fires but nothing overrides our mock
+    await context.route('https://accounts.google.com/gsi/client', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/javascript', body: '' }),
+    );
+
+    // Inject a counting mock BEFORE the page scripts run
+    await page.addInitScript(() => {
+      window.__googleInitCount   = 0;
+      window.__googleRenderCount = 0;
+      window.google = {
+        accounts: {
+          id: {
+            initialize:   () => { window.__googleInitCount++;   },
+            renderButton: () => { window.__googleRenderCount++; },
+          },
+        },
+      };
+    });
+
+    await page.goto(`${STATIC_BASE}/login.html`);
+
+    // Allow all async init sequences (script onload, window.load, init()) to settle
+    await page.waitForLoadState('networkidle');
+
+    const initCount   = await page.evaluate(() => window.__googleInitCount);
+    const renderCount = await page.evaluate(() => window.__googleRenderCount);
+
+    expect(initCount).toBe(1);
+    expect(renderCount).toBe(1);
+  });
+});

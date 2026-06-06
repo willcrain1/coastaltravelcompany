@@ -378,6 +378,40 @@ describe('HttpOnly auth cookie — login sets Set-Cookie', () => {
   });
 });
 
+// ── Login response body includes token (localStorage JWT fallback) ────────────
+// Regression guard: storeAuth() in login.html writes token to localStorage so
+// admin-shared.js can send it as Authorization: Bearer for cross-origin requests
+// that cannot rely on SameSite=None cookies (.workers.dev domain).
+
+describe('login response body includes token for localStorage storage', () => {
+  it('handleAuthSetup body includes token field', async () => {
+    const env = makeEnv();
+    const r   = await handleAuthSetup(post('http://t', { email: 'ls@test.com', password: 'pass1234' }), env);
+    const b   = await r.json();
+    expect(b.token).toBeTruthy();
+    expect(typeof b.token).toBe('string');
+    expect(b.token.split('.').length).toBe(3);
+  });
+  it('handleAuthLogin body includes token field', async () => {
+    const env = makeEnv();
+    await handleAuthSetup(post('http://t', { email: 'ls2@test.com', password: 'pass1234' }), env);
+    const r = await handleAuthLogin(post('http://t', { email: 'ls2@test.com', password: 'pass1234' }), env);
+    const b = await r.json();
+    expect(b.token).toBeTruthy();
+    expect(typeof b.token).toBe('string');
+    expect(b.token.split('.').length).toBe(3);
+  });
+  it('handleAuthGoogle body includes token field', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ aud: 'gid', email: 'gls@test.com', email_verified: 'true' }),
+    }));
+    const r = await handleAuthGoogle(post('http://t', { credential: 'x' }), makeEnv({ GOOGLE_CLIENT_ID: 'gid' }));
+    const b = await r.json();
+    expect(b.token).toBeTruthy();
+    expect(b.token.split('.').length).toBe(3);
+  });
+});
+
 // ── Logout ────────────────────────────────────────────────────────────────────
 
 describe('handleAuthLogout', () => {
