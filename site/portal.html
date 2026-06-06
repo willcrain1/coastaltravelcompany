@@ -557,12 +557,14 @@
       return;
     }
 
-    // Build fetch options: masquerade uses explicit Authorization header; regular sessions use cookie
+    // Build fetch options: masquerade uses masq token; regular sessions use cookie + JWT Bearer fallback
     function authFetch(url, opts = {}) {
       if (masqToken) {
         return fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'Authorization': 'Bearer ' + masqToken } });
       }
-      return fetch(url, { ...opts, credentials: 'include' });
+      const jwt = localStorage.getItem(JWT_KEY);
+      const headers = jwt ? { ...(opts.headers || {}), 'Authorization': 'Bearer ' + jwt } : (opts.headers || {});
+      return fetch(url, { ...opts, credentials: 'include', headers });
     }
 
     // Verify session
