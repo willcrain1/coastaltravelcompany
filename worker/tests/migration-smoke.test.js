@@ -51,9 +51,9 @@ describe('D1 migration smoke tests', () => {
     }
   });
 
-  it('covers all 16 migration files', () => {
+  it('covers all 17 migration files', () => {
     const files = applyAll(new Database(':memory:'));
-    expect(files).toHaveLength(16);
+    expect(files).toHaveLength(17);
   });
 
   it('migrations are idempotent — re-running does not throw', () => {
@@ -64,11 +64,11 @@ describe('D1 migration smoke tests', () => {
     expect(() => applyAll(db, { lenient: true })).not.toThrow();
   });
 
-  it('automation_settings seeded with 6 rows on first run', () => {
+  it('automation_settings seeded with 9 rows on first run', () => {
     const db = new Database(':memory:');
     applyAll(db);
     const count = db.prepare('SELECT COUNT(*) AS c FROM automation_settings').get().c;
-    expect(count).toBe(6);
+    expect(count).toBe(9);
   });
 
   it('re-running does not duplicate seeded automation_settings rows', () => {

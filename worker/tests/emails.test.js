@@ -270,7 +270,9 @@ describe('Emails 9 & 10 — Stripe webhook payment received', () => {
       client_name: 'Eve', client_email: 'eve@t.com',
       total_cents: 200000, magic_token: 'mag2',
     };
-    const db = makeDb([inv]);
+    // Provide a second unpaid invoice so this is treated as an intermediate (deposit)
+    // payment rather than the final — client email subject stays "Payment received".
+    const db = makeDb([inv], [{ id: 'inv-3' }]);
     const event = JSON.stringify({
       type: 'checkout.session.completed',
       data: { object: { metadata: { invoice_id: 'inv-2' }, payment_status: 'paid', payment_intent: 'pi_123' } },

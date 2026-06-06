@@ -256,4 +256,151 @@ describe('handleScheduled', () => {
     await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
     expect(vi.mocked(fetch)).toHaveBeenCalled();
   });
+
+  // ── contract_signed_deposit_invoice ──────────────────────────────────────────
+
+  it('auto-creates and sends deposit invoice when contract signed and approved proposal with package exists', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const proj = { id: 'p1', client_name: 'Alice', client_email: 'a@t.com', stage: 'Contract Signed', property: 'Beach House', updated_at: new Date(Date.now() - 2 * 3600000).toISOString() };
+    const proposal = { id: 'prop1', selected_package_id: 'pkg1' };
+    const pkg = { id: 'pkg1', name: 'Premium Package', base_price: 200000 };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'contract_signed_deposit_invoice', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [proj] })
+      .mockResolvedValueOnce({ results: [] })         // no existing invoices
+      .mockResolvedValueOnce({ results: [] })         // not logged
+      .mockResolvedValueOnce({ results: [proposal] }) // approved proposal
+      .mockResolvedValueOnce({ results: [pkg] })      // service package
+      .mockResolvedValueOnce({ results: [{ n: 0 }] }); // COUNT for invoice number
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
+    const emailBody = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body);
+    expect(emailBody.to[0]).toBe('a@t.com');
+    expect(emailBody.subject).toContain('INV-');
+    expect(emailBody.html).toContain('$1000.00'); // 50% of $2000
+  });
+
+  it('notifies admin when contract signed but no approved proposal available', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const proj = { id: 'p2', client_name: 'Bob', client_email: 'b@t.com', stage: 'Contract Signed', property: '', updated_at: new Date(Date.now() - 2 * 3600000).toISOString() };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'contract_signed_deposit_invoice', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [proj] })
+      .mockResolvedValueOnce({ results: [] })  // no existing invoices
+      .mockResolvedValueOnce({ results: [] })  // not logged
+      .mockResolvedValueOnce({ results: [] }); // no approved proposal
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
+    const emailBody = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body);
+    expect(emailBody.subject).toContain('Action needed');
+  });
+
+  it('notifies admin when approved proposal exists but package base_price is zero', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const proj = { id: 'p3', client_name: 'Carol', client_email: 'c@t.com', stage: 'Contract Signed', property: 'Villa', updated_at: new Date(Date.now() - 2 * 3600000).toISOString() };
+    const proposal = { id: 'prop2', selected_package_id: 'pkg2' };
+    const pkg = { id: 'pkg2', name: 'Complimentary', base_price: 0 };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'contract_signed_deposit_invoice', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [proj] })
+      .mockResolvedValueOnce({ results: [] })
+      .mockResolvedValueOnce({ results: [] })
+      .mockResolvedValueOnce({ results: [proposal] })
+      .mockResolvedValueOnce({ results: [pkg] }); // base_price = 0 → admin notification
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
+    const emailBody = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body);
+    expect(emailBody.subject).toContain('Action needed');
+  });
+
+  it('skips contract_signed_deposit_invoice when existing invoices are present', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const proj = { id: 'p4', client_name: 'Dave', client_email: 'd@t.com', stage: 'Contract Signed', property: '', updated_at: new Date(Date.now() - 2 * 3600000).toISOString() };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'contract_signed_deposit_invoice', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [proj] })
+      .mockResolvedValueOnce({ results: [{ id: 'inv-existing' }] }); // existing invoice
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it('skips contract_signed_deposit_invoice when already logged', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const proj = { id: 'p5', client_name: 'Eve', client_email: 'e@t.com', stage: 'Contract Signed', property: '', updated_at: new Date(Date.now() - 2 * 3600000).toISOString() };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'contract_signed_deposit_invoice', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [proj] })
+      .mockResolvedValueOnce({ results: [] })             // no existing invoices
+      .mockResolvedValueOnce({ results: [{ id: 'log1' }] }); // already logged
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  // ── invoice_due_reminder ──────────────────────────────────────────────────────
+
+  it('sends invoice_due_reminder for invoices due within 3 days', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const today = new Date().toISOString().split('T')[0];
+    const inv = { id: 'inv-due', project_id: 'p1', invoice_number: 'INV-0001', client_email: 'a@t.com', client_name: 'Alice', total_cents: 100000, magic_token: 'tok1', due_date: today };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'invoice_due_reminder', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [] })    // no projects match the trigger
+      .mockResolvedValueOnce({ results: [inv] }) // due invoices
+      .mockResolvedValueOnce({ results: [] });   // not yet logged
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).toHaveBeenCalled();
+    const emailBody = JSON.parse(vi.mocked(fetch).mock.calls[0][1].body);
+    expect(emailBody.to[0]).toBe('a@t.com');
+    expect(emailBody.subject).toContain('Payment reminder');
+    expect(emailBody.html).toContain('$1000.00');
+  });
+
+  it('skips invoice_due_reminder when already logged for that invoice', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const today = new Date().toISOString().split('T')[0];
+    const inv = { id: 'inv-dup', project_id: 'p2', invoice_number: 'INV-0002', client_email: 'b@t.com', client_name: 'Bob', total_cents: 50000, magic_token: 'tok2', due_date: today };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'invoice_due_reminder', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [] })
+      .mockResolvedValueOnce({ results: [inv] })
+      .mockResolvedValueOnce({ results: [{ id: 'log1' }] }); // already logged
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it('skips invoice_due_reminder for invoices without client_email', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+    const today = new Date().toISOString().split('T')[0];
+    const inv = { id: 'inv-noemail', project_id: 'p3', invoice_number: 'INV-0003', client_email: '', client_name: 'Nobody', total_cents: 50000, magic_token: 'tok3', due_date: today };
+    const db = makeDb([]);
+    const stmt = db.prepare();
+    stmt.all
+      .mockResolvedValueOnce({ results: [{ trigger_key: 'invoice_due_reminder', enabled: 1, delay_hours: 0 }] })
+      .mockResolvedValueOnce({ results: [] })
+      .mockResolvedValueOnce({ results: [inv] }); // no client_email — skipped before log check
+
+    await handleScheduled({}, { DB: db, RESEND_API_KEY: 'key' });
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
 });

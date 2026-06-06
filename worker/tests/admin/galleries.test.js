@@ -132,4 +132,31 @@ describe('handleAdminDeleteGallery', () => {
     const r = await handleAdminDeleteGallery(await adminReq('DELETE'), { KV: kv, JWT_SECRET: SECRET }, 'g4');
     expect(r.status).toBe(200);
   });
+  it('200 deletes gallery and removes R2 assets when ASSETS bound (single page)', async () => {
+    const kv     = makeKv();
+    const deleted = [];
+    await kv.put('gallery:g5', JSON.stringify({ id: 'g5' }));
+    const assets = {
+      list:   vi.fn().mockResolvedValue({ objects: [{ key: 'galleries/g5/thumbs/1.jpg' }], truncated: false }),
+      delete: vi.fn().mockImplementation((keys) => { deleted.push(...keys); }),
+    };
+    const r = await handleAdminDeleteGallery(await adminReq('DELETE'), { KV: kv, JWT_SECRET: SECRET, ASSETS: assets }, 'g5');
+    expect(r.status).toBe(200);
+    expect(assets.list).toHaveBeenCalledWith({ prefix: 'galleries/g5/', cursor: undefined, limit: 1000 });
+    expect(deleted).toContain('galleries/g5/thumbs/1.jpg');
+  });
+  it('200 iterates R2 pages when listing is truncated', async () => {
+    const kv = makeKv();
+    await kv.put('gallery:g6', JSON.stringify({ id: 'g6' }));
+    const assets = {
+      list: vi.fn()
+        .mockResolvedValueOnce({ objects: [{ key: 'galleries/g6/thumbs/1.jpg' }], truncated: true, cursor: 'cursor-next' })
+        .mockResolvedValueOnce({ objects: [{ key: 'galleries/g6/thumbs/2.jpg' }], truncated: false }),
+      delete: vi.fn(),
+    };
+    const r = await handleAdminDeleteGallery(await adminReq('DELETE'), { KV: kv, JWT_SECRET: SECRET, ASSETS: assets }, 'g6');
+    expect(r.status).toBe(200);
+    expect(assets.list).toHaveBeenCalledTimes(2);
+    expect(assets.delete).toHaveBeenCalledTimes(2);
+  });
 });

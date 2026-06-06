@@ -149,6 +149,29 @@ describe('handleAdminMasqueradeStart', () => {
     expect(loggedValues[2]).toBe('admin@test.com');
     expect(loggedValues[4]).toBe('client@test.com');
   });
+
+  it('400 when request body is invalid JSON', async () => {
+    const env   = makeEnv();
+    const token = await adminToken(env);
+    const req   = new Request('http://t/admin/masquerade', {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    'not json',
+    });
+    const r = await handleAdminMasqueradeStart(req, env);
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toMatch(/Invalid body/i);
+  });
+
+  it('200 with name empty string when target user has no name field', async () => {
+    const env   = makeEnv();
+    const token = await adminToken(env);
+    await env.KV.put('user:noname@test.com', JSON.stringify({ id: 'nn-id', email: 'noname@test.com', role: 'client' }));
+    await env.KV.put('user_id:nn-id', 'noname@test.com');
+    const r    = await handleAdminMasqueradeStart(authReq(token, { target_user_id: 'nn-id' }), env);
+    expect(r.status).toBe(200);
+    expect((await r.json()).target_user.name).toBe('');
+  });
 });
 
 // ── Masquerade exit ───────────────────────────────────────────────────────────
