@@ -15,8 +15,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG="$SCRIPT_DIR/.worker-config"
 WORKER_FILE="$SCRIPT_DIR/cloudflare-worker.js"
-KV_NAME="CTC_AUTH"
-D1_NAME="CTC_PROJECTS"
+KV_NAME="${CF_KV_NAME:-CTC_AUTH}"
+D1_NAME="${CF_D1_DB:-CTC_PROJECTS}"
+R2_BUCKET="${CF_R2_BUCKET:-ctc-assets}"
 MIGRATION="$SCRIPT_DIR/migrations/001_projects.sql"
 TMP=$(mktemp)
 
@@ -159,6 +160,10 @@ $GOOGLE_LINE
 [[kv_namespaces]]
 binding = "KV"
 id = "$KV_ID"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "$R2_BUCKET"
 
 [[d1_databases]]
 binding = "DB"
