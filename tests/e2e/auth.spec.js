@@ -408,7 +408,7 @@ test.describe('JWT localStorage fallback', () => {
 
     // apiFetch must send Authorization: Bearer so authGate passes without a cookie
     await expect(page.locator('#adminEmail')).toHaveText('admin@test.com', { timeout: 10_000 });
-    expect(page.url()).toContain('pipeline.html');
+    expect(page.url()).toMatch(/pipeline(\.html)?/);
   });
 
   test('sign-out removes JWT from localStorage', async ({ page, context }) => {

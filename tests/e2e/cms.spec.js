@@ -123,8 +123,8 @@ test.describe('CMS content editor', () => {
       'GET /auth/me': (r) => r.fulfill({ status: 401, headers: CORS, body: '{}' }),
     });
     await page.goto(`${STATIC_BASE}/admin/content-editor.html`);
-    await page.waitForURL(/login\.html/, { timeout: 10_000 });
-    expect(page.url()).toContain('login.html');
+    await page.waitForURL(/\/login(\.html)?$/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/login(\.html)?$/);
   });
 
   test('client JWT redirects to /portal.html', async ({ page, context }) => {
@@ -133,8 +133,8 @@ test.describe('CMS content editor', () => {
     });
     await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-client-jwt'));
     await page.goto(`${STATIC_BASE}/admin/content-editor.html`);
-    await page.waitForURL(/portal\.html/, { timeout: 10_000 });
-    expect(page.url()).toContain('portal.html');
+    await page.waitForURL(/\/portal(\.html)?$/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/portal(\.html)?$/);
   });
 
   test('page list renders all pages from GET /admin/cms/pages', async ({ page, context }) => {
