@@ -13,7 +13,6 @@
     .cms-layout {
       display: flex;
       min-height: calc(100vh - 64px);
-      margin-top: 64px;
     }
 
     /* ── Sidebar ── */
@@ -303,16 +302,24 @@
 <body>
 
   <!-- ── Admin Nav ──────────────────────────────────────────── -->
-  <nav id="admin-nav" style="position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:#111;display:flex;align-items:center;padding:0 28px;gap:24px;border-bottom:1px solid rgba(255,255,255,0.07);">
-    <a href="../index.html" style="font-family:'Gilda Display',serif;font-size:15px;color:#fff;text-decoration:none;opacity:0.9;">Coastal</a>
-    <span style="color:rgba(255,255,255,0.2);">/</span>
-    <span style="font-size:11px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.5);">Content Editor</span>
-    <div style="margin-left:auto;display:flex;gap:16px;align-items:center;">
-      <a href="pipeline.html" style="font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Pipeline</a>
-      <a href="galleries.html" style="font-size:11px;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">Galleries</a>
-      <button id="btn-logout" style="font-size:11px;background:transparent;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.45);padding:6px 14px;border-radius:2px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;">Log out</button>
+  <header>
+    <a href="/" class="logo-wrap">
+      <span class="logo-main">Coastal</span>
+      <span class="logo-script">Travel Company</span>
+    </a>
+    <div class="header-right">
+      <span class="admin-email" id="adminEmail"></span>
+      <nav class="admin-nav">
+        <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
+        <a href="galleries.html" class="admin-nav-link">Galleries</a>
+        <a href="clients.html" class="admin-nav-link">Clients</a>
+        <a href="services.html" class="admin-nav-link">Services</a>
+        <a href="content-editor.html" class="admin-nav-link">Content</a>
+        <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link" style="color:var(--teal);">Customer Portal ↗</a>
+      </nav>
+      <button class="sign-out-btn" id="btn-logout">Sign Out</button>
     </div>
-  </nav>
+  </header>
 
   <!-- ── Layout ─────────────────────────────────────────────── -->
   <div class="cms-layout">
