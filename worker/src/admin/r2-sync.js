@@ -147,7 +147,7 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
         const vidCt  = vidRes.headers.get('Content-Type') || '';
         if (!vidRes.ok || !vidCt.startsWith('video/')) {
           const body = await vidRes.text();
-          console.error(`[r2-sync] video fetch HTTP ${vidRes.status} content-type "${vidCt}" for item ${item.id}:`, body.slice(0, 300));
+          console.error(`[r2-sync] video fetch HTTP ${vidRes.status} content-type "${vidCt}" for item ${item.id} (type=${item.type}, filename=${item.filename}, thumb_unit_id=${thumb.unit_id}):`, body.slice(0, 300));
           videosFailed++;
         } else {
           // Stream body directly to R2 — avoids loading the full file into Worker memory
