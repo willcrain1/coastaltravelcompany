@@ -73,12 +73,16 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
 
   for (const item of items) {
     // ── Thumbnail (xl) → R2 thumbs/ ─────────────────────────────────────────
+    // type='unit' identifies the media kind; size='xl' is the thumbnail resolution.
+    // Previously used type='xl' which the NAS API does not recognise, returning
+    // a JSON error (content-type: application/json) instead of the image.
     const thumbParams = new URLSearchParams({
       api:         'SYNO.Foto.Thumbnail',
       version:     '2',
       method:      'get',
       id:          String(item.id),
-      type:        'xl',
+      type:        'unit',
+      size:        'xl',
       _sharing_id: gallery.passphrase,
     });
     if (nasAuth.sid) thumbParams.set('sid', nasAuth.sid);
