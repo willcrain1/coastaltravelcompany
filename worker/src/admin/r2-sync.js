@@ -131,15 +131,17 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
     const isVideo = item.type === 'video' ||
       (item.filename && /\.(mp4|mov|m4v|avi|mkv|webm)$/i.test(item.filename));
     if (isVideo) {
-      // SYNO.Foto.Download wants the unit id from additional.thumbnail (it can differ
-      // from item.id — e.g. item 56763 vs thumb_unit_id 54764) and rejects requests
-      // carrying _sharing_id (error 804); auth is via sid + X-SYNO-SHARING header only,
-      // matching how client-gallery.html's dlUrl() / thumbUrl() resolve unit ids.
+      // Captured directly from a HAR of the public sharing-link page playing this exact
+      // video: SYNO.Foto.Download v2 takes item_id as a JSON array of item.id (not
+      // unit_id), and DOES require both passphrase and _sharing_id alongside it —
+      // our prior unit_id/version=1/no-passphrase form was simply the wrong shape (804).
       const vidParams = new URLSearchParams({
-        api:     'SYNO.Foto.Download',
-        version: '1',
-        method:  'download',
-        unit_id: String(thumbId),
+        api:         'SYNO.Foto.Download',
+        version:     '2',
+        method:      'download',
+        item_id:     `[${item.id}]`,
+        passphrase:  gallery.passphrase,
+        _sharing_id: gallery.passphrase,
       });
       if (nasAuth.sid) vidParams.set('sid', nasAuth.sid);
 
