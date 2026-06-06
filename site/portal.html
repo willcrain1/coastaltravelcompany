@@ -402,7 +402,7 @@
   const MASQUERADE_TOKEN_KEY = 'ctc_masquerade_token';
   const MASQUERADE_USER_KEY  = 'ctc_masquerade_user';
   const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
-  const isMasquerade   = new URLSearchParams(window.location.search).has('masquerade');
+  const isMasquerade   = !!sessionStorage.getItem(MASQUERADE_TOKEN_KEY);
 
   function portalHref(path, hash = '') {
     return path + (isAdminPreview ? '?preview=1' : '') + hash;
