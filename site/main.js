@@ -1,6 +1,6 @@
 // Use config.js value when available (e.g. login.html loads config.js for preprod support).
 const WORKER_URL = (typeof CTC_CONFIG !== 'undefined' && CTC_CONFIG.workerUrl)
-  || 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+  || 'https://api.coastaltravelcompany.com';
 
 // ── Nav scroll behavior ────────────────────────────────────
 const nav = document.getElementById('main-nav');

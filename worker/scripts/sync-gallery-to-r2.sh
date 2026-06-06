@@ -10,12 +10,12 @@
 #
 # Usage:
 #   ADMIN_JWT=... ./worker/scripts/sync-gallery-to-r2.sh
-#   ADMIN_JWT=... WORKER_URL=https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev \
+#   ADMIN_JWT=... WORKER_URL=https://api.preprod.coastaltravelcompany.com \
 #     ./worker/scripts/sync-gallery-to-r2.sh
 
 set -euo pipefail
 
-WORKER_URL="${WORKER_URL:-https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev}"
+WORKER_URL="${WORKER_URL:-https://api.coastaltravelcompany.com}"
 ADMIN_JWT="${ADMIN_JWT:?Error: ADMIN_JWT is required}"
 
 sync_gallery() {
