@@ -296,7 +296,7 @@ describe('handleAdminGallerySyncR2', () => {
     expect(body.videosSynced).toBe(0);
   });
 
-  it('returns done:true immediately when NAS returns empty list', async () => {
+  it('returns 502 when NAS returns empty list but total > 0 (stale session)', async () => {
     const token = await adminToken();
     const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
 
@@ -307,6 +307,27 @@ describe('handleAdminGallerySyncR2', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true, data: { list: [], total: 5 } }),
+      }),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(r.status).toBe(502);
+    expect(body.error).toMatch(/0 items.*total 5/);
+  });
+
+  it('returns done:true immediately when NAS returns genuinely empty album (total 0)', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [], total: 0 } }),
       }),
     );
 
