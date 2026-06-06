@@ -1,7 +1,7 @@
 import { jsonResponse, authRequired, forbidden } from '../utils.js';
 import { getAuth } from '../jwt.js';
 import { getGallery, putGallery } from '../kv.js';
-import { getSharingSid } from '../gallery-proxy.js';
+import { getSharingSid, sidCache } from '../gallery-proxy.js';
 import { NAS_SHARE_API } from '../constants.js';
 
 const BATCH = 20; // items processed per sync call
@@ -18,6 +18,11 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
 
   const url    = new URL(request.url);
   const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+
+  // Force a fresh NAS session on every sync — the per-isolate sidCache can hold
+  // a stale session that the NAS silently accepts but returns empty list results for,
+  // causing the sync to complete with 0 items written to R2.
+  if (offset === 0) delete sidCache[gallery.passphrase];
 
   let nasAuth;
   try {
@@ -62,8 +67,13 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
     return jsonResponse({ error: 'Failed to list NAS items: ' + err.message }, 502);
   }
 
-  // Guard: NAS returned no items but total > 0 → stale/inconsistent data, treat as done
   if (items.length === 0) {
+    // total > 0 means the NAS says there are items but returned none — treat as an error
+    // so the UI surfaces it rather than silently reporting "synced 0 items".
+    if (total > 0) {
+      return jsonResponse({ error: `NAS returned 0 items at offset ${offset} but reported total ${total}` }, 502);
+    }
+    // Genuinely empty album
     return jsonResponse({ ok: true, synced: 0, failed: 0, videosSynced: 0, videosFailed: 0,
       offset, total, done: true, next_offset: null });
   }
