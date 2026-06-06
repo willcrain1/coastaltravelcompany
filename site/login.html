@@ -390,8 +390,11 @@
   }
 
   function storeAuth(token, user) {
-    // Token now arrives as HttpOnly cookie — store only non-sensitive user data
-    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+    // Store JWT in localStorage as a Bearer-token fallback for browsers that block
+    // cross-origin cookies (third-party cookie restrictions on .workers.dev domain).
+    // The HttpOnly cookie remains the primary auth mechanism when cookies work.
+    if (token) localStorage.setItem(JWT_KEY, token);
+    if (user)  localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
 
   function redirect(user) {
@@ -461,13 +464,18 @@
   }
 
   // ── Google Sign-In ────────────────────────────────────────────────────────
+  // Guard: initGoogle() is called from three places (script onload, window.load,
+  // and init()). Only the first successful call should initialize and render.
+  let googleInitialized = false;
   function initGoogle() {
+    if (googleInitialized) return;
     if (!GOOGLE_CLIENT_ID) {
       document.getElementById('googleSection').classList.add('hidden');
       return;
     }
-    // GSI script not yet loaded — the onload callback will call us again.
+    // GSI script not yet loaded — the script's onload callback will call us again.
     if (typeof google === 'undefined') return;
+    googleInitialized = true;
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback:  handleGoogleCredential,
