@@ -64,10 +64,16 @@ export async function getAuth(request, env) {
   return null;
 }
 
-export function makeAuthCookie(token, maxAge = 604800) {
-  return `auth_token=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAge}`;
+export function makeAuthCookie(token, maxAge = 604800, domain = '') {
+  const base = `auth_token=${token}; HttpOnly; Secure; Path=/; Max-Age=${maxAge}`;
+  return domain
+    ? `${base}; SameSite=Lax; Domain=${domain}`
+    : `${base}; SameSite=None`;
 }
 
-export function clearAuthCookie() {
-  return 'auth_token=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0';
+export function clearAuthCookie(domain = '') {
+  const base = 'auth_token=; HttpOnly; Secure; Path=/; Max-Age=0';
+  return domain
+    ? `${base}; SameSite=Lax; Domain=${domain}`
+    : `${base}; SameSite=None`;
 }

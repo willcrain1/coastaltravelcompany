@@ -137,24 +137,39 @@ describe('getAuth', () => {
 });
 
 describe('makeAuthCookie / clearAuthCookie', () => {
-  it('makeAuthCookie includes the token and required attributes', () => {
+  it('makeAuthCookie without domain uses SameSite=None (cross-origin workers.dev)', () => {
     const cookie = makeAuthCookie('my-jwt-token');
     expect(cookie).toContain('auth_token=my-jwt-token');
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('Secure');
     expect(cookie).toContain('SameSite=None');
+    expect(cookie).not.toContain('Domain=');
     expect(cookie).toContain('Path=/');
     expect(cookie).toContain('Max-Age=604800');
+  });
+  it('makeAuthCookie with domain uses SameSite=Lax and sets Domain (custom domain)', () => {
+    const cookie = makeAuthCookie('my-jwt-token', 604800, 'preprod.coastaltravelcompany.com');
+    expect(cookie).toContain('auth_token=my-jwt-token');
+    expect(cookie).toContain('SameSite=Lax');
+    expect(cookie).toContain('Domain=preprod.coastaltravelcompany.com');
+    expect(cookie).not.toContain('SameSite=None');
   });
   it('makeAuthCookie accepts a custom maxAge', () => {
     const cookie = makeAuthCookie('tok', 1800);
     expect(cookie).toContain('Max-Age=1800');
   });
-  it('clearAuthCookie sets Max-Age=0 to expire the cookie', () => {
+  it('clearAuthCookie without domain uses SameSite=None', () => {
     const cookie = clearAuthCookie();
     expect(cookie).toContain('auth_token=;');
     expect(cookie).toContain('Max-Age=0');
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('Secure');
+    expect(cookie).toContain('SameSite=None');
+  });
+  it('clearAuthCookie with domain uses SameSite=Lax and sets Domain', () => {
+    const cookie = clearAuthCookie('preprod.coastaltravelcompany.com');
+    expect(cookie).toContain('SameSite=Lax');
+    expect(cookie).toContain('Domain=preprod.coastaltravelcompany.com');
+    expect(cookie).toContain('Max-Age=0');
   });
 });
