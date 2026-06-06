@@ -336,7 +336,7 @@
   }
 
   async function runGallerySync(galleryId, { onProgress, onDone, onError }) {
-    let offset = 0, totalPhotos = 0, totalVideos = 0;
+    let offset = 0, totalPhotos = 0, totalVideos = 0, totalFailed = 0, totalVideosFailed = 0;
     while (true) {
       let ok, data, status;
       try {
@@ -349,12 +349,14 @@
         return;
       }
       if (!ok) { onError(status, data); return; }
-      totalPhotos += data.synced       || 0;
-      totalVideos += data.videosSynced || 0;
+      totalPhotos      += data.synced       || 0;
+      totalVideos      += data.videosSynced || 0;
+      totalFailed      += data.failed       || 0;
+      totalVideosFailed += data.videosFailed || 0;
       if (data.done) {
         const idx = galleries.findIndex(g => g.id === galleryId);
         if (idx >= 0) galleries[idx].r2_synced = true;
-        onDone(totalPhotos, totalVideos);
+        onDone(totalPhotos, totalVideos, totalFailed, totalVideosFailed);
         return;
       }
       // Guard: if offset didn't advance, bail out to prevent an infinite loop
@@ -377,9 +379,18 @@
 
     runGallerySync(galleryId, {
       onProgress: (n, total) => { statusEl.textContent = `Syncing to CDN… ${n} / ${total}`; },
-      onDone:     (photos, videos) => {
-        statusEl.textContent = `✓ ${syncSummary(photos, videos)} synced to CDN`;
-        statusEl.style.color = 'var(--ok,#2A5C45)';
+      onDone:     (photos, videos, failed, videosFailed) => {
+        const totalFailed = failed + videosFailed;
+        if (totalFailed > 0 && photos === 0 && videos === 0) {
+          statusEl.textContent = `CDN sync failed — ${totalFailed} item${totalFailed !== 1 ? 's' : ''} could not be synced`;
+          statusEl.style.color = 'var(--error,#dc2626)';
+        } else if (totalFailed > 0) {
+          statusEl.textContent = `✓ ${syncSummary(photos, videos)} synced to CDN (${totalFailed} failed)`;
+          statusEl.style.color = 'var(--warn,#d97706)';
+        } else {
+          statusEl.textContent = `✓ ${syncSummary(photos, videos)} synced to CDN`;
+          statusEl.style.color = 'var(--ok,#2A5C45)';
+        }
         renderGalleryList();
       },
       onError: (status, data) => {
@@ -400,8 +411,15 @@
 
     runGallerySync(galleryId, {
       onProgress: (n, total) => { if (btn) btn.textContent = `Resyncing… ${n} / ${total}`; },
-      onDone: (photos, videos) => {
-        toast(`✓ Resynced ${syncSummary(photos, videos)} to CDN`);
+      onDone: (photos, videos, failed, videosFailed) => {
+        const totalFailed = failed + videosFailed;
+        if (totalFailed > 0 && photos === 0 && videos === 0) {
+          toast(`Resync failed — ${totalFailed} item${totalFailed !== 1 ? 's' : ''} could not be synced`, true);
+        } else if (totalFailed > 0) {
+          toast(`✓ Resynced ${syncSummary(photos, videos)} to CDN (${totalFailed} failed)`, true);
+        } else {
+          toast(`✓ Resynced ${syncSummary(photos, videos)} to CDN`);
+        }
         if (btn) { btn.disabled = false; btn.textContent = 'Resync R2'; }
         renderGalleryList();
       },
