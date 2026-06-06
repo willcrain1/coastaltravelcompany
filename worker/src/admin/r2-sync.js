@@ -87,12 +87,13 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
     // type='unit' identifies the media kind; size='xl' is the thumbnail resolution.
     // Previously used type='xl' which the NAS API does not recognise, returning
     // a JSON error (content-type: application/json) instead of the image.
-    const thumb = item.additional?.thumbnail ?? {};
+    const thumb  = item.additional?.thumbnail ?? {};
+    const thumbId = thumb.unit_id ?? item.id;
     const thumbParams = new URLSearchParams({
       api:         'SYNO.Foto.Thumbnail',
       version:     '2',
       method:      'get',
-      id:          String(thumb.unit_id ?? item.id),
+      id:          String(thumbId),
       cache_key:   String(thumb.cache_key ?? ''),
       type:        'unit',
       size:        'xl',
@@ -113,7 +114,7 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
           failed++;
         } else {
           const bytes = await thumbRes.arrayBuffer();
-          await env.ASSETS.put(`galleries/${galleryId}/thumbs/${item.id}.jpg`, bytes, {
+          await env.ASSETS.put(`galleries/${galleryId}/thumbs/${thumbId}.jpg`, bytes, {
             httpMetadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=86400' },
           });
           synced++;
@@ -125,7 +126,11 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
     }
 
     // ── Full video → R2 videos/ (stream directly to avoid buffering) ──────────
-    if (item.type === 'video') {
+    // Match client-gallery.html's isVideo(): some NAS items are tagged type='photo'
+    // despite being video files (e.g. motion photos), so also check the filename.
+    const isVideo = item.type === 'video' ||
+      (item.filename && /\.(mp4|mov|m4v|avi|mkv|webm)$/i.test(item.filename));
+    if (isVideo) {
       const vidParams = new URLSearchParams({
         api:         'SYNO.Foto.Download',
         version:     '1',
