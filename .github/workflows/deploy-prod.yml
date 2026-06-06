@@ -290,3 +290,21 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  # ── 7. Sync master → preprod ──────────────────────────────────────────────────
+  sync-preprod:
+    name: Sync master → preprod
+    needs: acceptance-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push master into preprod
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout preprod
+          git merge origin/master --no-edit
+          git push origin preprod
