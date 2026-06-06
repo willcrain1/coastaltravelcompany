@@ -131,15 +131,15 @@ export async function handleAdminGallerySyncR2(request, env, galleryId) {
     const isVideo = item.type === 'video' ||
       (item.filename && /\.(mp4|mov|m4v|avi|mkv|webm)$/i.test(item.filename));
     if (isVideo) {
-      // SYNO.Foto.Download wants the unit id from additional.thumbnail (it can differ
-      // from item.id — e.g. item 56763 vs thumb_unit_id 54764) and rejects requests
-      // carrying _sharing_id (error 804); auth is via sid + X-SYNO-SHARING header only,
-      // matching how client-gallery.html's dlUrl() / thumbUrl() resolve unit ids.
+      // SYNO.Foto.Download (v2) takes item_id as a JSON array — observed directly from
+      // Synology Photos' own web UI network request (which successfully streams this
+      // exact item): item_id=[56763]&version=2. Our previous unit_id/version=1 form
+      // returns error 804 ("wrong param") regardless of which id is supplied.
       const vidParams = new URLSearchParams({
         api:     'SYNO.Foto.Download',
-        version: '1',
+        version: '2',
         method:  'download',
-        unit_id: String(thumbId),
+        item_id: `[${item.id}]`,
       });
       if (nasAuth.sid) vidParams.set('sid', nasAuth.sid);
 
