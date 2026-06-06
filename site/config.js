@@ -5,7 +5,7 @@ const CTC_CONFIG = (() => {
   const origin    = isPreprod ? 'https://preprod.coastaltravelcompany.com' : 'https://coastaltravelcompany.com';
   const worker    = isPreprod
     ? 'https://api.preprod.coastaltravelcompany.com'
-    : 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+    : 'https://api.coastaltravelcompany.com';
   return {
     workerUrl:    worker,
     mainSiteUrl:  origin + '/gallery/gallery.html',
