@@ -195,6 +195,7 @@ crons = ["0 * * * *"]
 
 [env.preprod]
 name = "$CF_WORKER_NAME_PREPROD"
+workers_dev = false
 
 [env.preprod.observability]
 enabled = true
