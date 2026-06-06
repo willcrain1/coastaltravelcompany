@@ -359,4 +359,107 @@ describe('handleNasProxy', () => {
     const r = await handleNasProxy(new Request('http://t?passphrase=throwpass&api=SYNO.Foto.Thumbnail&watermark=1'), { KV: kv });
     expect(r.status).toBe(200);
   });
+
+  it('serves thumbnail from R2 when gallery is synced', async () => {
+    const kv = makeKv();
+    await kv.put('tok:r2sid', JSON.stringify({ passphrase: 'pp', galleryId: 'g1', r2Synced: true }));
+    const r2Obj = { body: new ReadableStream() };
+    const assets = { get: vi.fn().mockResolvedValue(r2Obj) };
+    const r = await handleNasProxy(
+      new Request('http://t?sid=r2sid&api=SYNO.Foto.Thumbnail&id=42'),
+      { KV: kv, ASSETS: assets },
+    );
+    expect(r.status).toBe(200);
+    expect(r.headers.get('X-Asset-Source')).toBe('r2');
+    expect(r.headers.get('Content-Type')).toBe('image/jpeg');
+  });
+
+  it('falls through to NAS when R2 thumbnail not found', async () => {
+    const kv = makeKv();
+    await kv.put('tok:r2sid2', JSON.stringify({ passphrase: 'pp2', galleryId: 'g1', r2Synced: true }));
+    sidCache['pp2'] = { cookie: 'sharing_sid=s10', sid: 's10', exp: Date.now() + 9999999 };
+    const assets = { get: vi.fn().mockResolvedValue(null) };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      headers: { get: (h) => h === 'Content-Type' ? 'application/json' : null },
+      arrayBuffer: async () => new ArrayBuffer(5),
+    }));
+    const r = await handleNasProxy(
+      new Request('http://t?sid=r2sid2&api=SYNO.Foto.Thumbnail&id=99'),
+      { KV: kv, ASSETS: assets },
+    );
+    expect(r.status).toBe(200);
+    expect(r.headers.get('X-Asset-Source')).toBe('nas');
+  });
+
+  it('serves video from R2 without Range header (200)', async () => {
+    const kv = makeKv();
+    await kv.put('tok:vidsid', JSON.stringify({ passphrase: 'vp', galleryId: 'g2', r2Synced: false }));
+    const r2Obj = { body: new ReadableStream(), httpMetadata: { contentType: 'video/mp4' }, size: 5000 };
+    const assets = { get: vi.fn().mockResolvedValue(r2Obj) };
+    const r = await handleNasProxy(
+      new Request('http://t?sid=vidsid&api=SYNO.Foto.Download&unit_id=10'),
+      { KV: kv, ASSETS: assets },
+    );
+    expect(r.status).toBe(200);
+    expect(r.headers.get('Content-Type')).toBe('video/mp4');
+    expect(r.headers.get('X-Asset-Source')).toBe('r2');
+    expect(r.headers.get('Content-Length')).toBe('5000');
+  });
+
+  it('skips R2 thumbnail when photoId is absent', async () => {
+    const kv = makeKv();
+    await kv.put('tok:r2sid3', JSON.stringify({ passphrase: 'pp3', galleryId: 'g1', r2Synced: true }));
+    sidCache['pp3'] = { cookie: 'sharing_sid=s11', sid: 's11', exp: Date.now() + 9999999 };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      headers: { get: (h) => h === 'Content-Type' ? 'application/json' : null },
+      arrayBuffer: async () => new ArrayBuffer(5),
+    }));
+    const assets = { get: vi.fn() };
+    const r = await handleNasProxy(
+      new Request('http://t?sid=r2sid3&api=SYNO.Foto.Thumbnail'),
+      { KV: kv, ASSETS: assets },
+    );
+    expect(r.status).toBe(200);
+    expect(assets.get).not.toHaveBeenCalled();
+  });
+
+  it('skips R2 video when unit_id is absent', async () => {
+    const kv = makeKv();
+    await kv.put('tok:r2sid4', JSON.stringify({ passphrase: 'pp4', galleryId: 'g2', r2Synced: false }));
+    sidCache['pp4'] = { cookie: 'sharing_sid=s12', sid: 's12', exp: Date.now() + 9999999 };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      status: 200,
+      headers: { get: (h) => h === 'Content-Type' ? 'application/json' : null },
+      arrayBuffer: async () => new ArrayBuffer(5),
+    }));
+    const assets = { get: vi.fn() };
+    const r = await handleNasProxy(
+      new Request('http://t?sid=r2sid4&api=SYNO.Foto.Download'),
+      { KV: kv, ASSETS: assets },
+    );
+    expect(r.status).toBe(200);
+    expect(assets.get).not.toHaveBeenCalled();
+  });
+
+  it('serves video from R2 with Range header (206)', async () => {
+    const kv = makeKv();
+    await kv.put('tok:rangevid', JSON.stringify({ passphrase: 'rvp', galleryId: 'g2', r2Synced: false }));
+    const r2Obj = {
+      body: new ReadableStream(),
+      httpMetadata: { contentType: 'video/mp4' },
+      size: 10000,
+      range: { offset: 0, length: 1000 },
+    };
+    const assets = { get: vi.fn().mockResolvedValue(r2Obj) };
+    const r = await handleNasProxy(
+      new Request('http://t?sid=rangevid&api=SYNO.Foto.Download&unit_id=10', { headers: { Range: 'bytes=0-999' } }),
+      { KV: kv, ASSETS: assets },
+    );
+    expect(r.status).toBe(206);
+    expect(r.headers.get('Content-Range')).toBe('bytes 0-999/10000');
+    expect(r.headers.get('Content-Length')).toBe('1000');
+    expect(r.headers.get('Accept-Ranges')).toBe('bytes');
+  });
 });

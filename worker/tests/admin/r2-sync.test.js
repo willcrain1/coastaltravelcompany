@@ -203,4 +203,229 @@ describe('handleAdminGallerySyncR2', () => {
     expect(body.synced).toBe(1);
     expect(body.failed).toBe(1);
   });
+
+  it('counts failed when thumbnail fetch throws', async () => {
+    const token = await adminToken();
+    const env = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [{ id: 1 }, { id: 2 }], total: 2 } }),
+      })
+      .mockRejectedValueOnce(new Error('network error'))
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new Uint8Array([0xff, 0xd8]).buffer,
+      }),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(body.ok).toBe(true);
+    expect(body.synced).toBe(1);
+    expect(body.failed).toBe(1);
+  });
+
+  it('syncs video items to R2 videos/ path', async () => {
+    const token   = await adminToken();
+    const r2Store = new Map();
+    const env     = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2(r2Store) };
+    const mockJpeg = new Uint8Array([0xff, 0xd8]).buffer;
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [{ id: 10, type: 'video' }], total: 1 } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => mockJpeg,
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'video/mp4' },
+        body: new ReadableStream(),
+      }),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(r.status).toBe(200);
+    expect(body.videosSynced).toBe(1);
+    expect(r2Store.has('galleries/gal1/videos/10')).toBe(true);
+  });
+
+  it('counts videosFailed when video download does not return video content-type', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [{ id: 11, type: 'video' }], total: 1 } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new Uint8Array([0xff, 0xd8]).buffer,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        headers: { get: () => null },
+      }),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(body.videosFailed).toBe(1);
+    expect(body.videosSynced).toBe(0);
+  });
+
+  it('returns done:true immediately when NAS returns empty list', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [], total: 5 } }),
+      }),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(r.status).toBe(200);
+    expect(body.done).toBe(true);
+    expect(body.synced).toBe(0);
+  });
+
+  it('counts videosFailed when video download throws', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [{ id: 20, type: 'video' }], total: 1 } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'image/jpeg' },
+        arrayBuffer: async () => new Uint8Array([0xff, 0xd8]).buffer,
+      })
+      .mockRejectedValueOnce(new Error('video fetch failed')),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(body.videosFailed).toBe(1);
+  });
+
+  it('502 when NAS browse API returns success:false', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: false, error: { code: 119 } }),
+      }),
+    );
+
+    const r = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    expect(r.status).toBe(502);
+    expect((await r.json()).error).toContain('119');
+  });
+
+  it('counts failed when thumbnail ok=true but Content-Type is not image/', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [{ id: 99 }], total: 1 } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => null },
+        arrayBuffer: async () => new Uint8Array([0]).buffer,
+      }),
+    );
+
+    const r    = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    const body = await r.json();
+
+    expect(body.failed).toBe(1);
+    expect(body.synced).toBe(0);
+  });
+
+  it('done=true but nothing synced does not mark gallery as r2_synced', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true, data: { list: [{ id: 5 }], total: 1 } }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        headers: { get: () => null },
+      }),
+    );
+
+    const r = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    expect((await r.json()).done).toBe(true);
+    const updated = JSON.parse(await env.KV.get('gallery:gal1'));
+    expect(updated.r2_synced).toBeFalsy();
+  });
+
+  it('502 when NAS browse list fetch throws', async () => {
+    const token = await adminToken();
+    const env   = { KV: makeKv({ gal1: GALLERY }), JWT_SECRET: SECRET, ASSETS: makeR2() };
+
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({
+        headers: { get: (h) => h === 'set-cookie' ? 'sharing_sid=abc; Path=/' : null },
+      })
+      .mockRejectedValueOnce(new Error('list fetch failed')),
+    );
+
+    const r = await handleAdminGallerySyncR2(makeReq(token, 'gal1'), env, 'gal1');
+    expect(r.status).toBe(502);
+    expect((await r.json()).error).toContain('list fetch failed');
+  });
 });
