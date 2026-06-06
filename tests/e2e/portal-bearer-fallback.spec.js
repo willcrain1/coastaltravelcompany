@@ -83,7 +83,7 @@ test.describe('Bearer fallback: portal.html', () => {
     });
 
     await page.goto(`${STATIC_BASE}/portal.html`);
-    await expect(page.locator('.state-empty, .gallery-grid')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#galleries-content .state-empty, .gallery-grid')).toBeVisible({ timeout: 10_000 });
 
     expect(capturedAuth).toBe(`Bearer ${CLIENT_JWT}`);
   });
@@ -106,7 +106,7 @@ test.describe('Bearer fallback: portal.html', () => {
 
     await page.goto(`${STATIC_BASE}/portal.html`);
     // Should reach the portal, NOT /login.html
-    await expect(page.locator('.state-empty, .gallery-grid')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#galleries-content .state-empty, .gallery-grid')).toBeVisible({ timeout: 10_000 });
     expect(page.url()).not.toMatch(/\/login(\.html)?/);
   });
 
@@ -177,8 +177,10 @@ test.describe('Bearer fallback: portal-project.html', () => {
   });
 
   test('redirects to /login.html when neither cookie nor JWT is present', async ({ page, context }) => {
+    // portal-project.html calls /portal/project/{token} directly (not /auth/me first).
+    // A 401 from that endpoint triggers the redirect to /login.html.
     await mockWorker(context, {
-      'GET /auth/me': (route) => json(route, { error: 'Unauthorized' }, 401),
+      [`GET /portal/project/${PROJ_TOKEN}`]: (route) => json(route, { error: 'Unauthorized' }, 401),
     });
 
     await page.goto(`${STATIC_BASE}/portal-project.html#${PROJ_TOKEN}`);
