@@ -19,9 +19,10 @@ const WORKER_URL  = process.env.WORKER_URL || 'https://coastal-gallery-proxy.the
 const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 
 const CORS = {
-  'access-control-allow-origin':  '*',
-  'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-allow-origin':      STATIC_BASE,
+  'access-control-allow-credentials': 'true',
+  'access-control-allow-methods':     'GET, POST, PUT, OPTIONS',
+  'access-control-allow-headers':     'Content-Type, Authorization',
 };
 
 const ADMIN_JWT = 'mock-admin-jwt';
@@ -269,10 +270,7 @@ test.describe('CMS content editor', () => {
 
     // Accept the "Reverted" confirmation alert
     page.once('dialog', (dialog) => dialog.accept());
-    await page.waitForFunction(
-      () => revertBody !== null,
-      { timeout: 10_000 },
-    );
+    await expect.poll(() => revertBody, { timeout: 10_000 }).not.toBeNull();
 
     expect(revertBody.file).toBe('index.html');
     expect(revertBody.sha).toBe('abc1234567890');
