@@ -1,6 +1,14 @@
 import { ALLOWED_ORIGIN, JWT_EXPIRY_SECS } from './constants.js';
 import { jsonResponse, rateLimitedResponse, authRequired } from './utils.js';
 import { createJWT, getAuth, makeAuthCookie, clearAuthCookie } from './jwt.js';
+
+// Returns the cookie Domain attribute value when the worker is deployed on a
+// custom same-eTLD+1 domain (e.g. api.preprod.coastaltravelcompany.com).
+// Set via COOKIE_DOMAIN wrangler var; absent on workers.dev deployments so
+// SameSite=None is used instead of Lax.
+function cookieDomain(env) {
+  return (env && env.COOKIE_DOMAIN) || '';
+}
 import { getUser, putUser } from './kv.js';
 import { hashPassword, verifyPassword } from './crypto.js';
 import {
@@ -35,7 +43,7 @@ export async function handleAuthSetup(request, env) {
     env.JWT_SECRET
   );
   const res = jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
-  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  res.headers.set('Set-Cookie', makeAuthCookie(token, undefined, cookieDomain(env)));
   return res;
 }
 
@@ -140,7 +148,7 @@ export async function handleAuthLogin(request, env) {
     env.JWT_SECRET
   );
   const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
-  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  res.headers.set('Set-Cookie', makeAuthCookie(token, undefined, cookieDomain(env)));
   return res;
 }
 
@@ -180,7 +188,7 @@ export async function handleAuthGoogle(request, env) {
     env.JWT_SECRET
   );
   const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
-  res.headers.set('Set-Cookie', makeAuthCookie(token));
+  res.headers.set('Set-Cookie', makeAuthCookie(token, undefined, cookieDomain(env)));
   return res;
 }
 
@@ -246,14 +254,14 @@ export async function handleAuthMe(request, env) {
       { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
       env.JWT_SECRET
     );
-    res.headers.set('Set-Cookie', makeAuthCookie(newToken));
+    res.headers.set('Set-Cookie', makeAuthCookie(newToken, undefined, cookieDomain(env)));
   }
   return res;
 }
 
-export async function handleAuthLogout() {
+export async function handleAuthLogout(env) {
   const res = jsonResponse({ ok: true });
-  res.headers.set('Set-Cookie', clearAuthCookie());
+  res.headers.set('Set-Cookie', clearAuthCookie(cookieDomain(env)));
   return res;
 }
 

@@ -194,6 +194,7 @@ jobs:
 
           [env.preprod.vars]
           ALLOWED_ORIGIN = "https://preprod.coastaltravelcompany.com"
+          COOKIE_DOMAIN = "preprod.coastaltravelcompany.com"
 
           [[env.preprod.kv_namespaces]]
           binding = "KV"
@@ -285,7 +286,7 @@ jobs:
       - name: Run acceptance tests (shard ${{ matrix.shard }}/4)
         env:
           BASE_URL: https://preprod.coastaltravelcompany.com
-          WORKER_URL: https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev
+          WORKER_URL: https://api.preprod.coastaltravelcompany.com
         run: npm test -- --shard=${{ matrix.shard }}/4
       - name: Upload test report on failure
         if: failure()
