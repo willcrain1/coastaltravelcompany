@@ -30,6 +30,7 @@
 - **CORS:** `Access-Control-Allow-Credentials: true` required; `Access-Control-Allow-Origin` must never be `*`.
 - **Cookie consent:** `site/js/cookie-consent.js` — exposes `window.CTC_Consent.hasAnalytics()` and `hasMarketing()`; persists choice in `localStorage` under `ctc_cookie_consent`. Fires `window` `CustomEvent('ctc-consent-changed')` on save so dependent scripts can react live.
 - **GA4:** `site/js/ga4.js` — loads Google Analytics (`G-CWYCF3H9YY`) only after `CTC_Consent.hasAnalytics()` is true (checked on load and on `ctc-consent-changed`); `anonymize_ip: true`. Wired via `<script src="js/ga4.js" defer></script>` (or `/js/ga4.js` on `invoice.html`) after `cookie-consent.js` on all 17 public/portal pages.
+- **Microsoft Clarity:** `site/js/clarity.js` — loads Clarity (project `x3do0vxltp`) only after `CTC_Consent.hasAnalytics()` is true (checked on load and on `ctc-consent-changed`). Wired via `<script src="js/clarity.js" defer></script>` (or `/js/clarity.js` on `invoice.html`) after `cookie-consent.js` on all 17 public/portal pages.
 
 ## R2 Hybrid Asset Serving (item 37)
 - **Bucket bindings:** `ASSETS` → `ctc-assets` (prod), `ctc-assets-preprod` (preprod) in `wrangler.toml`.
