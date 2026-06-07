@@ -910,8 +910,11 @@ function init() {
   }
 
   loadFavorites();
-  if (cfg.splat_url) {
+  if (typeof cfg.splat_url === 'string' && cfg.splat_url.trim()) {
+    cfg.splat_url = cfg.splat_url.trim();
     document.getElementById('walkthrough-section').style.display = 'block';
+  } else {
+    cfg.splat_url = null;
   }
 
   loadGallery();
@@ -1031,7 +1034,7 @@ function renderPhotos(filtered) {
     const img = document.createElement('img');
     img.dataset.src = thumbUrl(mediaItem, 'm');
     img.alt = (video ? 'Video' : 'Photo') + ' ' + (gi + 1);
-    if (w && h) img.style.aspectRatio = w + '/' + h;
+    img.style.aspectRatio = (w && h) ? (w + '/' + h) : '4/3';
 
     const hover = document.createElement('div');
     hover.className = 'p-hover';
