@@ -2,13 +2,19 @@
   "name": "coastal-gallery-proxy",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "test:unit": "vitest run --coverage",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@cf-wasm/photon": "^0.3.3"
   },
   "devDependencies": {
-    "wrangler": "^3.75.0"
+    "@vitest/coverage-v8": "^2.1.9",
+    "better-sqlite3": "^12.10.0",
+    "vitest": "^2.1.9",
+    "wrangler": "^4.95.0"
   }
 }

@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="js/cookie-consent.js"></script>
 </head>
 <body>
 
@@ -24,8 +26,8 @@
       <li><a href="services.html" class="active">Services</a></li>
       <li><a href="collections.html">Collections</a></li>
       <li><a href="contact.html">Contact</a></li>
+      <li><a href="login.html">Account</a></li>
     </ul>
-    <a href="login.html" class="nav-account">Account</a>
     <button class="nav-toggle" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -52,7 +54,7 @@
             Visual narratives built for the world's most aspirational properties.
           </h2>
           <div class="divider"></div>
-          <p class="body-sm">
+          <p class="body-sm" data-content-id="services-intro-body">
             We work exclusively with hotels, resorts, and hospitality brands — bringing a refined editorial eye and fashion-forward sensibility to every engagement. Our deliverables are built for luxury campaign use, website hero imagery, and social platforms.
           </p>
         </div>
@@ -73,6 +75,10 @@
             <span style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--white);">Visual Storytelling</span>
             <span style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.7);">04</span>
           </div>
+          <div style="background: var(--sage-teal); padding: 28px 32px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--white);">3D Property Walkthroughs</span>
+            <span style="font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(255,255,255,0.7);">05</span>
+          </div>
         </div>
       </div>
     </div>
@@ -91,8 +97,8 @@
         <div class="service-item fade-up">
           <div class="service-num">01</div>
           <div class="service-body">
-            <h3>Editorial Photography</h3>
-            <p>
+            <h3 data-content-id="service-1-title">Editorial Photography</h3>
+            <p data-content-id="service-1-body">
               A full editorial photography engagement capturing the complete atmosphere of your property. From sweeping architectural exteriors and refined interior compositions to intimate lifestyle moments — we build a visual library that tells your property's story in a single, cohesive collection.
             </p>
             <div class="service-tags mt-24">
@@ -104,15 +110,15 @@
             </div>
           </div>
           <div class="service-cta">
-            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px;">Inquire</a>
+            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px; display: block; text-align: center;">Inquire</a>
           </div>
         </div>
 
         <div class="service-item fade-up">
           <div class="service-num">02</div>
           <div class="service-body">
-            <h3>Short-Form Video</h3>
-            <p>
+            <h3 data-content-id="service-2-title">Short-Form Video</h3>
+            <p data-content-id="service-2-body">
               Cinematic short-form video built for Instagram Reels, website hero sections, and luxury brand campaigns. We bring the same editorial intent from our photography to motion — capturing the mood, the pace, and the feeling of your property in a format made to stop the scroll.
             </p>
             <div class="service-tags mt-24">
@@ -123,15 +129,15 @@
             </div>
           </div>
           <div class="service-cta">
-            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px;">Inquire</a>
+            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px; display: block; text-align: center;">Inquire</a>
           </div>
         </div>
 
         <div class="service-item fade-up">
           <div class="service-num">03</div>
           <div class="service-body">
-            <h3>Lifestyle & Detail Capture</h3>
-            <p>
+            <h3 data-content-id="service-3-title">Lifestyle & Detail Capture</h3>
+            <p data-content-id="service-3-body">
               The moments that make a property unforgettable — morning light through linen curtains, a perfectly set breakfast tray, a woman reading poolside in a wide-brimmed hat. Fashion-forward human presence within your space, styled authentically and shot with intention.
             </p>
             <div class="service-tags mt-24">
@@ -142,15 +148,15 @@
             </div>
           </div>
           <div class="service-cta">
-            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px;">Inquire</a>
+            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px; display: block; text-align: center;">Inquire</a>
           </div>
         </div>
 
         <div class="service-item fade-up">
           <div class="service-num">04</div>
           <div class="service-body">
-            <h3>Visual Storytelling for Hospitality</h3>
-            <p>
+            <h3 data-content-id="service-4-title">Visual Storytelling for Hospitality</h3>
+            <p data-content-id="service-4-body">
               A comprehensive creative partnership — photography, video, and styling unified into a cohesive brand identity for your property. Ideal for hotels opening, rebranding, or elevating their visual presence ahead of a major campaign or season. We function as your creative team on the ground.
             </p>
             <div class="service-tags mt-24">
@@ -161,7 +167,28 @@
             </div>
           </div>
           <div class="service-cta">
-            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px;">Inquire</a>
+            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px; display: block; text-align: center;">Inquire</a>
+          </div>
+        </div>
+
+        <div class="service-item fade-up">
+          <div class="service-num">05</div>
+          <div class="service-body">
+            <h3 data-content-id="service-5-title">3D Property Walkthroughs</h3>
+            <p data-content-id="service-5-body">
+              Photorealistic, interactive 3D walkthroughs of hotel suites, lobbies, and outdoor spaces — captured on the same day as your editorial shoot using Gaussian Splatting technology. Delivered as an embeddable scene for your website and included in the client delivery gallery. Let prospective guests explore every corner of your property before they arrive.
+            </p>
+            <div class="service-tags mt-24">
+              <span class="tag">Gaussian Splatting</span>
+              <span class="tag">Suites &amp; Rooms</span>
+              <span class="tag">Lobbies &amp; Common Areas</span>
+              <span class="tag">Outdoor Spaces</span>
+              <span class="tag">Website Embed</span>
+            </div>
+          </div>
+          <div class="service-cta">
+            <a href="walkthroughs.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px; margin-bottom: 8px; display: block; text-align: center;">See Examples</a>
+            <a href="contact.html" class="btn btn-outline-dark" style="font-size: 9px; padding: 12px 24px; display: block; text-align: center;">Inquire</a>
           </div>
         </div>
 
@@ -188,7 +215,7 @@
           From first conversation to final delivery, every step is built around the property's identity and goals.
         </p>
       </div>
-      <div class="grid-3 fade-up" style="gap: 2px;">
+      <div class="grid-3 services-grid fade-up" style="gap: 2px;">
         <div style="padding: 52px 40px; background: var(--white);">
           <span style="font-family: 'Gilda Display', serif; font-size: 52px; color: var(--warm-linen); display: block; margin-bottom: 20px; line-height: 1;">01</span>
           <h3 style="font-size: 22px; margin-bottom: 14px;">Discovery</h3>
@@ -209,7 +236,7 @@
           <h3 style="font-size: 22px; margin-bottom: 14px; color: var(--white);">Post-Production</h3>
           <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.8);">Expert color grading, retouching, and editing — maintaining the editorial integrity of every image and frame delivered.</p>
         </div>
-        <div style="padding: 52px 40px; background: var(--sage-teal); grid-column: span 2;">
+        <div class="services-feature" style="padding: 52px 40px; background: var(--sage-teal);">
           <span style="font-family: 'Gilda Display', serif; font-size: 52px; color: rgba(255,255,255,0.25); display: block; margin-bottom: 20px; line-height: 1;">05</span>
           <h3 style="font-size: 22px; margin-bottom: 14px; color: var(--white);">Delivery & Beyond</h3>
           <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.85); max-width: 480px;">You receive a fully curated, campaign-ready visual library — organized, sized for every platform, and ready to deploy. We remain available for ongoing creative support.</p>
@@ -224,9 +251,11 @@
       <div class="text-center fade-up">
         <span class="eyebrow">Packages</span>
         <h2 style="font-size: clamp(28px, 4vw, 50px); margin-bottom: 16px;">Explore Our Signature Collections</h2>
-        <p class="body-sm mb-40" style="max-width: 480px; margin-left: auto; margin-right: auto;">Three defined project frameworks — each designed to deliver a complete visual library tailored to your property's needs.</p>
-        <a href="collections.html" class="btn btn-dark" style="margin-right: 16px;">View Collections</a>
-        <a href="contact.html" class="btn btn-outline-dark">Start a Project</a>
+        <p class="body-sm mb-48" style="max-width: 480px; margin-left: auto; margin-right: auto;">Four defined project frameworks — each designed to deliver a complete visual library tailored to your property's needs.</p>
+        <div class="btn-group" style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+          <a href="collections.html" class="btn btn-dark">View Collections</a>
+          <a href="contact.html" class="btn btn-outline-dark">Start a Project</a>
+        </div>
       </div>
     </div>
   </section>
@@ -258,20 +287,22 @@
             <li><a href="services.html">Short-Form Video</a></li>
             <li><a href="services.html">Lifestyle Capture</a></li>
             <li><a href="services.html">Visual Storytelling</a></li>
+            <li><a href="walkthroughs.html">3D Walkthroughs</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h5>Connect</h5>
           <ul>
-            <li><a href="#">Instagram</a></li>
-            <li><a href="#">Pinterest</a></li>
+            <li><a href="https://www.instagram.com/coastaltravelcompany" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.pinterest.com/thecoastaltravelcompany/" target="_blank" rel="noopener">Pinterest</a></li>
+            <li><a href="https://www.facebook.com/share/18zzn7QVWT/" target="_blank" rel="noopener">Facebook</a></li>
             <li><a href="contact.html">Inquire</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Coastal Travel Company. All rights reserved.</p>
-        <p style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+        <p>&copy; 2026 Coastal Travel Company. All rights reserved.</p>
+        <p><a href="privacy.html" style="color:rgba(255,255,255,0.45);text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp; <span style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</span></p>
       </div>
     </div>
   </footer>

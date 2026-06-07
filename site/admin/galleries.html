@@ -7,53 +7,30 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin.css?v=2" />
 </head>
 <body>
 
 <header>
-  <div class="logo-wrap">
+  <a href="/" class="logo-wrap">
     <span class="logo-main">Coastal</span>
     <span class="logo-script">Travel Company</span>
-  </div>
+  </a>
   <div class="header-right">
     <span class="admin-email" id="adminEmail"></span>
     <nav class="admin-nav">
       <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
-      <a href="galleries.html" class="admin-nav-link">Galleries</a>
+      <a href="galleries.html" class="admin-nav-link active">Galleries</a>
       <a href="clients.html" class="admin-nav-link">Clients</a>
       <a href="services.html" class="admin-nav-link">Services</a>
+      <a href="content-editor.html" class="admin-nav-link">Content</a>
+      <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link">Customer Portal ↗</a>
     </nav>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
 </header>
 
 <main class="main">
-
-  <!-- Environment switcher -->
-  <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-    <span style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600;">Environment</span>
-    <div style="display:flex; border:1px solid var(--border,#ddd); border-radius:6px; overflow:hidden; font-family:'Montserrat',sans-serif;">
-      <button id="envBtnProd" onclick="setEnv('production')"
-        style="padding:5px 14px; font-size:10px; font-weight:600; letter-spacing:0.08em; border:none; cursor:pointer; transition:all 0.15s;">
-        Production
-      </button>
-      <button id="envBtnPreprod" onclick="setEnv('preprod')"
-        style="padding:5px 14px; font-size:10px; font-weight:600; letter-spacing:0.08em; border:none; cursor:pointer; transition:all 0.15s;">
-        Preprod
-      </button>
-    </div>
-    <span id="envBadge" style="display:none; padding:3px 10px; border-radius:4px; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; background:#f59e0b22; color:#b45309; font-family:'Montserrat',sans-serif;">PREPROD</span>
-  </div>
-  <div id="preprodUrlRow" style="display:none; margin-bottom:18px;">
-    <div class="card" style="padding:14px 18px;">
-      <label style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600; display:block; margin-bottom:6px;">Preprod Worker URL</label>
-      <input type="url" id="preprodWorkerUrl" placeholder="https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev"
-        style="width:100%; font-size:12px; padding:8px 10px; border:1px solid var(--border,#ddd); border-radius:4px; font-family:'Montserrat',sans-serif;"
-        oninput="localStorage.setItem('ctc_preprod_worker_url', this.value)" />
-      <p style="margin:6px 0 0; font-size:11px; color:var(--dim); font-family:'Montserrat',sans-serif;">Gallery links generated while Preprod is active will use this Worker URL instead of production.</p>
-    </div>
-  </div>
 
   <h2 class="sh">Create New Gallery</h2>
   <div class="card">
@@ -74,14 +51,9 @@
           <p class="hint">In Synology Photos, open the share settings and set a password on this album first, then enter it here.</p>
         </div>
 
-        <div class="fg">
+        <div class="fg full">
           <label>Event / Gallery Name</label>
           <input type="text" id="eventName" required placeholder="Rivera Wedding · May 2024" />
-        </div>
-
-        <div class="fg">
-          <label>Client Name</label>
-          <input type="text" id="clientName" required placeholder="Rivera Family" />
         </div>
 
         <div class="fg full">
@@ -111,59 +83,72 @@
     </form>
   </div>
 
+  <h2 class="sh">R2 Storage Usage</h2>
+  <div class="card" id="r2StorageCard" style="margin-bottom:32px;">
+    <div id="r2StorageBody" style="font-family:'Montserrat',sans-serif; font-size:12px; color:var(--dim);">Loading…</div>
+  </div>
+
   <h2 class="sh">Active Galleries</h2>
   <div id="galleryList"></div>
+
+  <h2 class="sh" style="margin-top:48px;">3D Walkthroughs — Public Showcase</h2>
+  <div class="card" style="margin-bottom:20px;">
+    <form id="wtCreateForm">
+      <div class="form-grid">
+        <div class="fg">
+          <label>Property Name <span style="color:var(--teal)">*</span></label>
+          <input type="text" id="wt-property" required placeholder="The Grand Palms" />
+        </div>
+        <div class="fg">
+          <label>Title / Scene Label</label>
+          <input type="text" id="wt-title" placeholder="Grand Suite Walkthrough" />
+        </div>
+        <div class="fg">
+          <label>Location</label>
+          <input type="text" id="wt-location" placeholder="Palm Beach, Florida" />
+        </div>
+        <div class="fg">
+          <label>Collection</label>
+          <input type="text" id="wt-collection" placeholder="The Editorial Stay" />
+        </div>
+        <div class="fg full">
+          <label>Embed URL <span style="color:var(--teal)">*</span></label>
+          <input type="url" id="wt-embed" required placeholder="https://lumalabs.ai/capture/... or SuperSplat scene URL" />
+          <p class="hint">Any iframe-embeddable URL — Luma AI, SuperSplat (PlayCanvas), or similar hosted viewer.</p>
+        </div>
+        <div class="fg full">
+          <label>Thumbnail URL <span style="color:var(--dim); font-weight:400; text-transform:none;">(optional)</span></label>
+          <input type="url" id="wt-thumb" placeholder="https://... preview image URL" />
+        </div>
+        <div class="fg full">
+          <label>Description <span style="color:var(--dim); font-weight:400; text-transform:none;">(optional)</span></label>
+          <input type="text" id="wt-desc" placeholder="Brief description shown on the walkthroughs page" />
+        </div>
+        <div class="fg" style="flex-direction:row; align-items:center; gap:10px;">
+          <input type="checkbox" id="wt-published" style="width:auto; accent-color:var(--teal); cursor:pointer; flex-shrink:0;" />
+          <label for="wt-published" style="font-size:11px; letter-spacing:0.08em; text-transform:none; color:var(--dim); cursor:pointer; font-weight:400;">Published — visible on walkthroughs.html</label>
+        </div>
+        <div class="fg">
+          <label>Sort Order</label>
+          <input type="number" id="wt-sort" value="0" min="0" style="width:100px;" />
+        </div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Add Walkthrough</button>
+      </div>
+    </form>
+  </div>
+  <div id="wtList"></div>
 
 </main>
 
 <div class="toast" id="toast"></div>
 
 <script src="../config.js"></script>
-<script src="admin-shared.js"></script>
+<script src="admin-shared.js?v=2"></script>
 <script>
   let galleries        = [];
   let currentResultUrl = '';
-
-  // ── Environment switcher ────────────────────────────────────────────────────
-  const ENV_KEY        = 'ctc_env';
-  const PREPROD_URL_KEY = 'ctc_preprod_worker_url';
-
-  function getEnv() {
-    return localStorage.getItem(ENV_KEY) || 'production';
-  }
-
-  function getActiveProxyUrl() {
-    if (getEnv() === 'preprod') {
-      return localStorage.getItem(PREPROD_URL_KEY) || '';
-    }
-    return CTC_CONFIG.workerUrl;
-  }
-
-  function setEnv(env) {
-    localStorage.setItem(ENV_KEY, env);
-    updateEnvUI();
-  }
-
-  function updateEnvUI() {
-    const isPreprod = getEnv() === 'preprod';
-    const btnProd    = document.getElementById('envBtnProd');
-    const btnPreprod = document.getElementById('envBtnPreprod');
-    const badge      = document.getElementById('envBadge');
-    const urlRow     = document.getElementById('preprodUrlRow');
-    const urlInput   = document.getElementById('preprodWorkerUrl');
-
-    btnProd.style.background    = isPreprod ? '' : 'var(--green,#2A5C45)';
-    btnProd.style.color         = isPreprod ? '' : '#fff';
-    btnPreprod.style.background = isPreprod ? '#f59e0b' : '';
-    btnPreprod.style.color      = isPreprod ? '#fff' : '';
-
-    badge.style.display  = isPreprod ? 'inline-block' : 'none';
-    urlRow.style.display = isPreprod ? 'block' : 'none';
-
-    if (isPreprod) {
-      urlInput.value = localStorage.getItem(PREPROD_URL_KEY) || '';
-    }
-  }
 
   // ── URL helpers ──────────────────────────────────────────────────────────────
   function parseShareUrl(raw) {
@@ -248,7 +233,6 @@
     const shareRaw      = document.getElementById('shareUrl').value.trim();
     const sharePassword = document.getElementById('sharePassword').value.trim();
     const eventName     = document.getElementById('eventName').value.trim();
-    const clientName    = document.getElementById('clientName').value.trim();
     const notes         = document.getElementById('notes').value.trim();
     const watermark     = document.getElementById('watermark').checked;
 
@@ -263,16 +247,9 @@
     const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
     const { nasClientUrl } = getSettings();
 
-    const activeProxyUrl = getActiveProxyUrl();
-    if (getEnv() === 'preprod' && !activeProxyUrl) {
-      toast('Enter the Preprod Worker URL above before generating a preprod link', true);
-      btn.disabled = false; btn.textContent = 'Generate Gallery Link';
-      return;
-    }
-
     const gallery = {
-      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: activeProxyUrl,
-      passphrase: parsed.passphrase, sharePassword, eventName, clientName,
+      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: CTC_CONFIG.workerUrl,
+      passphrase: parsed.passphrase, sharePassword, eventName,
       created, notes, watermark, assignedUsers: [],
     };
 
@@ -292,7 +269,116 @@
     renderGalleryList();
     toast('Gallery link created');
     btn.disabled = false; btn.textContent = 'Generate Gallery Link';
+
+    syncGalleryToR2(data.id || id);
   });
+
+  // ── R2 sync helpers ──────────────────────────────────────────────────────────
+  function syncSummary(photos, videos) {
+    const parts = [];
+    if (photos > 0) parts.push(`${photos} photo${photos !== 1 ? 's' : ''}`);
+    if (videos > 0) parts.push(`${videos} video${videos !== 1 ? 's' : ''}`);
+    return parts.length ? parts.join(' & ') : 'items';
+  }
+
+  async function runGallerySync(galleryId, { onProgress, onDone, onError }) {
+    let offset = 0, totalPhotos = 0, totalVideos = 0, totalFailed = 0, totalVideosFailed = 0;
+    while (true) {
+      let ok, data, status;
+      try {
+        ({ ok, data, status } = await apiFetch(
+          `/admin/galleries/${galleryId}/sync-r2?offset=${offset}`,
+          { method: 'POST' }
+        ));
+      } catch (err) {
+        onError(0, { error: err.message || 'Network error during sync' });
+        return;
+      }
+      if (!ok) { onError(status, data); return; }
+      totalPhotos      += data.synced       || 0;
+      totalVideos      += data.videosSynced || 0;
+      totalFailed      += data.failed       || 0;
+      totalVideosFailed += data.videosFailed || 0;
+      if (data.done) {
+        const idx = galleries.findIndex(g => g.id === galleryId);
+        if (idx >= 0) galleries[idx].r2_synced = true;
+        onDone(totalPhotos, totalVideos, totalFailed, totalVideosFailed);
+        return;
+      }
+      // Guard: if offset didn't advance, bail out to prevent an infinite loop
+      const nextOffset = data.next_offset;
+      if (nextOffset == null || nextOffset <= offset) {
+        onError(0, { error: 'Sync stalled — no progress from NAS' });
+        return;
+      }
+      onProgress(totalPhotos + totalVideos, data.total);
+      offset = nextOffset;
+    }
+  }
+
+  // Called automatically after gallery creation — shows status in the result box
+  function syncGalleryToR2(galleryId) {
+    const statusEl = document.createElement('p');
+    statusEl.style.cssText = 'margin:10px 0 0;font-size:11px;color:var(--dim);font-family:Montserrat,sans-serif;';
+    statusEl.textContent = 'Syncing to CDN…';
+    document.getElementById('resultBox').appendChild(statusEl);
+
+    runGallerySync(galleryId, {
+      onProgress: (n, total) => { statusEl.textContent = `Syncing to CDN… ${n} / ${total}`; },
+      onDone:     (photos, videos, failed, videosFailed) => {
+        const totalFailed = failed + videosFailed;
+        if (totalFailed > 0 && photos === 0 && videos === 0) {
+          statusEl.textContent = `CDN sync failed — ${totalFailed} item${totalFailed !== 1 ? 's' : ''} could not be synced`;
+          statusEl.style.color = 'var(--error,#dc2626)';
+        } else if (totalFailed > 0) {
+          statusEl.textContent = `✓ ${syncSummary(photos, videos)} synced to CDN (${totalFailed} failed)`;
+          statusEl.style.color = 'var(--warn,#d97706)';
+        } else {
+          statusEl.textContent = `✓ ${syncSummary(photos, videos)} synced to CDN`;
+          statusEl.style.color = 'var(--ok,#2A5C45)';
+        }
+        renderGalleryList();
+      },
+      onError: (status, data) => {
+        if (status === 503) { statusEl.remove(); return; }
+        statusEl.textContent = `CDN sync failed: ${data?.error || 'unknown error'}`;
+        statusEl.style.color = 'var(--error,#dc2626)';
+      },
+    }).catch(err => {
+      statusEl.textContent = `CDN sync failed: ${err.message || 'unexpected error'}`;
+      statusEl.style.color = 'var(--error,#dc2626)';
+    });
+  }
+
+  // Called from the Resync R2 button on each gallery row
+  async function resyncGalleryToR2(galleryId) {
+    const btn = document.getElementById('rsync-' + galleryId);
+    if (btn) { btn.disabled = true; btn.textContent = 'Resyncing…'; }
+
+    runGallerySync(galleryId, {
+      onProgress: (n, total) => { if (btn) btn.textContent = `Resyncing… ${n} / ${total}`; },
+      onDone: (photos, videos, failed, videosFailed) => {
+        const totalFailed = failed + videosFailed;
+        if (totalFailed > 0 && photos === 0 && videos === 0) {
+          toast(`Resync failed — ${totalFailed} item${totalFailed !== 1 ? 's' : ''} could not be synced`, true);
+        } else if (totalFailed > 0) {
+          toast(`✓ Resynced ${syncSummary(photos, videos)} to CDN (${totalFailed} failed)`, true);
+        } else {
+          toast(`✓ Resynced ${syncSummary(photos, videos)} to CDN`);
+        }
+        if (btn) { btn.disabled = false; btn.textContent = 'Resync R2'; }
+        renderGalleryList();
+      },
+      onError: (status, data) => {
+        if (status === 503) toast('R2 not configured on this environment', true);
+        else toast(`Resync failed: ${data?.error || 'unknown error'}`, true);
+        if (btn) { btn.disabled = false; btn.textContent = 'Resync R2'; }
+      },
+    }).catch(err => {
+      toast(`Resync failed: ${err.message || 'unexpected error'}`, true);
+      if (btn) { btn.disabled = false; btn.textContent = 'Resync R2'; }
+    });
+  }
 
   function copyResult() {
     navigator.clipboard.writeText(currentResultUrl).then(() => toast('Link copied to clipboard'));
@@ -315,19 +401,21 @@
               <span class="gr-chevron" id="gchev-${esc(g.id)}">▾</span>
             </div>
             <div class="gr-meta">
-              ${esc(g.clientName)}
-              &nbsp;·&nbsp; Created ${esc(g.created)}
+              Created ${esc(g.created)}
               ${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}
               ${g.notes ? ' &nbsp;·&nbsp; ' + esc(g.notes) : ''}
               ${g.assignedUsers && g.assignedUsers.length
                 ? ' &nbsp;·&nbsp; <span style="color:var(--ok)">' + g.assignedUsers.length + ' user' + (g.assignedUsers.length > 1 ? 's' : '') + '</span>'
                 : ''}
+              ${g.splat_url ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">3D walkthrough</span>' : ''}
+              ${g.r2_synced ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">CDN ✓</span>' : ''}
             </div>
           </div>
           <div class="gr-actions">
             <button class="btn btn-ghost" onclick="copyGallery('${esc(g.id)}')">Copy Link</button>
-            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Preview</button>
+            <button class="btn btn-ghost" onclick="window.open(buildUrl(getGallery('${esc(g.id)}')),'_blank')">Customer View ↗</button>
             <button class="btn btn-ghost" onclick="window.open(buildAdminUrl(getGallery('${esc(g.id)}')),'_blank')" title="Open gallery in admin mode to star photos as Admin Picks">★ Admin View</button>
+            <button class="btn btn-ghost" id="rsync-${esc(g.id)}" onclick="resyncGalleryToR2('${esc(g.id)}')">Resync R2</button>
             <button class="btn btn-danger" onclick="deleteGallery('${esc(g.id)}')">Delete</button>
           </div>
         </div>
@@ -344,13 +432,9 @@
               <input type="password" id="gedit-sharePassword-${esc(g.id)}"
                 placeholder="Enter new password to change" />
             </div>
-            <div class="fg">
+            <div class="fg full">
               <label>Event / Gallery Name</label>
               <input type="text" id="gedit-eventName-${esc(g.id)}" value="${esc(g.eventName)}" required />
-            </div>
-            <div class="fg">
-              <label>Client Name</label>
-              <input type="text" id="gedit-clientName-${esc(g.id)}" value="${esc(g.clientName)}" required />
             </div>
             <div class="fg full">
               <label>Internal Notes</label>
@@ -364,6 +448,12 @@
                 style="font-size:11px; letter-spacing:0.08em; text-transform:none; color:var(--dim); cursor:pointer; font-weight:400;">
                 Photos are watermarked — disable downloads in the client gallery
               </label>
+            </div>
+            <div class="fg full">
+              <label>3D Walkthrough URL <span style="color:var(--dim); font-weight:400; text-transform:none;">(optional)</span></label>
+              <input type="url" id="gedit-splat_url-${esc(g.id)}" value="${esc(g.splat_url || '')}"
+                placeholder="https://lumalabs.ai/capture/... or SuperSplat embed URL" />
+              <p class="hint">Paste an iframe-embeddable scene URL (Luma AI, SuperSplat, etc.). Clients will see a 3D Walkthrough section in their gallery when this is set.</p>
             </div>
           </div>
           <div style="display:flex; gap:8px; margin-top:18px;">
@@ -398,16 +488,16 @@
     const shareRaw      = document.getElementById('gedit-shareUrl-' + id).value.trim();
     const sharePassword = document.getElementById('gedit-sharePassword-' + id).value;
     const eventName     = document.getElementById('gedit-eventName-' + id).value.trim();
-    const clientName    = document.getElementById('gedit-clientName-' + id).value.trim();
     const notes         = document.getElementById('gedit-notes-' + id).value.trim();
-    const watermark     = document.getElementById('gedit-watermark-' + id).checked;
+    const watermark  = document.getElementById('gedit-watermark-' + id).checked;
+    const splat_url  = document.getElementById('gedit-splat_url-' + id).value.trim();
 
-    if (!eventName || !clientName) {
-      toast('Event name and client name are required', true);
+    if (!eventName) {
+      toast('Event name is required', true);
       return;
     }
 
-    const updates = { eventName, clientName, notes, watermark };
+    const updates = { eventName, notes, watermark, splat_url: splat_url || null };
 
     if (shareRaw) {
       const parsed = parseShareUrl(shareRaw);
@@ -427,12 +517,169 @@
     toast('Gallery updated');
   }
 
+  // ── Walkthroughs admin ───────────────────────────────────────────────────────
+  let walkthroughs = [];
+
+  async function loadWalkthroughs() {
+    const { ok, data } = await apiFetch('/admin/walkthroughs', { method: 'GET' });
+    if (!ok) { toast('Failed to load walkthroughs', true); return; }
+    walkthroughs = data || [];
+    renderWalkthroughList();
+  }
+
+  function renderWalkthroughList() {
+    const el = document.getElementById('wtList');
+    if (!walkthroughs.length) {
+      el.innerHTML = '<div class="empty">No walkthroughs yet — add the first one above.</div>';
+      return;
+    }
+    el.innerHTML = walkthroughs.map(wt => `
+      <div class="gallery-row">
+        <div class="gr-header">
+          <div class="gr-info">
+            <div class="gr-name">
+              ${esc(wt.property_name)}
+              ${wt.title ? ' <span style="color:var(--dim); font-weight:400; font-size:12px;">· ' + esc(wt.title) + '</span>' : ''}
+            </div>
+            <div class="gr-meta">
+              ${wt.location ? esc(wt.location) + ' &nbsp;·&nbsp; ' : ''}
+              ${wt.collection ? esc(wt.collection) + ' &nbsp;·&nbsp; ' : ''}
+              ${wt.published
+                ? '<span style="color:var(--ok)">Published</span>'
+                : '<span style="color:var(--dim)">Draft</span>'}
+              &nbsp;·&nbsp; Sort: ${wt.sort_order}
+            </div>
+          </div>
+          <div class="gr-actions">
+            <button class="btn btn-ghost" onclick="window.open(${JSON.stringify(wt.embed_url)},'_blank')">Preview</button>
+            <button class="btn btn-ghost" onclick="toggleWtPublished('${esc(wt.id)}', ${wt.published ? 0 : 1})">
+              ${wt.published ? 'Unpublish' : 'Publish'}
+            </button>
+            <button class="btn btn-danger" onclick="deleteWalkthrough('${esc(wt.id)}')">Delete</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  document.getElementById('wtCreateForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = e.submitter;
+    btn.disabled = true; btn.textContent = 'Adding…';
+
+    const body = {
+      property_name: document.getElementById('wt-property').value.trim(),
+      title:         document.getElementById('wt-title').value.trim(),
+      location:      document.getElementById('wt-location').value.trim(),
+      collection:    document.getElementById('wt-collection').value.trim(),
+      embed_url:     document.getElementById('wt-embed').value.trim(),
+      thumbnail_url: document.getElementById('wt-thumb').value.trim() || null,
+      description:   document.getElementById('wt-desc').value.trim() || null,
+      published:     document.getElementById('wt-published').checked,
+      sort_order:    parseInt(document.getElementById('wt-sort').value, 10) || 0,
+    };
+
+    const { ok, data } = await apiFetch('/admin/walkthroughs', { method: 'POST', body });
+    btn.disabled = false; btn.textContent = 'Add Walkthrough';
+    if (!ok) { toast(data.error || 'Failed to add walkthrough', true); return; }
+    walkthroughs.unshift(data);
+    renderWalkthroughList();
+    e.target.reset();
+    toast('Walkthrough added');
+  });
+
+  async function toggleWtPublished(id, published) {
+    const wt = walkthroughs.find(w => w.id === id);
+    if (!wt) return;
+    const { ok } = await apiFetch('/admin/walkthroughs/' + id, { method: 'PUT', body: { ...wt, published } });
+    if (!ok) { toast('Update failed', true); return; }
+    wt.published = published;
+    renderWalkthroughList();
+    toast(published ? 'Published' : 'Unpublished');
+  }
+
+  async function deleteWalkthrough(id) {
+    if (!confirm('Remove this walkthrough from the showcase?')) return;
+    const { ok } = await apiFetch('/admin/walkthroughs/' + id, { method: 'DELETE' });
+    if (!ok) { toast('Delete failed', true); return; }
+    walkthroughs = walkthroughs.filter(w => w.id !== id);
+    renderWalkthroughList();
+    toast('Walkthrough removed');
+  }
+
+  // ── R2 storage usage ─────────────────────────────────────────────────────────
+  function fmtBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 2) + ' ' + units[i];
+  }
+
+  async function loadR2Storage() {
+    const body = document.getElementById('r2StorageBody');
+    const { ok, data } = await apiFetch('/admin/galleries/r2-storage', { method: 'GET' });
+    if (!ok) {
+      body.innerHTML = '<span style="color:#c0392b;">Failed to load R2 storage usage'
+        + (data && data.error ? ': ' + esc(data.error) : '') + '</span>';
+      return;
+    }
+
+    const rows = Object.entries(data.galleries).map(([galleryId, g]) => {
+      const gallery   = getGallery(galleryId);
+      const name      = gallery ? gallery.eventName : galleryId;
+      const photoBytes = g.photos.bytes;
+      const videoBytes = g.videos.bytes;
+      const total      = photoBytes + videoBytes;
+      return { galleryId, name, photoCount: g.photos.count, photoBytes, videoCount: g.videos.count, videoBytes, total };
+    }).sort((a, b) => b.total - a.total);
+
+    const rowsHtml = rows.map(r => `
+      <tr>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee);">${esc(r.name)}</td>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee); text-align:right;">${r.photoCount} (${fmtBytes(r.photoBytes)})</td>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee); text-align:right;">${r.videoCount} (${fmtBytes(r.videoBytes)})</td>
+        <td style="padding:8px 12px; border-bottom:1px solid var(--border,#eee); text-align:right; font-weight:600;">${fmtBytes(r.total)}</td>
+      </tr>`).join('');
+
+    const totalGB = data.totalBytes / (1024 ** 3);
+    const overFreeTier = data.overFreeTier;
+
+    body.innerHTML = `
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="text-transform:uppercase; letter-spacing:0.08em; font-size:10px; color:var(--dim);">
+            <th style="text-align:left; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Album</th>
+            <th style="text-align:right; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Photos</th>
+            <th style="text-align:right; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Videos</th>
+            <th style="text-align:right; padding:8px 12px; border-bottom:2px solid var(--border,#ddd);">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rowsHtml || '<tr><td colspan="4" style="padding:12px; color:var(--dim);">No data synced to R2 yet.</td></tr>'}</tbody>
+      </table>
+      <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border,#ddd); display:flex; flex-wrap:wrap; gap:24px; align-items:baseline;">
+        <div><strong style="font-size:15px; color:var(--black);">${fmtBytes(data.totalBytes)}</strong> total in R2</div>
+        <div>Cloudflare R2 free tier: <strong>${data.freeTier.storageGB} GB</strong> storage / month</div>
+        ${overFreeTier
+          ? `<div style="color:#c0392b; font-weight:600;">
+               Exceeding free tier by ${data.billableGB.toFixed(2)} GB —
+               estimated cost: ~$${data.estimatedMonthlyCostUSD.toFixed(2)}/month
+               (at $${data.freeTier.pricePerGBOverage}/GB-month)
+             </div>`
+          : `<div style="color:var(--ok,#2e7d32); font-weight:600;">Within free tier (${totalGB.toFixed(2)} / ${data.freeTier.storageGB} GB) — $0/month</div>`
+        }
+      </div>
+      <p style="margin:12px 0 0; font-size:10px; color:var(--dim);">
+        Estimate covers R2 storage only (Standard, $${data.freeTier.pricePerGBOverage}/GB-month beyond ${data.freeTier.storageGB} GB).
+        Class A/B operations have separate free allowances not included here — negligible at this site's traffic.
+      </p>`;
+  }
+
   // ── Init ─────────────────────────────────────────────────────────────────────
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    updateEnvUI();
     await loadGalleries();
+    await loadWalkthroughs();
+    loadR2Storage();
   }
 
   init();

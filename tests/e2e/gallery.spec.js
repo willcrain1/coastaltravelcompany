@@ -20,16 +20,17 @@
 import { test, expect } from '@playwright/test';
 import sharp            from 'sharp';
 
-const WORKER_URL  = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+const WORKER_URL  = process.env.WORKER_URL || 'https://api.coastaltravelcompany.com';
 const SHARE_URL   = 'https://coastaltravelcompany.quickconnect.to/mo/sharing/mBKkAF4Q8';
-const STATIC_BASE = 'http://localhost:9876';
-const PROD_ORIGIN = 'https://coastaltravelcompany.com';
+const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
+const PROD_ORIGIN = process.env.BASE_URL   || 'https://coastaltravelcompany.com';
 
 const CORS = {
-  'access-control-allow-origin':   '*',
-  'access-control-allow-methods':  'GET, POST, OPTIONS',
-  'access-control-allow-headers':  'Content-Type, Authorization',
-  'access-control-expose-headers': 'Content-Disposition',
+  'access-control-allow-origin':      STATIC_BASE,
+  'access-control-allow-credentials': 'true',
+  'access-control-allow-methods':     'GET, POST, OPTIONS',
+  'access-control-allow-headers':     'Content-Type, Authorization',
+  'access-control-expose-headers':    'Content-Disposition',
 };
 
 // ── Config helpers ────────────────────────────────────────────────────────────
@@ -245,7 +246,6 @@ test.describe('Gallery Admin', () => {
     await page.fill('#shareUrl',      SHARE_URL);
     await page.fill('#sharePassword', 'test-share-pass');
     await page.fill('#eventName',     'CI Test Gallery');
-    await page.fill('#clientName',    'CI Test Client');
     await page.click('#createBtn');
     await page.waitForSelector('#resultBox.show');
 
@@ -256,7 +256,7 @@ test.describe('Gallery Admin', () => {
 
     expect(decoded.id).toBeTruthy();
     expect(decoded.eventName).toBe('CI Test Gallery');
-    expect(decoded.clientName).toBe('CI Test Client');
+    expect(decoded.clientName || '').toBe('');
     expect(decoded.watermark).toBe(false);
     expect(decoded.proxyUrl).toBe(WORKER_URL);
     // Passphrase and password hash are now server-side only — never in the client URL
@@ -271,7 +271,6 @@ test.describe('Gallery Admin', () => {
     await page.fill('#shareUrl',      SHARE_URL);
     await page.fill('#sharePassword', 'test-share-pass');
     await page.fill('#eventName',     'Watermark Test Gallery');
-    await page.fill('#clientName',    'Watermark Test Client');
     await page.check('#watermark');
     await page.click('#createBtn');
     await page.waitForSelector('#resultBox.show');
@@ -297,9 +296,13 @@ test.describe('Client Gallery', () => {
 
   test('redirects to /login.html when no JWT is present', async ({ page }) => {
     const hash = encodeConfig(buildConfig());
+    // init() redirects synchronously (no async fetch before the JWT check), so
+    // the navigation may complete during page.goto(). Register waitForURL first
+    // to capture the event whether it fires during or after goto().
+    const nav = page.waitForURL(/\/login(\.html)?/, { timeout: 10_000 });
     await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
-    await page.waitForURL('**/login.html', { timeout: 10_000 });
-    expect(page.url()).toContain('login.html');
+    await nav;
+    expect(page.url()).toMatch(/\/login(\.html)?/);
   });
 
   test('shows error when gallery config is missing required id field', async ({ page }) => {
@@ -565,5 +568,127 @@ test.describe('Client Gallery — Video Support', () => {
 
     const dlHref = await page.locator('.p-dl').first().getAttribute('download');
     expect(dlHref).toMatch(/\.mp4$/i);
+  });
+});
+
+// ── R2 hybrid serving ─────────────────────────────────────────────────────────
+
+test.describe('R2 hybrid serving', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('thumbnail request returns X-Asset-Source: r2 after gallery is synced', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt'));
+
+    const r2AssetSources = [];
+
+    // Intercept all Worker requests
+    await context.route(
+      (url) => url.toString().startsWith(WORKER_URL),
+      async (route) => {
+        const req    = route.request();
+        const url    = new URL(req.url());
+        const method = req.method();
+
+        if (method === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
+
+        // Token exchange — signal gallery is r2-synced
+        if (url.pathname === '/token' && method === 'POST') {
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ sid: 'mock-r2-sid' }),
+          });
+        }
+
+        // Browse.Item — POST body contains api=SYNO.Foto.Browse.Item (not in URL query)
+        if (method === 'POST') {
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ success: true, data: { list: [{ id: 101, type: 'photo', filename: 'photo.jpg', additional: { thumbnail: { xl: 'available' }, resolution: { width: 800, height: 600 } } }], total: 1 } }),
+          });
+        }
+
+        // Thumbnail served from R2 — api= is in GET query string
+        if (url.searchParams.get('api') === 'SYNO.Foto.Thumbnail') {
+          const pixel = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AJQAB/9k=', 'base64');
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'image/jpeg', 'x-asset-source': 'r2', 'cache-control': 'public, max-age=86400', ...CORS },
+            body:    pixel,
+          });
+        }
+
+        await route.fulfill({ status: 404, headers: CORS, body: 'Not found' });
+      },
+    );
+
+    // Capture X-Asset-Source headers from Worker responses
+    page.on('response', (res) => {
+      if (res.url().startsWith(WORKER_URL)) {
+        const src = res.headers()['x-asset-source'];
+        if (src) r2AssetSources.push(src);
+      }
+    });
+
+    const hash = encodeConfig(buildConfig());
+    await page.goto(`${STATIC_BASE}/gallery/client-gallery.html#${hash}`);
+    await page.waitForSelector('.p-item', { timeout: 15_000 });
+
+    expect(r2AssetSources).toContain('r2');
+  });
+
+  test('admin sync endpoint is called and returns synced count', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-admin'));
+
+    let syncCalled = false;
+
+    await context.route(
+      (url) => url.toString().startsWith(WORKER_URL),
+      async (route) => {
+        const req = route.request();
+        const url = new URL(req.url());
+
+        if (req.method() === 'OPTIONS') { await route.fulfill({ status: 204, headers: CORS }); return; }
+
+        if (url.pathname === '/auth/me') {
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ id: 'a1', email: 'admin@test.com', role: 'admin' }),
+          });
+        }
+
+        if (url.pathname.match(/^\/admin\/galleries\/[^/]+\/sync-r2$/) && req.method() === 'POST') {
+          syncCalled = true;
+          return route.fulfill({
+            status:  200,
+            headers: { 'content-type': 'application/json', ...CORS },
+            body:    JSON.stringify({ ok: true, synced: 12, failed: 0, total: 12, done: true, next_offset: null }),
+          });
+        }
+
+        await route.fulfill({ status: 404, headers: CORS, body: '' });
+      },
+    );
+
+    // Navigate to any page to get a real origin before making Worker requests
+    await page.goto(STATIC_BASE);
+
+    // Call the sync endpoint via fetch from the page (needs a real origin for CORS)
+    const result = await page.evaluate(async ({ workerUrl }) => {
+      const res = await fetch(`${workerUrl}/admin/galleries/test-gallery-id/sync-r2`, {
+        method:      'POST',
+        credentials: 'include',
+      });
+      return res.json();
+    }, { workerUrl: WORKER_URL });
+
+    expect(syncCalled).toBe(true);
+    expect(result.ok).toBe(true);
+    expect(result.synced).toBe(12);
+    expect(result.done).toBe(true);
   });
 });

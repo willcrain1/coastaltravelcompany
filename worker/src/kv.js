@@ -89,10 +89,11 @@ export async function syncGalleryAssignments(userEmail, added, removed, kv) {
 
 export function stripSensitive(u) {
   return {
-    id: u.id, email: u.email, role: u.role, created: u.created,
+    id: u.id, email: u.email, name: u.name || '', role: u.role, created: u.created,
     galleries: u.galleries || [],
     verified: u.verified !== false,
     hasPassword: !!u.passwordHash,
+    hasGoogle: !!u.googleLinked,
   };
 }
 

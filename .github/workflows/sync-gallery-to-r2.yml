@@ -1,0 +1,42 @@
+name: Sync gallery thumbnails to R2
+
+on:
+  workflow_dispatch:
+    inputs:
+      gallery_id:
+        description: 'Gallery ID to sync (leave empty to sync all active galleries)'
+        required: false
+        default: ''
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'preprod'
+        type: choice
+        options:
+          - preprod
+          - prod
+
+jobs:
+  sync:
+    name: Sync ${{ inputs.gallery_id || 'all galleries' }} → R2 (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set Worker URL
+        id: worker
+        run: |
+          if [ "${{ inputs.environment }}" = "prod" ]; then
+            echo "url=https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=https://coastal-gallery-proxy-preprod.thecoastaltravelcompany.workers.dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync thumbnails to R2
+        env:
+          WORKER_URL: ${{ steps.worker.outputs.url }}
+          ADMIN_JWT:  ${{ secrets.ADMIN_JWT }}
+          GALLERY_ID: ${{ inputs.gallery_id }}
+        run: bash worker/scripts/sync-gallery-to-r2.sh

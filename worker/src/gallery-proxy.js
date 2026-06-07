@@ -1,8 +1,9 @@
 import { PhotonImage, draw_text_with_border } from '@cf-wasm/photon';
 import { NAS_SHARE_API, NAS_SHARE_PAGE, ALLOWED_APIS, CORS, RATE_LIMIT } from './constants.js';
-import { jsonResponse, authRequired, forbidden } from './utils.js';
+import { jsonResponse, rateLimitedResponse, authRequired, forbidden } from './utils.js';
 import { getAuth } from './jwt.js';
 import { getGallery } from './kv.js';
+import { checkGalleryUnlockBruteForce, recordGalleryUnlockFailure, clearGalleryUnlockCounter } from './brute-force.js';
 
 // Per-isolate NAS session cache: passphrase → { cookie, sid, exp }
 export const sidCache = {};
@@ -99,6 +100,12 @@ export async function applyWatermark(imageBytes) {
 export async function handleTokenExchange(request, env) {
   const payload = await getAuth(request, env);
   if (!payload) return authRequired();
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  if (await checkGalleryUnlockBruteForce(ip, env.KV)) {
+    return rateLimitedResponse('Too many failed gallery access attempts from your network. Please try again in 10 minutes.', 600);
+  }
+
   const body      = await request.text();
   const galleryId = new URLSearchParams(body).get('galleryId');
   if (!galleryId) return jsonResponse({ error: 'Missing galleryId' }, 400);
@@ -113,10 +120,17 @@ export async function handleTokenExchange(request, env) {
   try {
     await getSharingSid(passphrase, gallery.sharePassword || null);
   } catch (err) {
-    return jsonResponse({ error: 'Gallery session failed: ' + err.message }, 401);
+    await recordGalleryUnlockFailure(ip, env.KV);
+    return jsonResponse({ error: 'Gallery session failed: ' + err.message }, 502);
   }
+  await clearGalleryUnlockCounter(ip, env.KV);
   const sid = crypto.randomUUID();
-  await env.KV.put('tok:' + sid, JSON.stringify({ passphrase, sharePassword: gallery.sharePassword || null }), { expirationTtl: 14400 });
+  await env.KV.put('tok:' + sid, JSON.stringify({
+    passphrase,
+    sharePassword: gallery.sharePassword || null,
+    galleryId,
+    r2Synced: gallery.r2_synced || false,
+  }), { expirationTtl: 14400 });
   return jsonResponse({ sid });
 }
 
@@ -137,6 +151,8 @@ export async function handleNasProxy(request, env) {
   }
 
   let sharePassword = null;
+  let galleryId = null;
+  let r2Synced  = false;
   if (rawSid) {
     const stored = await env.KV.get('tok:' + rawSid);
     if (!stored) {
@@ -146,6 +162,8 @@ export async function handleNasProxy(request, env) {
       const parsed  = JSON.parse(stored);
       passphrase    = parsed.passphrase;
       sharePassword = parsed.sharePassword || null;
+      galleryId     = parsed.galleryId     || null;
+      r2Synced      = parsed.r2Synced      || false;
     } catch {
       passphrase = stored;
     }
@@ -166,6 +184,57 @@ export async function handleNasProxy(request, env) {
 
   if (!await checkRateLimit(passphrase, env.KV)) {
     return jsonResponse({ success: false, error: { code: 429, message: 'Too many requests — try again in a minute' } }, 429);
+  }
+
+  // ── R2 cache: serve thumbnail from R2 when gallery is fully synced ──────────
+  if (r2Synced && galleryId && env.ASSETS && method === 'GET') {
+    const photoId = url.searchParams.get('id');
+    if (photoId && apiMethod === 'SYNO.Foto.Thumbnail') {
+      const r2Key = `galleries/${galleryId}/thumbs/${photoId}.jpg`;
+      const r2Obj = await env.ASSETS.get(r2Key).catch(() => null);
+      if (r2Obj) {
+        const headers = new Headers(CORS);
+        headers.set('Content-Type', 'image/jpeg');
+        headers.set('Cache-Control', 'public, max-age=86400');
+        headers.set('X-Asset-Source', 'r2');
+        return new Response(r2Obj.body, { headers });
+      }
+    }
+  }
+
+  // ── R2 cache: serve video from R2 (with range request support for seeking) ──
+  if (galleryId && env.ASSETS && method === 'GET' && apiMethod === 'SYNO.Foto.Download') {
+    const unitId = url.searchParams.get('unit_id');
+    if (unitId) {
+      const r2Key     = `galleries/${galleryId}/videos/${unitId}`;
+      const rangeHeader = request.headers.get('Range');
+      let rangeOpt;
+      if (rangeHeader) {
+        const m = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+        if (m) {
+          rangeOpt = { offset: parseInt(m[1], 10) };
+          if (m[2]) rangeOpt.length = parseInt(m[2], 10) - rangeOpt.offset + 1;
+        }
+      }
+      const r2Obj = await env.ASSETS.get(r2Key, rangeOpt ? { range: rangeOpt } : undefined).catch(() => null);
+      if (r2Obj) {
+        const headers = new Headers(CORS);
+        headers.set('Content-Type', r2Obj.httpMetadata?.contentType || 'video/mp4');
+        headers.set('Accept-Ranges', 'bytes');
+        headers.set('Cache-Control', 'public, max-age=86400');
+        headers.set('X-Asset-Source', 'r2');
+        let status = 200;
+        if (r2Obj.range) {
+          const { offset, length } = r2Obj.range;
+          status = 206;
+          headers.set('Content-Range', `bytes ${offset}-${offset + length - 1}/${r2Obj.size}`);
+          headers.set('Content-Length', String(length));
+        } else {
+          headers.set('Content-Length', String(r2Obj.size));
+        }
+        return new Response(r2Obj.body, { status, headers });
+      }
+    }
   }
 
   let nasAuth;
@@ -247,5 +316,6 @@ export async function handleNasProxy(request, env) {
   const resHeaders = new Headers(CORS);
   if (ct) resHeaders.set('Content-Type', ct);
   if (cd) resHeaders.set('Content-Disposition', cd);
+  resHeaders.set('X-Asset-Source', 'nas');
   return new Response(body, { status: nasResponse.status, headers: resHeaders });
 }

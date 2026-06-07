@@ -1,8 +1,20 @@
 import { ALLOWED_ORIGIN, JWT_EXPIRY_SECS } from './constants.js';
-import { jsonResponse, authRequired } from './utils.js';
-import { createJWT, getAuth } from './jwt.js';
+import { jsonResponse, rateLimitedResponse, authRequired } from './utils.js';
+import { createJWT, getAuth, makeAuthCookie, clearAuthCookie } from './jwt.js';
+
+// Returns the cookie Domain attribute value when the worker is deployed on a
+// custom same-eTLD+1 domain (e.g. api.preprod.coastaltravelcompany.com).
+// Set via COOKIE_DOMAIN wrangler var; absent on workers.dev deployments so
+// SameSite=None is used instead of Lax.
+function cookieDomain(env) {
+  return (env && env.COOKIE_DOMAIN) || '';
+}
 import { getUser, putUser } from './kv.js';
 import { hashPassword, verifyPassword } from './crypto.js';
+import {
+  checkLoginBruteForce, recordLoginFailure, clearLoginCounters,
+  checkResetBruteForce, recordResetAttempt,
+} from './brute-force.js';
 
 export async function handleAuthSetupStatus(env) {
   const raw  = await env.KV.get('users_list');
@@ -30,12 +42,14 @@ export async function handleAuthSetup(request, env) {
     { sub: user.email, id, role: 'admin', iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
+  const res = jsonResponse({ token, user: { id, email: user.email, role: 'admin' } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token, undefined, cookieDomain(env)));
+  return res;
 }
 
 export async function handleAuthRegister(request, env) {
   if (!env.JWT_SECRET) return jsonResponse({ error: 'JWT_SECRET not configured' }, 503);
-  const { email, password } = await request.json();
+  const { email, password, name } = await request.json();
   if (!email || !password || password.length < 8) {
     return jsonResponse({ error: 'Email and password (min 8 chars) required' }, 400);
   }
@@ -46,6 +60,7 @@ export async function handleAuthRegister(request, env) {
   const verifyToken = crypto.randomUUID();
   const user = {
     id, email: email.toLowerCase(),
+    name: name ? name.trim() : '',
     passwordHash: await hashPassword(password),
     role: 'client', created: Date.now(), galleries: [],
     verified: false,
@@ -112,19 +127,29 @@ export async function handleAuthLogin(request, env) {
   if (!env.JWT_SECRET) return jsonResponse({ error: 'JWT_SECRET not configured' }, 503);
   const { email, password } = await request.json();
   if (!email || !password) return jsonResponse({ error: 'Email and password required' }, 400);
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  const { locked, reason } = await checkLoginBruteForce(email.toLowerCase(), ip, env.KV);
+  if (locked) return rateLimitedResponse(reason, 900);
+
   const user = await getUser(email, env.KV);
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  const valid = user && await verifyPassword(password, user.passwordHash);
+  if (!valid) {
+    await recordLoginFailure(email.toLowerCase(), ip, user?.role ?? null, env.KV, env.RESEND_API_KEY);
     return jsonResponse({ error: 'Invalid email or password' }, 401);
   }
   if (user.verified === false) {
     return jsonResponse({ error: 'Please verify your email address before signing in.', unverified: true }, 403);
   }
+  await clearLoginCounters(email.toLowerCase(), ip, env.KV);
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token, undefined, cookieDomain(env)));
+  return res;
 }
 
 export async function handleAuthGoogle(request, env) {
@@ -132,46 +157,68 @@ export async function handleAuthGoogle(request, env) {
   if (!env.GOOGLE_CLIENT_ID) return jsonResponse({ error: 'Google login not configured' }, 503);
   const { credential } = await request.json();
   if (!credential) return jsonResponse({ error: 'Missing credential' }, 400);
-  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
-  if (!res.ok) return jsonResponse({ error: 'Invalid Google token' }, 401);
-  const info = await res.json();
+  const tokenRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+  if (!tokenRes.ok) return jsonResponse({ error: 'Invalid Google token' }, 401);
+  const info = await tokenRes.json();
   if (info.aud !== env.GOOGLE_CLIENT_ID) return jsonResponse({ error: 'Token audience mismatch' }, 401);
   if (info.email_verified !== 'true')    return jsonResponse({ error: 'Email not verified' }, 401);
   const email = info.email.toLowerCase();
-  const user  = await getUser(email, env.KV);
-  if (!user) return jsonResponse({ error: 'No account found. Contact your administrator.' }, 403);
-  if (user.verified === false) {
-    user.verified = true;
+  let user    = await getUser(email, env.KV);
+  if (!user) {
+    user = {
+      id: crypto.randomUUID(),
+      email,
+      passwordHash: null,
+      googleLinked: true,
+      role: 'client',
+      created: Date.now(),
+      galleries: [],
+      verified: true,
+    };
     await putUser(user, env.KV);
+  } else {
+    let changed = false;
+    if (!user.googleLinked) { user.googleLinked = true; changed = true; }
+    if (user.verified === false) { user.verified = true; changed = true; }
+    if (changed) await putUser(user, env.KV).catch(() => {});
   }
   const now   = Math.floor(Date.now() / 1000);
   const token = await createJWT(
     { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
     env.JWT_SECRET
   );
-  return jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  const res = jsonResponse({ token, user: { id: user.id, email: user.email, role: user.role } });
+  res.headers.set('Set-Cookie', makeAuthCookie(token, undefined, cookieDomain(env)));
+  return res;
 }
 
 export async function handleAuthResetRequest(request, env) {
   const { email } = await request.json();
   if (!email) return jsonResponse({ error: 'Email required' }, 400);
-  const user = await getUser(email, env.KV);
-  if (user) {
-    const token    = crypto.randomUUID();
-    const resetUrl = `${ALLOWED_ORIGIN}/login.html?reset=${token}`;
-    await env.KV.put('reset:' + token, JSON.stringify({ email: user.email }), { expirationTtl: 3600 });
-    await fetch('https://api.resend.com/emails', {
-      method:  'POST',
-      headers: { 'Authorization': 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
-        to:      [user.email],
-        subject: 'Reset your password — Coastal Travel Company',
-        html:    `<p style="font-family:sans-serif">Click the link below to reset your password. The link expires in 1 hour.</p>
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+
+  const { locked } = await checkResetBruteForce(email.toLowerCase(), ip, env.KV);
+  // Always return ok: true even when rate-limited — prevents account enumeration
+  if (!locked) {
+    await recordResetAttempt(email.toLowerCase(), ip, env.KV);
+    const user = await getUser(email, env.KV);
+    if (user) {
+      const token    = crypto.randomUUID();
+      const resetUrl = `${ALLOWED_ORIGIN}/login.html?reset=${token}`;
+      await env.KV.put('reset:' + token, JSON.stringify({ email: user.email }), { expirationTtl: 3600 });
+      await fetch('https://api.resend.com/emails', {
+        method:  'POST',
+        headers: { 'Authorization': 'Bearer ' + env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from:    'Coastal Travel Company <noreply@coastaltravelcompany.com>',
+          to:      [user.email],
+          subject: 'Reset your password — Coastal Travel Company',
+          html:    `<p style="font-family:sans-serif">Click the link below to reset your password. The link expires in 1 hour.</p>
 <p style="font-family:sans-serif"><a href="${resetUrl}">${resetUrl}</a></p>
 <p style="font-family:sans-serif;color:#999">If you didn't request this, you can ignore this email.</p>`,
-      }),
-    });
+        }),
+      });
+    }
   }
   return jsonResponse({ ok: true });
 }
@@ -189,6 +236,8 @@ export async function handleAuthResetConfirm(request, env) {
   user.passwordHash = await hashPassword(password);
   await putUser(user, env.KV);
   await env.KV.delete('reset:' + token);
+  // Clear permanent admin lockout (if set) so they can log in again
+  await env.KV.delete(`locked:${email}`);
   return jsonResponse({ ok: true });
 }
 
@@ -197,5 +246,45 @@ export async function handleAuthMe(request, env) {
   if (!payload) return authRequired();
   const user = await getUser(payload.sub, env.KV);
   if (!user) return authRequired();
-  return jsonResponse({ id: user.id, email: user.email, role: user.role });
+  const res = jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
+  // Sliding window: refresh cookie on every authenticated /auth/me call
+  if (!payload.masquerade) {
+    const now      = Math.floor(Date.now() / 1000);
+    const newToken = await createJWT(
+      { sub: user.email, id: user.id, role: user.role, iat: now, exp: now + JWT_EXPIRY_SECS },
+      env.JWT_SECRET
+    );
+    res.headers.set('Set-Cookie', makeAuthCookie(newToken, undefined, cookieDomain(env)));
+  }
+  return res;
+}
+
+export async function handleAuthLogout(env) {
+  const res = jsonResponse({ ok: true });
+  res.headers.set('Set-Cookie', clearAuthCookie(cookieDomain(env)));
+  return res;
+}
+
+export async function handleAuthUpdateMe(request, env) {
+  const payload = await getAuth(request, env);
+  if (!payload) return authRequired();
+  const user = await getUser(payload.sub, env.KV);
+  if (!user) return authRequired();
+
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid body' }, 400); }
+
+  if (body.name !== undefined) user.name = body.name.trim();
+
+  if (body.newPassword) {
+    if (!body.currentPassword) return jsonResponse({ error: 'Current password required' }, 400);
+    if (body.newPassword.length < 8) return jsonResponse({ error: 'New password must be at least 8 characters' }, 400);
+    if (!user.passwordHash) return jsonResponse({ error: 'No password set on this account' }, 400);
+    const valid = await verifyPassword(body.currentPassword, user.passwordHash);
+    if (!valid) return jsonResponse({ error: 'Current password is incorrect' }, 400);
+    user.passwordHash = await hashPassword(body.newPassword);
+  }
+
+  await putUser(user, env.KV);
+  return jsonResponse({ id: user.id, email: user.email, name: user.name || '', role: user.role, hasPassword: !!user.passwordHash });
 }

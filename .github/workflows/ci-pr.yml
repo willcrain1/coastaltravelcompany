@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  pull_request:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # ── Worker test jobs (run in parallel) ───────────────────────────────────────
+
+  worker-tests:
+    name: Worker tests (≥95% coverage)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run all worker tests with coverage
+        run: npm run test:unit
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run integration tests
+        run: npx vitest run tests/integration
+
+  auth-boundary-tests:
+    name: Auth boundary tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run auth boundary tests
+        run: npx vitest run tests/auth-boundaries.test.js
+
+  migration-smoke:
+    name: Migration smoke tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run migration smoke tests
+        run: npx vitest run tests/migration-smoke.test.js
+
+  # ── E2e checks ───────────────────────────────────────────────────────────────
+
+  e2e-route-coverage:
+    name: E2e route coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Check every router.js route has a spec reference
+        run: node tests/e2e/scripts/check-route-coverage.js
+
+  # ── PRs targeting master only ─────────────────────────────────────────────────
+  # These run on the PR before merge, using mocked Worker responses, to catch
+  # frontend regressions before the code reaches the preprod deploy pipeline.
+
+  validate-source:
+    name: Validate PR source
+    runs-on: ubuntu-latest
+    if: github.base_ref == 'master'
+    steps:
+      - name: Require PR from preprod branch
+        run: |
+          if [ "${{ github.head_ref }}" != "preprod" ]; then
+            echo "PRs to master must come from the preprod branch."
+            echo "Source branch was: ${{ github.head_ref }}"
+            exit 1
+          fi
+          echo "Source branch is preprod — OK"
+
+  acceptance-tests:
+    name: Playwright (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Install Stripe CLI
+        run: |
+          curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee /etc/apt/sources.list.d/stripe.list
+          sudo apt-get update && sudo apt-get install -y stripe
+      - name: Run acceptance tests (shard ${{ matrix.shard }}/4)
+        run: npm test -- --shard=${{ matrix.shard }}/4
+        env:
+          STRIPE_CLI_API_KEY: ${{ secrets.STRIPE_CLI_API_KEY }}
+          PREPROD_ADMIN_JWT:  ${{ secrets.PREPROD_ADMIN_JWT }}
+          MAILOSAUR_API_KEY:  ${{ secrets.MAILOSAUR_API_KEY }}
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.shard }}-of-4
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

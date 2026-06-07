@@ -7,8 +7,86 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="js/cookie-consent.js"></script>
   <style>
+    :root {
+      --black: #1C1C1C;
+      --green: #2A5C45;
+      --teal:  #8FBFBE;
+      --cream: #F4F1EC;
+      --linen: #E8DDD0;
+      --text:  #2C2C2C;
+      --mid:   #5A5A5A;
+    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 300;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .portal-shell-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--cream);
+      border-bottom: 1px solid var(--linen);
+      padding: 18px 48px;
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto minmax(180px, 1fr);
+      align-items: center;
+      gap: 24px;
+    }
+    .logo-wrap { line-height: 1; }
+    .logo-main {
+      display: block;
+      font-family: 'Gilda Display', serif;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--black);
+    }
+    .logo-script {
+      font-family: 'Pinyon Script', cursive;
+      font-size: 26px;
+      color: var(--green);
+      line-height: 1;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 20px;
+    }
+    .nav-account-link {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-account-link:hover { color: var(--green); }
+    .sign-out-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      background: transparent;
+      border: 1px solid var(--linen);
+      color: var(--mid);
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .sign-out-btn:hover { border-color: var(--teal); color: var(--green); }
+    main {
+      padding-top: 92px;
+    }
     .pp-wrap {
       max-width: 800px;
       margin: 0 auto;
@@ -257,38 +335,150 @@
     }
     .pp-error { color: #c00; }
     .pp-loading { color: #888; }
+
+    /* ── Create inquiry form ── */
+    .pp-create-intro {
+      font-size: 0.9rem;
+      color: var(--mid);
+      line-height: 1.7;
+      margin-bottom: 32px;
+      max-width: 480px;
+    }
+    .pp-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pp-label {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--mid);
+    }
+    .pp-input, .pp-textarea {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 300;
+      padding: 11px 14px;
+      border: 1px solid #ddd;
+      border-radius: 2px;
+      width: 100%;
+      box-sizing: border-box;
+      background: #fff;
+      color: var(--black);
+      transition: border-color 0.2s;
+    }
+    .pp-input:focus, .pp-textarea:focus { outline: none; border-color: var(--green); }
+    .pp-textarea { resize: vertical; min-height: 100px; }
+    .pp-create-error {
+      font-size: 0.85rem;
+      color: #c00;
+      display: none;
+    }
+    .pp-submit-btn {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 13px 36px;
+      border-radius: 2px;
+      cursor: pointer;
+      align-self: flex-start;
+      transition: opacity 0.2s;
+    }
+    .pp-submit-btn:hover { opacity: 0.85; }
+    .pp-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Portal tab nav ── */
+    .portal-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+    }
+    .portal-tab-link {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--mid);
+      text-decoration: none;
+      padding: 10px 14px;
+      border-bottom: 2px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .portal-tab-link:hover { color: var(--green); }
+    .portal-tab-link.active { color: var(--green); border-bottom-color: var(--green); }
+    @media (max-width: 640px) {
+      .portal-shell-nav {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        padding: 14px 20px;
+        gap: 12px;
+      }
+      .nav-right { justify-content: center; }
+      main { padding-top: 168px; }
+    }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="logo-wrap">
-    <a href="/" style="text-decoration:none">
+<nav class="portal-shell-nav">
+  <a href="/" style="text-decoration:none">
+    <div class="logo-wrap">
       <span class="logo-main">Coastal</span>
       <span class="logo-script">Travel Company</span>
-    </a>
+    </div>
+  </a>
+  <div class="portal-tabs" aria-label="Portal sections">
+    <a class="portal-tab-link" id="accountTabLink" href="/portal.html">My Account</a>
+    <a class="portal-tab-link active" id="projectTabLink" href="#">My Project</a>
+    <a class="portal-tab-link" id="profileTabLink" href="/profile.html">My Profile</a>
   </div>
-  <nav class="nav">
-    <a href="index.html" class="nav-link">Home</a>
-    <a href="services.html" class="nav-link">Services</a>
-    <a href="contact.html" class="nav-link">Contact</a>
-    <a href="login.html" class="nav-link nav-account">Account</a>
-  </nav>
-  <div class="hamburger" id="hamburger" onclick="toggleMobileNav()">
-    <span></span><span></span><span></span>
+  <div class="nav-right">
+    <a href="/profile.html" class="nav-account-link" id="navAccountLink"></a>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
-</header>
-
-<div class="mobile-nav" id="mobileNav">
-  <a href="index.html">Home</a>
-  <a href="services.html">Services</a>
-  <a href="contact.html">Contact</a>
-  <a href="login.html">Account</a>
-</div>
+</nav>
 
 <main>
   <div id="ppLoading" class="pp-loading">Loading your project portal…</div>
   <div id="ppError"   class="pp-error"   style="display:none"></div>
+
+  <!-- New inquiry form — shown when client has no project yet -->
+  <div id="ppCreate" class="pp-wrap" style="display:none">
+    <div class="pp-hero">
+      <span class="brand-script">Coastal Travel Company</span>
+      <h1>Start Your Project</h1>
+      <div class="pp-meta">Submit an inquiry and we'll be in touch shortly</div>
+    </div>
+    <div class="pp-section">
+      <div class="pp-section-title" style="text-align:center;">New Project Inquiry</div>
+      <p class="pp-create-intro" style="margin-left:auto;margin-right:auto;">Tell us about your property and what you have in mind. We'll review your inquiry and reach out to discuss next steps.</p>
+      <form onsubmit="event.preventDefault(); createProject();" style="display:flex;flex-direction:column;gap:20px;max-width:480px;margin:0 auto;">
+        <div class="pp-field">
+          <label class="pp-label" for="createProperty">Property / Hotel Name *</label>
+          <input class="pp-input" type="text" id="createProperty" required placeholder="Grand Palms Resort" autocomplete="off" />
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="createLocation">Location</label>
+          <input class="pp-input" type="text" id="createLocation" placeholder="Palm Beach, FL" autocomplete="off" />
+        </div>
+        <div class="pp-field">
+          <label class="pp-label" for="createMessage">Tell us about your project</label>
+          <textarea class="pp-textarea" id="createMessage" placeholder="Anything you'd like us to know — vision, timeline, special considerations…"></textarea>
+        </div>
+        <div id="createError" class="pp-create-error"></div>
+        <button type="submit" id="createBtn" class="pp-submit-btn">Submit Inquiry</button>
+      </form>
+    </div>
+  </div>
+
   <div id="ppWrap"   class="pp-wrap"    style="display:none">
 
     <div class="pp-hero">
@@ -333,17 +523,83 @@
 <script src="config.js"></script>
 <script>
   const WORKER_URL = CTC_CONFIG.workerUrl;
-  const token = location.hash.slice(1);
+  const JWT_KEY = 'ctc_jwt';
+  const USER_KEY = 'ctc_user';
+  const MASQUERADE_TOKEN_KEY = 'ctc_masquerade_token';
+  const MASQUERADE_USER_KEY  = 'ctc_masquerade_user';
+  let token = location.hash.slice(1);
+  const isAdminPreview = new URLSearchParams(window.location.search).has('preview');
+  const isMasquerade   = !!sessionStorage.getItem(MASQUERADE_TOKEN_KEY);
   let projectData = null;
 
   const STAGES = ['Inquiry','Proposal Sent','Contract Sent','Contract Signed','Retainer Paid','Active','Delivered','Complete'];
 
+  function portalHref(path, hash = '') {
+    return path + (isAdminPreview ? '?preview=1' : '') + hash;
+  }
+
+  function showAdminPreviewBanner() {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
+    banner.innerHTML = 'Admin Preview &mdash; this is how clients see the portal &nbsp;&middot;&nbsp; <a href="/admin/galleries.html" style="color:#000;text-decoration:underline;">Back to Admin</a>';
+    document.body.prepend(banner);
+    document.querySelector('.portal-shell-nav').style.top = '33px';
+    document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '125px';
+  }
+
+  async function signOut() {
+    localStorage.removeItem(JWT_KEY);
+    localStorage.removeItem(USER_KEY);
+    await fetch(WORKER_URL + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    window.location.href = '/login.html';
+  }
+
+  async function exitMasquerade() {
+    const masqToken = sessionStorage.getItem(MASQUERADE_TOKEN_KEY);
+    if (masqToken) {
+      await fetch(WORKER_URL + '/admin/masquerade/exit', {
+        method:  'POST',
+        headers: { 'Authorization': 'Bearer ' + masqToken },
+      }).catch(() => {});
+    }
+    sessionStorage.removeItem(MASQUERADE_TOKEN_KEY);
+    sessionStorage.removeItem(MASQUERADE_USER_KEY);
+    window.location.href = '/admin/clients.html';
+  }
+
+  function authFetch(url, opts = {}) {
+    const masqToken = isMasquerade ? sessionStorage.getItem(MASQUERADE_TOKEN_KEY) : null;
+    if (masqToken) {
+      return fetch(url, { ...opts, headers: { ...(opts.headers || {}), 'Authorization': 'Bearer ' + masqToken } });
+    }
+    const jwt = localStorage.getItem(JWT_KEY);
+    const headers = jwt ? { ...(opts.headers || {}), 'Authorization': 'Bearer ' + jwt } : (opts.headers || {});
+    return fetch(url, { ...opts, credentials: 'include', headers });
+  }
+
   async function load() {
     if (!token) { showError('No portal link found. Please use the link from your email.'); return; }
     try {
-      const res = await fetch(WORKER_URL + '/portal/project/' + token, { headers: { Origin: location.origin } });
+      document.getElementById('accountTabLink').href = portalHref('/portal.html');
+      document.getElementById('projectTabLink').href = portalHref('/portal-project.html', location.hash);
+      document.getElementById('profileTabLink').href  = portalHref('/profile.html');
+
+      const res = await authFetch(WORKER_URL + '/portal/project/' + token);
+      if (res.status === 401) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(location.href);
+        return;
+      }
+      if (res.status === 403) {
+        showError('This project portal is linked to a different account. Please sign in with the correct email address.');
+        return;
+      }
+      if (res.status === 410) {
+        showError('This project has been completed. The portal is no longer active.');
+        return;
+      }
       if (!res.ok) { showError('Portal not found. Please use the link you received by email.'); return; }
       projectData = await res.json();
+      localStorage.setItem('ctc_project_token', token);
       render();
       hide('ppLoading'); show('ppWrap');
     } catch {
@@ -362,6 +618,14 @@
     renderDocs(documents, proposals);
     renderQuestionnaires(questionnaires);
     renderMessages(messages);
+
+    if (project.stage === 'Complete') {
+      document.querySelector('.msg-form').style.display = 'none';
+      const note = document.createElement('p');
+      note.style.cssText = 'font-family:Montserrat,sans-serif;font-size:0.8rem;color:#aaa;font-style:italic;text-align:center;padding:12px 0;';
+      note.textContent = 'This project is complete — messaging is now closed.';
+      document.getElementById('ppMessages').after(note);
+    }
   }
 
   function renderTimeline(currentStage) {
@@ -434,10 +698,10 @@
     if (!content) return;
     btn.disabled = true;
     try {
-      const res = await fetch(WORKER_URL + '/portal/project/' + token, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Origin: location.origin },
-        body: JSON.stringify({ content }),
+      const res = await authFetch(WORKER_URL + '/portal/project/' + token, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ content }),
       });
       if (res.ok) {
         const msg = await res.json();
@@ -451,6 +715,121 @@
       alert('Network error. Please try again.');
     }
     btn.disabled = false;
+  }
+
+  async function loadOrCreate() {
+    // Masquerade: validate token still present; redirect out if session expired
+    if (isMasquerade && !sessionStorage.getItem(MASQUERADE_TOKEN_KEY)) {
+      window.location.href = '/admin/clients.html';
+      return;
+    }
+
+    // Single /auth/me call: populates nav, validates session, checks admin/masquerade state
+    const meRes = await authFetch(WORKER_URL + '/auth/me').catch(() => null);
+    const me    = meRes?.ok ? await meRes.json().catch(() => null) : null;
+
+    const navLink = document.getElementById('navAccountLink');
+    if (navLink && me) { navLink.textContent = me.name || me.email; navLink.title = me.email; }
+
+    if (isAdminPreview && me?.role === 'admin') showAdminPreviewBanner();
+
+    if (isMasquerade && me) {
+      let masqUserName = me.name || me.email;
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(MASQUERADE_USER_KEY) || '{}');
+        masqUserName = saved.name || saved.email || masqUserName;
+      } catch {}
+      const banner = document.createElement('div');
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#f59e0b;color:#000;text-align:center;padding:7px 16px;font-family:Montserrat,sans-serif;font-size:10px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;';
+      banner.innerHTML = `Admin View — Viewing portal as <strong>${masqUserName}</strong> &nbsp;&middot;&nbsp; <a href="#" onclick="exitMasquerade();return false;" style="color:#000;text-decoration:underline;">Exit Masquerade</a>`;
+      document.body.prepend(banner);
+      document.querySelector('.portal-shell-nav').style.top = '33px';
+      document.querySelector('main').style.paddingTop = window.matchMedia('(max-width: 640px)').matches ? '201px' : '125px';
+    }
+
+    if (token) { await load(); return; }
+
+    // No project token — redirect if not authenticated
+    if (!me) {
+      window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
+      return;
+    }
+
+    document.getElementById('accountTabLink').href = portalHref('/portal.html');
+    document.getElementById('profileTabLink').href  = portalHref('/profile.html');
+
+    try {
+      const res = await authFetch(WORKER_URL + '/portal/my-project').catch(() => null);
+
+      if (!res || res.status === 401) {
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(location.pathname);
+        return;
+      }
+      if (!res.ok) { showError('Unable to load your project. Please try again later.'); return; }
+
+      const data = await res.json();
+      if (data.token) {
+        token = data.token;
+        history.replaceState(null, '', location.pathname + '#' + token);
+        localStorage.setItem('ctc_project_token', token);
+        await load();
+      } else {
+        hide('ppLoading');
+        show('ppCreate');
+      }
+    } catch {
+      showError('Unable to load your project. Please try again later.');
+    }
+  }
+
+  async function createProject() {
+    const property = document.getElementById('createProperty').value.trim();
+    const location_val = document.getElementById('createLocation').value.trim();
+    const message = document.getElementById('createMessage').value.trim();
+
+    const errEl = document.getElementById('createError');
+    errEl.style.display = 'none';
+
+    if (!property) {
+      errEl.textContent = 'Please enter the property or hotel name.';
+      errEl.style.display = '';
+      return;
+    }
+
+    const btn = document.getElementById('createBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    try {
+      const res = await fetch(WORKER_URL + '/portal/my-project', {
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body:        JSON.stringify({ property, location: location_val, message }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        errEl.textContent = err.error || 'Submission failed. Please try again.';
+        errEl.style.display = '';
+        btn.disabled = false;
+        btn.textContent = 'Submit Inquiry';
+        return;
+      }
+
+      const data = await res.json();
+      token = data.token;
+      history.replaceState(null, '', location.pathname + '#' + token);
+      localStorage.setItem('ctc_project_token', token);
+      hide('ppCreate');
+      show('ppLoading');
+      await load();
+    } catch {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.style.display = '';
+      btn.disabled = false;
+      btn.textContent = 'Submit Inquiry';
+    }
   }
 
   function showError(msg) {
@@ -476,11 +855,7 @@
     if (!iso) return '';
     return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
-  function toggleMobileNav() {
-    document.getElementById('mobileNav').classList.toggle('open');
-  }
-
-  load();
+  loadOrCreate();
 </script>
 </body>
 </html>

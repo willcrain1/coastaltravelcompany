@@ -9,37 +9,300 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  deploy-worker-preprod:
+  # ── 1. KV ─────────────────────────────────────────────────────────────────────
+  provision-kv:
+    name: Provision KV (CTC_AUTH_PREPROD)
     runs-on: ubuntu-latest
+    environment: preprod
+    outputs:
+      kv_id: ${{ steps.kv.outputs.kv_id }}
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Deploy preprod Worker
+      - name: Ensure KV namespace exists
+        id: kv
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
-          CF_WORKER_NAME: ${{ secrets.CF_WORKER_NAME }}
-          CF_WORKER_NAME_PREPROD: ${{ secrets.CF_WORKER_NAME_PREPROD }}
-        run: ./worker/deploy-worker-preprod.sh
+        run: |
+          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID"
+          KV_ID=$(curl -sf "$BASE/storage/kv/namespaces?per_page=100" \
+            -H "Authorization: Bearer $CF_API_TOKEN" | \
+            python3 -c "
+          import json,sys
+          ns=[n['id'] for n in json.load(sys.stdin).get('result',[]) if n.get('title')=='CTC_AUTH_PREPROD']
+          print(ns[0] if ns else '')
+          ")
+          if [ -z "$KV_ID" ]; then
+            echo "Creating KV namespace CTC_AUTH_PREPROD..."
+            KV_ID=$(curl -sf -X POST "$BASE/storage/kv/namespaces" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"title":"CTC_AUTH_PREPROD"}' | \
+              python3 -c "import json,sys; print(json.load(sys.stdin)['result']['id'])")
+            echo "Created: $KV_ID"
+          else
+            echo "Existing: $KV_ID"
+          fi
+          echo "kv_id=$KV_ID" >> "$GITHUB_OUTPUT"
 
-  deploy-pages-preprod:
-    needs: deploy-worker-preprod
+  # ── 2. D1 ─────────────────────────────────────────────────────────────────────
+  provision-d1:
+    name: Provision D1 (ctc-preprod)
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: preprod
-      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
+      d1_id: ${{ steps.d1.outputs.d1_id }}
+    steps:
+      - name: Ensure D1 database exists
+        id: d1
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID"
+          D1_ID=$(curl -sf "$BASE/d1/database?per_page=100" \
+            -H "Authorization: Bearer $CF_API_TOKEN" | \
+            python3 -c "
+          import json,sys
+          dbs=[d['uuid'] for d in json.load(sys.stdin).get('result',[]) if d.get('name')=='ctc-preprod']
+          print(dbs[0] if dbs else '')
+          ")
+          if [ -z "$D1_ID" ]; then
+            echo "Creating D1 database ctc-preprod..."
+            D1_ID=$(curl -sf -X POST "$BASE/d1/database" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"ctc-preprod"}' | \
+              python3 -c "import json,sys; print(json.load(sys.stdin)['result']['uuid'])")
+            echo "Created: $D1_ID"
+          else
+            echo "Existing: $D1_ID"
+          fi
+          echo "d1_id=$D1_ID" >> "$GITHUB_OUTPUT"
+
+  # ── 3. R2 ─────────────────────────────────────────────────────────────────────
+  provision-r2:
+    name: Provision R2 (ctc-assets-preprod)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure R2 bucket exists
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          BASE="https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID"
+          EXISTS=$(curl -sf "$BASE/r2/buckets?per_page=100" \
+            -H "Authorization: Bearer $CF_API_TOKEN" | \
+            python3 -c "
+          import json,sys
+          buckets=[b['name'] for b in json.load(sys.stdin).get('result',{}).get('buckets',[]) if b.get('name')=='ctc-assets-preprod']
+          print(buckets[0] if buckets else '')
+          ")
+          if [ -z "$EXISTS" ]; then
+            echo "Creating R2 bucket ctc-assets-preprod..."
+            curl -sf -X POST "$BASE/r2/buckets" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"name":"ctc-assets-preprod"}'
+            echo "Created: ctc-assets-preprod"
+          else
+            echo "Existing: ctc-assets-preprod"
+          fi
+
+  # ── 4. Migrations ─────────────────────────────────────────────────────────────
+  run-migrations:
+    name: Run D1 migrations
+    needs: provision-d1
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          path: './site'
-      - uses: actions/deploy-pages@v5
-        id: deployment
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate wrangler.toml
+        env:
+          D1_ID: ${{ needs.provision-d1.outputs.d1_id }}
+        run: |
+          cat > wrangler.toml <<TOML
+          name = "migrations-only"
+          main = "cloudflare-worker.js"
+          compatibility_date = "2024-09-23"
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "ctc-preprod"
+          database_id = "$D1_ID"
+          migrations_dir = "migrations"
+          TOML
+      - name: Apply all migrations (idempotent)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          echo "Applying migrations"
+          npx wrangler d1 migrations apply ctc-preprod --remote
+
+  # ── 4. Worker ─────────────────────────────────────────────────────────────────
+  deploy-worker:
+    name: Deploy Worker (preprod)
+    needs: [provision-kv, provision-d1, provision-r2, run-migrations]
+    runs-on: ubuntu-latest
+    environment: preprod
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate wrangler.toml
+        env:
+          CF_WORKER_NAME: coastal-gallery-proxy
+          CF_WORKER_NAME_PREPROD: coastal-gallery-proxy-preprod
+          KV_ID: ${{ needs.provision-kv.outputs.kv_id }}
+          D1_ID: ${{ needs.provision-d1.outputs.d1_id }}
+        run: |
+          # Default section uses placeholder prod IDs — only [env.preprod] is deployed here.
+          cat > wrangler.toml <<TOML
+          name = "$CF_WORKER_NAME"
+          main = "cloudflare-worker.js"
+          compatibility_date = "2024-09-23"
+
+          [[kv_namespaces]]
+          binding = "KV"
+          id = "placeholder"
+
+          [[d1_databases]]
+          binding = "DB"
+          database_name = "CTC_PROJECTS"
+          database_id = "placeholder"
+
+          [triggers]
+          crons = ["0 * * * *"]
+
+          [env.preprod]
+          name = "$CF_WORKER_NAME_PREPROD"
+          workers_dev = false
+
+          [env.preprod.observability]
+          enabled = true
+
+          routes = [
+            { pattern = "api.preprod.coastaltravelcompany.com", custom_domain = true }
+          ]
+
+          [env.preprod.vars]
+          ALLOWED_ORIGIN = "https://preprod.coastaltravelcompany.com"
+          COOKIE_DOMAIN = "preprod.coastaltravelcompany.com"
+
+          [[env.preprod.kv_namespaces]]
+          binding = "KV"
+          id = "$KV_ID"
+
+          [[env.preprod.d1_databases]]
+          binding = "DB"
+          database_name = "ctc-preprod"
+          database_id = "$D1_ID"
+
+          [[env.preprod.r2_buckets]]
+          binding = "ASSETS"
+          bucket_name = "ctc-assets-preprod"
+          TOML
+      - name: Deploy via wrangler (--env preprod)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: npx wrangler deploy --env preprod
+      - name: Update Worker secrets (preprod)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_PREPROD }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET_PREPROD }}
+          CMS_GITHUB_TOKEN: ${{ secrets.CMS_GITHUB_TOKEN }}
+        run: |
+          push_secret() {
+            local name=$1 value=$2
+            if [ -z "$value" ]; then echo "⚠️  $name not set — skipping"; return; fi
+            echo "$value" | npx wrangler secret put "$name" --env preprod
+          }
+          push_secret JWT_SECRET "$JWT_SECRET"
+          push_secret RESEND_API_KEY "$RESEND_API_KEY"
+          push_secret GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+          push_secret STRIPE_SECRET_KEY "$STRIPE_SECRET_KEY"
+          push_secret STRIPE_WEBHOOK_SECRET "$STRIPE_WEBHOOK_SECRET"
+          push_secret CMS_GITHUB_TOKEN "$CMS_GITHUB_TOKEN"
+
+  # ── 5. Site ───────────────────────────────────────────────────────────────────
+  deploy-site:
+    name: Deploy Site (Cloudflare Pages preprod)
+    needs: deploy-worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Deploy to Cloudflare Pages
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          npx wrangler pages deploy ../site \
+            --project-name coastaltravelcompany-preprod \
+            --branch preprod \
+            --commit-dirty=true
+
+  # ── 6. Acceptance tests ───────────────────────────────────────────────────────
+  acceptance-tests:
+    name: Playwright (${{ matrix.shard }}/4)
+    needs: deploy-site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Run acceptance tests (shard ${{ matrix.shard }}/4)
+        env:
+          BASE_URL: https://preprod.coastaltravelcompany.com
+          WORKER_URL: https://api.preprod.coastaltravelcompany.com
+        run: npm test -- --shard=${{ matrix.shard }}/4
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.shard }}-of-4
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

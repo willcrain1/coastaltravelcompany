@@ -1,6 +1,8 @@
 /**
- * Acceptance tests for the contract signing flow (item 6).
+ * Acceptance tests for the contract signing flow (item 6) and admin
+ * countersigning flow (item 43).
  *
+ * Client-facing contract.html:
  *  1. Contract loads title, date, and body from a valid token
  *  2. Signature block is hidden on load and a "Please scroll" notice is shown
  *  3. After scrolling to the bottom, the signature block activates
@@ -9,17 +11,25 @@
  *  6. A contract in client_signed status shows the waiting-for-admin banner
  *  7. A fully_executed contract shows both signatures, audit trail, and print bar
  *  8. Invalid / not-found token renders the error state
+ *
+ * Admin pipeline — countersigning (item 43):
+ *  9.  Countersign block appears when a contract has client_signed status
+ * 10. Admin types name and clicks Countersign — countersign endpoint is called
+ * 11. Countersign block hides after successful countersign (contract reloads as fully_executed)
+ * 12. Empty admin signature is rejected without calling the API
+ * 13. Countersign block is hidden when contract is already fully_executed
  */
 
 import { test, expect } from '@playwright/test';
 
-const WORKER_URL  = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-const STATIC_BASE = 'http://localhost:9876';
+const WORKER_URL  = process.env.WORKER_URL || 'https://api.coastaltravelcompany.com';
+const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 
 const CORS = {
-  'access-control-allow-origin':  '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-allow-origin':      STATIC_BASE,
+  'access-control-allow-credentials': 'true',
+  'access-control-allow-methods':     'GET, POST, OPTIONS',
+  'access-control-allow-headers':     'Content-Type, Authorization',
 };
 
 const TOKEN = 'test-contract-token';
@@ -244,5 +254,231 @@ test.describe('Contract Signing Page', () => {
     await expect(page.locator('#appState')).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('#appState')).toContainText(/not found|invalid|error/i);
     await expect(page.locator('#contractWrap')).not.toBeVisible();
+  });
+});
+
+// ── Admin Pipeline — Contract Countersigning (item 43) ────────────────────────
+
+const ADMIN_PROJ = {
+  id:          'proj1',
+  client_name: 'Grand Palms Hotel',
+  client_email: 'client@grandpalms.com',
+  property:    'Grand Palms Resort',
+  collection:  'The Editorial Stay',
+  location:    'Palm Beach, FL',
+  stage:       'Contract Sent',
+  source:      'manual',
+  labels:      '',
+  shoot_date:  null,
+  created_at:  new Date(Date.now() - 10 * 86_400_000).toISOString(),
+  updated_at:  new Date(Date.now() - 86_400_000).toISOString(),
+};
+
+const CLIENT_SIGNED_CONTRACT = {
+  id:               'con1',
+  title:            'Photography Services Agreement',
+  status:           'client_signed',
+  signing_token:    'tok-con1',
+  client_signed_at: new Date(Date.now() - 3_600_000).toISOString(),
+  admin_signed_at:  null,
+  created_at:       new Date(Date.now() - 86_400_000).toISOString(),
+};
+
+const FULLY_EXECUTED_CONTRACT = {
+  ...CLIENT_SIGNED_CONTRACT,
+  status:          'fully_executed',
+  admin_signed_at: new Date().toISOString(),
+};
+
+/**
+ * Mocks every admin pipeline endpoint needed to open a project and reach the
+ * contracts section. `contractCallResponses` is an array of arrays — each GET
+ * to the contracts endpoint returns the next entry (the last entry repeats).
+ */
+function mockAdminWithContracts(context, { contractCallResponses = [[]] } = {}) {
+  const adminCors = {
+    'access-control-allow-origin':      STATIC_BASE,
+    'access-control-allow-credentials': 'true',
+    'access-control-allow-methods':     'GET, POST, PUT, DELETE, OPTIONS',
+    'access-control-allow-headers':     'Content-Type, Authorization',
+  };
+  let contractsCallIdx = 0;
+
+  return context.route(
+    (url) => url.toString().startsWith(WORKER_URL),
+    async (route) => {
+      const req    = route.request();
+      const url    = new URL(req.url());
+      const method = req.method();
+
+      if (method === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers: adminCors });
+        return;
+      }
+
+      function ok(data, status = 200) {
+        return route.fulfill({
+          status,
+          headers: { 'content-type': 'application/json', ...adminCors },
+          body: JSON.stringify(data),
+        });
+      }
+
+      if (url.pathname === '/auth/me')
+        return ok({ id: 'a1', email: 'admin@test.com', role: 'admin' });
+
+      if (url.pathname === '/admin/projects' && method === 'GET')
+        return ok([ADMIN_PROJ]);
+
+      for (const p of ['/admin/packages', '/admin/questionnaires', '/admin/contract-templates'])
+        if (url.pathname === p) return ok([]);
+
+      for (const pattern of [
+        /^\/admin\/projects\/[^/]+\/notes$/,
+        /^\/admin\/projects\/[^/]+\/documents$/,
+        /^\/admin\/projects\/[^/]+\/proposals$/,
+        /^\/admin\/projects\/[^/]+\/questionnaires$/,
+        /^\/admin\/projects\/[^/]+\/schedule-links$/,
+        /^\/admin\/projects\/[^/]+\/messages$/,
+        /^\/admin\/projects\/[^/]+\/invoices$/,
+      ]) {
+        if (url.pathname.match(pattern)) return ok([]);
+      }
+
+      if (url.pathname.match(/^\/admin\/projects\/[^/]+\/contracts$/) && method === 'GET') {
+        const idx  = Math.min(contractsCallIdx, contractCallResponses.length - 1);
+        contractsCallIdx++;
+        return ok(contractCallResponses[idx]);
+      }
+
+      if (url.pathname.match(/^\/admin\/projects\/[^/]+\/contracts$/) && method === 'POST')
+        return ok({ id: 'con-new', created_at: new Date().toISOString() }, 201);
+
+      if (url.pathname.match(/^\/admin\/projects\/[^/]+\/contracts\/[^/]+\/countersign$/) && method === 'POST')
+        return ok({ ok: true, updated_at: new Date().toISOString() });
+
+      await route.fulfill({ status: 404, headers: adminCors });
+    },
+  );
+}
+
+test.describe('Admin Pipeline — Contract Countersigning', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-admin'));
+  });
+
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('countersign block appears when a contract has client_signed status', async ({ page, context }) => {
+    await mockAdminWithContracts(context, {
+      contractCallResponses: [[CLIENT_SIGNED_CONTRACT]],
+    });
+
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+    await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
+    await page.click('.pc-card');
+    await expect(page.locator('#projectDetail')).toHaveClass(/open/);
+
+    await expect(page.locator('#pd-countersign-block')).toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#pd-countersign-block')).toContainText('Client has signed');
+  });
+
+  test('admin types name and clicks Countersign — endpoint called with typed signature', async ({ page, context }) => {
+    let countersignPayload = null;
+
+    await mockAdminWithContracts(context, {
+      contractCallResponses: [[CLIENT_SIGNED_CONTRACT], [FULLY_EXECUTED_CONTRACT]],
+    });
+
+    // Override just the countersign route to capture the payload
+    await context.route(
+      (url) => url.pathname.includes('/contracts/con1/countersign'),
+      async (route) => {
+        countersignPayload = JSON.parse(route.request().postData() || '{}');
+        await route.fulfill({
+          status:  200,
+          headers: { 'content-type': 'application/json', 'access-control-allow-origin': STATIC_BASE, 'access-control-allow-credentials': 'true' },
+          body:    JSON.stringify({ ok: true }),
+        });
+      },
+    );
+
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+    await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
+    await page.click('.pc-card');
+    await expect(page.locator('#pd-countersign-block')).toBeVisible({ timeout: 5_000 });
+
+    await page.fill('#adminSigTyped', 'Coastal Travel Co');
+    await page.click('#pd-countersign-block button:has-text("Countersign")');
+
+    await expect(async () => {
+      expect(countersignPayload).not.toBeNull();
+    }).toPass({ timeout: 5_000 });
+
+    expect(countersignPayload.signature).toBe('Coastal Travel Co');
+    expect(countersignPayload.signature_type).toBe('type');
+  });
+
+  test('countersign block hides after successful countersign', async ({ page, context }) => {
+    await mockAdminWithContracts(context, {
+      contractCallResponses: [[CLIENT_SIGNED_CONTRACT], [FULLY_EXECUTED_CONTRACT]],
+    });
+
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+    await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
+    await page.click('.pc-card');
+    await expect(page.locator('#pd-countersign-block')).toBeVisible({ timeout: 5_000 });
+
+    await page.fill('#adminSigTyped', 'Coastal Travel Co');
+    await page.click('#pd-countersign-block button:has-text("Countersign")');
+
+    // Contracts reload with fully_executed — no client_signed found → block hides
+    await expect(page.locator('#pd-countersign-block')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#pd-contract-list')).toContainText('Photography Services Agreement');
+  });
+
+  test('empty admin signature is rejected without calling the API', async ({ page, context }) => {
+    let countersignCalled = false;
+
+    await context.route(
+      (url) => url.pathname.includes('/countersign'),
+      async (route) => {
+        countersignCalled = true;
+        await route.continue();
+      },
+    );
+
+    await mockAdminWithContracts(context, {
+      contractCallResponses: [[CLIENT_SIGNED_CONTRACT]],
+    });
+
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+    await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
+    await page.click('.pc-card');
+    await expect(page.locator('#pd-countersign-block')).toBeVisible({ timeout: 5_000 });
+
+    // Submit with no signature typed
+    await page.click('#pd-countersign-block button:has-text("Countersign")');
+    await page.waitForTimeout(500);
+
+    expect(countersignCalled).toBe(false);
+    // Block remains open — validation error surfaced via toast, not API
+    await expect(page.locator('#pd-countersign-block')).toBeVisible();
+  });
+
+  test('countersign block is hidden when contract is already fully_executed', async ({ page, context }) => {
+    await mockAdminWithContracts(context, {
+      contractCallResponses: [[FULLY_EXECUTED_CONTRACT]],
+    });
+
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+    await expect(page.locator('#pipelineBoard')).toBeVisible({ timeout: 10_000 });
+    await page.click('.pc-card');
+    await expect(page.locator('#projectDetail')).toHaveClass(/open/);
+
+    await expect(page.locator('#pd-countersign-block')).not.toBeVisible({ timeout: 5_000 });
+    await expect(page.locator('#pd-contract-list')).toContainText('Photography Services Agreement');
   });
 });

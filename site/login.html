@@ -8,8 +8,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <script src="config.js"></script>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="js/cookie-consent.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer onload="initGoogle()"></script>
   <style>
     :root {
       --black:  #1C1C1C;
@@ -127,16 +129,27 @@
     }
     .btn-ghost:hover { border-color: var(--teal); color: var(--green); }
 
-    .divider {
-      display: flex; align-items: center; gap: 12px;
+    #googleSection { width: 100%; }
+    .or-divider {
+      position: relative;
+      text-align: center;
       margin: 20px 0;
+    }
+    .or-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 1px;
+      background: var(--linen);
+    }
+    .or-divider span {
+      position: relative;
+      background: #fff;
+      padding: 0 10px;
       font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--light);
     }
-    .divider::before, .divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--linen);
-    }
 
-    #googleBtnWrap { display: flex; justify-content: center; }
+    #googleBtnWrap { width: 100%; overflow: hidden; }
 
     .link-row {
       text-align: center;
@@ -190,7 +203,7 @@
 <body>
 
   <!-- ── Navigation ─────────────────────────────────────── -->
-  <nav id="main-nav" class="scrolled">
+  <nav id="main-nav" class="scrolled" data-nav-pinned>
     <a href="index.html" class="nav-logo">
       <span class="logo-main">Coastal</span>
       <span class="logo-script">Travel Company</span>
@@ -201,8 +214,8 @@
       <li><a href="services.html">Services</a></li>
       <li><a href="collections.html">Collections</a></li>
       <li><a href="contact.html">Contact</a></li>
+      <li><a href="login.html" class="active">Account</a></li>
     </ul>
-    <a href="login.html" class="nav-account active">Account</a>
     <button class="nav-toggle" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -241,7 +254,7 @@
     <div class="success-msg" id="resendSuccess"></div>
   </div>
   <div id="googleSection">
-    <div class="divider">or</div>
+    <div class="or-divider"><span>or</span></div>
     <div id="googleBtnWrap"></div>
   </div>
   <div class="link-row">
@@ -330,39 +343,8 @@
 
 </div><!-- /.login-wrap -->
 
+<script src="main.js"></script>
 <script>
-  // ── Mobile nav toggle ─────────────────────────────────────────────────────
-  (function () {
-    const toggle   = document.querySelector('.nav-toggle');
-    const navLinks = document.querySelector('.nav-links');
-    if (!toggle || !navLinks) return;
-    toggle.addEventListener('click', () => {
-      const open = navLinks.style.display === 'flex';
-      navLinks.style.display        = open ? 'none' : 'flex';
-      navLinks.style.flexDirection  = 'column';
-      navLinks.style.position       = 'fixed';
-      navLinks.style.top            = '0';
-      navLinks.style.left           = '0';
-      navLinks.style.right          = '0';
-      navLinks.style.bottom         = '0';
-      navLinks.style.background     = 'var(--cream)';
-      navLinks.style.alignItems     = 'center';
-      navLinks.style.justifyContent = 'center';
-      navLinks.style.gap            = '36px';
-      navLinks.style.zIndex         = '150';
-      if (!open) {
-        navLinks.querySelectorAll('a').forEach(a => {
-          a.style.color         = 'var(--black)';
-          a.style.fontSize      = '13px';
-          a.style.letterSpacing = '0.3em';
-        });
-      }
-    });
-    navLinks.querySelectorAll('a').forEach(a => {
-      a.addEventListener('click', () => { navLinks.style.display = 'none'; });
-    });
-  })();
-
   // ── Config ────────────────────────────────────────────────────────────────
   // Set your Google OAuth Client ID here (from Google Cloud Console).
   // Get one at: https://console.cloud.google.com/apis/credentials
@@ -370,7 +352,7 @@
   // Leave empty to hide the Google Sign-In button.
   const GOOGLE_CLIENT_ID = '777870441164-5tgs1r551epm58c6p7bg3hapr492q83v.apps.googleusercontent.com';
 
-  const WORKER_URL = CTC_CONFIG.workerUrl;
+  // WORKER_URL is declared by main.js (using CTC_CONFIG.workerUrl when available).
 
   const JWT_KEY  = 'ctc_jwt';
   const USER_KEY = 'ctc_user';
@@ -399,38 +381,56 @@
     const res = await fetch(WORKER_URL + path, {
       method,
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    let data = {};
+    try { data = await res.json(); } catch {}
     return { ok: res.ok, status: res.status, data };
   }
 
   function storeAuth(token, user) {
-    localStorage.setItem(JWT_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    // Store JWT in localStorage as a Bearer-token fallback for browsers that block
+    // cross-origin cookies (third-party cookie restrictions on .workers.dev domain).
+    // The HttpOnly cookie remains the primary auth mechanism when cookies work.
+    if (token) localStorage.setItem(JWT_KEY, token);
+    if (user)  localStorage.setItem(USER_KEY, JSON.stringify(user));
   }
 
   function redirect(user) {
-    const dest = user.role === 'admin' ? '/admin/pipeline.html' : '/portal.html';
-    window.location.href = dest;
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('redirect');
+    if (returnTo && returnTo.startsWith('/')) {
+      window.location.href = returnTo;
+      return;
+    }
+    window.location.href = user.role === 'admin' ? '/admin/pipeline.html' : '/portal.html';
   }
 
   // ── Init ──────────────────────────────────────────────────────────────────
   async function init() {
-    // Already logged in?
-    const token = localStorage.getItem(JWT_KEY);
-    if (token) {
-      const res = await fetch(WORKER_URL + '/auth/me', {
-        headers: { 'Authorization': 'Bearer ' + token },
+    // Check cookie first (fast path), then fall back to localStorage Bearer token.
+    // Browsers with third-party cookie blocking (cross-origin .workers.dev) will
+    // fail the cookie check but may still have a valid JWT in localStorage.
+    const cookieRes = await fetch(WORKER_URL + '/auth/me', { credentials: 'include' }).catch(() => null);
+    if (cookieRes && cookieRes.ok) {
+      redirect(await cookieRes.json());
+      return;
+    }
+    const storedJwt = localStorage.getItem(JWT_KEY);
+    if (storedJwt) {
+      const bearerRes = await fetch(WORKER_URL + '/auth/me', {
+        credentials: 'include',
+        headers: { Authorization: 'Bearer ' + storedJwt },
       }).catch(() => null);
-      if (res && res.ok) {
-        const user = await res.json();
-        redirect(user);
+      if (bearerRes && bearerRes.ok) {
+        redirect(await bearerRes.json());
         return;
       }
-      localStorage.removeItem(JWT_KEY);
-      localStorage.removeItem(USER_KEY);
     }
+    // Both checks failed — clear any stale credentials
+    localStorage.removeItem(JWT_KEY);
+    localStorage.removeItem(USER_KEY);
 
     const params = new URLSearchParams(window.location.search);
 
@@ -476,29 +476,41 @@
   }
 
   // ── Google Sign-In ────────────────────────────────────────────────────────
+  // Guard: initGoogle() is called from three places (script onload, window.load,
+  // and init()). Only the first successful call should initialize and render.
+  let googleInitialized = false;
   function initGoogle() {
-    if (!GOOGLE_CLIENT_ID || typeof google === 'undefined') {
+    if (googleInitialized) return;
+    if (!GOOGLE_CLIENT_ID) {
       document.getElementById('googleSection').classList.add('hidden');
       return;
     }
+    // GSI script not yet loaded — the script's onload callback will call us again.
+    if (typeof google === 'undefined') return;
+    googleInitialized = true;
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback:  handleGoogleCredential,
     });
+    const wrap = document.getElementById('googleBtnWrap');
     google.accounts.id.renderButton(
-      document.getElementById('googleBtnWrap'),
-      { theme: 'outline', size: 'large', width: 328, text: 'signin_with' }
+      wrap,
+      { theme: 'outline', size: 'large', width: wrap.offsetWidth, text: 'signin_with' }
     );
   }
 
   async function handleGoogleCredential(response) {
-    const { ok, data } = await api('/auth/google', { credential: response.credential });
-    if (!ok) {
-      showError('loginError', data.error || 'Google sign-in failed.');
-      return;
+    try {
+      const { ok, data } = await api('/auth/google', { credential: response.credential });
+      if (!ok) {
+        showError('loginError', data.error || 'Google sign-in failed.');
+        return;
+      }
+      storeAuth(data.token, data.user);
+      redirect(data.user);
+    } catch (err) {
+      showError('loginError', 'Google sign-in failed. Please try again.');
     }
-    storeAuth(data.token, data.user);
-    redirect(data.user);
   }
 
   // ── Login form ────────────────────────────────────────────────────────────
@@ -640,5 +652,6 @@
 
   init();
 </script>
+<p style="text-align:center;margin:32px 0 24px;font-size:11px;"><a href="/privacy.html" style="color:rgba(0,0,0,0.35);text-decoration:none;">Privacy Policy</a></p>
 </body>
 </html>

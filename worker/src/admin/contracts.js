@@ -2,6 +2,69 @@ import { ALLOWED_ORIGIN } from '../constants.js';
 import { jsonResponse, authRequired, forbidden, escHtml } from '../utils.js';
 import { getAuth } from '../jwt.js';
 
+function buildContractSnapshot(contract, adminSignature, adminSignatureType, adminSignedAt) {
+  const renderSig = (sig, type) => {
+    if (!sig) return '<em style="color:#999">Not provided</em>';
+    if (type === 'drawn') return `<img src="${escHtml(sig)}" alt="Signature" style="max-height:70px;display:block">`;
+    return `<span style="font-family:Georgia,serif;font-size:1.8em;font-style:italic">${escHtml(sig)}</span>`;
+  };
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>${escHtml(contract.title)} — Fully Executed</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,serif;color:#1C1C1C;max-width:760px;margin:0 auto;padding:48px 32px;line-height:1.65;font-size:15px}
+h1{font-size:24px;margin-bottom:6px}
+h2{font-size:16px;margin:28px 0 10px;border-bottom:1px solid #ddd;padding-bottom:6px}
+p{margin-bottom:12px}
+ul{margin:0 0 12px 20px}
+li{margin-bottom:4px}
+.badge{display:inline-block;background:#2A5C45;color:#fff;font-family:sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;padding:3px 12px;border-radius:20px;margin-bottom:20px}
+.meta{font-family:sans-serif;font-size:13px;color:#555;border:1px solid #E8DDD0;border-radius:4px;padding:14px 18px;margin-bottom:32px}
+.meta p{margin-bottom:4px}
+.sigs{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:40px;padding-top:28px;border-top:2px solid #2A5C45}
+.sig-label{font-family:sans-serif;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#666;margin-bottom:10px}
+.sig-name{font-family:sans-serif;font-size:13px;margin-top:10px;font-weight:600}
+.sig-date{font-family:sans-serif;font-size:12px;color:#666;margin-top:2px}
+.audit{margin-top:40px;background:#F4F1EC;padding:20px 24px;border-radius:4px;font-family:sans-serif;font-size:12px}
+.audit h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.hash{word-break:break-all;color:#555;font-family:monospace;font-size:11px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="badge">FULLY EXECUTED CONTRACT</div>
+<h1>${escHtml(contract.title)}</h1>
+<div class="meta">
+<p><strong>Client:</strong> ${escHtml(contract.client_name)} &lt;${escHtml(contract.client_email)}&gt;</p>
+<p><strong>Client signed:</strong> ${escHtml(contract.client_signed_at)}</p>
+<p><strong>Fully executed:</strong> ${escHtml(adminSignedAt)}</p>
+</div>
+<div class="contract-body">${contract.body}</div>
+<div class="sigs">
+<div>
+<div class="sig-label">Client Signature</div>
+${renderSig(contract.client_signature, contract.client_signature_type)}
+<div class="sig-name">${escHtml(contract.client_name)}</div>
+<div class="sig-date">${escHtml(contract.client_signed_at)}</div>
+</div>
+<div>
+<div class="sig-label">Photographer Signature</div>
+${renderSig(adminSignature, adminSignatureType)}
+<div class="sig-name">Coastal Travel Company</div>
+<div class="sig-date">${escHtml(adminSignedAt)}</div>
+</div>
+</div>
+<div class="audit">
+<h3>Document Integrity</h3>
+<p>SHA-256 hash of the contract body at time of signing:</p>
+<div class="hash">${escHtml(contract.body_hash)}</div>
+</div>
+</body>
+</html>`;
+}
+
 export async function handleAdminContractTemplates(request, method, env) {
   const p = await getAuth(request, env);
   if (!p) return authRequired();
@@ -129,8 +192,35 @@ export async function handleAdminProjectContractCountersign(request, env, projec
       }),
     }).catch(() => {});
   }
+  if (env.ASSETS) {
+    const r2Key = `contracts/${contractId}/signed.html`;
+    const html  = buildContractSnapshot(contract, signature, signature_type, now);
+    await env.ASSETS.put(r2Key, html, { httpMetadata: { contentType: 'text/html; charset=utf-8' } });
+    await env.DB.prepare('UPDATE contracts SET r2_key=? WHERE id=?').bind(r2Key, contractId).run();
+  }
   const { results: updated } = await env.DB.prepare('SELECT * FROM contracts WHERE id=?').bind(contractId).all();
   return jsonResponse(updated[0]);
+}
+
+export async function handlePublicContractArchive(request, env, token) {
+  if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
+  const { results } = await env.DB.prepare(
+    'SELECT id, r2_key, status FROM contracts WHERE signing_token = ?'
+  ).bind(token).all();
+  const contract = results[0];
+  if (!contract) return jsonResponse({ error: 'Contract not found' }, 404);
+  if (contract.status !== 'fully_executed') return jsonResponse({ error: 'Contract is not yet fully executed' }, 400);
+  if (!contract.r2_key || !env.ASSETS) return jsonResponse({ error: 'Archive not available' }, 404);
+  const obj = await env.ASSETS.get(contract.r2_key);
+  if (!obj) return jsonResponse({ error: 'Archive file not found' }, 404);
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Disposition': `attachment; filename="signed-contract-${escHtml(contract.id)}.html"`,
+      'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+      'Cache-Control': 'private, no-store',
+    },
+  });
 }
 
 export async function handlePublicContractGet(request, env, token) {

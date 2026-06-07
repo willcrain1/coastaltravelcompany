@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="js/cookie-consent.js"></script>
 </head>
 <body>
 
@@ -24,8 +26,8 @@
       <li><a href="services.html">Services</a></li>
       <li><a href="collections.html">Collections</a></li>
       <li><a href="contact.html">Contact</a></li>
+      <li><a href="login.html">Account</a></li>
     </ul>
-    <a href="login.html" class="nav-account">Account</a>
     <button class="nav-toggle" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -38,7 +40,7 @@
     <div class="page-hero-content">
       <span class="eyebrow">Palm Beach, Florida</span>
       <h1>About</h1>
-      <span class="hero-script-sub">the studio</span>
+      <span class="hero-script-sub">the studio &amp; the person behind it.</span>
     </div>
   </section>
 
@@ -49,49 +51,23 @@
         <div class="fade-up">
           <span class="eyebrow">Who We Are</span>
           <h2 style="font-size: clamp(30px, 4vw, 52px); line-height: 1.2;">
-            Editorial travel content<br />for luxury hotels.
+            Editorial travel content for hotels<br />that want to be desired, not just seen.
           </h2>
-          <span class="script" style="font-size: clamp(26px, 3.5vw, 44px); color: var(--forest-green); display: block; margin-top: 6px;">Captured with a fashion-forward lens.</span>
+          <span class="script" style="font-size: clamp(26px, 3.5vw, 44px); color: var(--forest-green); display: block; margin-top: 6px;">Captured with a fashion-forward lens. Rooted in Palm Beach.</span>
           <div class="divider"></div>
-          <p class="body-sm mb-24">
-            Coastal Travel Company creates refined, story-driven visuals for hotels and destinations that want to be desired, not just seen.
+          <p class="body-sm mb-24" data-content-id="about-intro-p1">
+            Coastal Travel Company creates refined, story-driven visuals for hotels, resorts, and vacation properties that want to be remembered. We specialize in editorial photography and short-form video that captures the actual feeling of a stay — the morning light through linen curtains, the condensation on a cocktail glass at the pool bar, the way a suite looks when it has been styled but not staged.
+          </p>
+          <p class="body-sm mb-24" data-content-id="about-intro-p2">
+            Our work lives at the intersection of fashion, hospitality, and travel — built for the platforms and campaigns where first impressions are everything: Instagram, booking pages, websites, and paid advertising.
           </p>
           <p class="body-sm">
-            Our work feels lived-in, aspirational, and effortless — never influencer-led. We bring an editorial sensibility to every project, treating each property as a world worth exploring through photography and film.
+            Based in Palm Beach, Florida, we work with properties across the Southeast, Caribbean, and beyond — bringing the same editorial intention to every engagement, whether it is a boutique Airbnb in the Keys or a luxury resort preparing for a major campaign season.
           </p>
         </div>
         <div class="fade-up delay-2">
           <div style="height: 560px;" class="img-overflow">
             <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=900&q=80" alt="Editorial hotel photography" style="height: 100%;" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── About Body ─────────────────────────────────────── -->
-  <section class="section bg-white">
-    <div class="container">
-      <div class="grid-2">
-        <div class="fade-up" style="height: 480px;">
-          <div class="img-overflow" style="height: 100%;">
-            <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=900&q=80" alt="Coastal aesthetic" style="height: 100%;" />
-          </div>
-        </div>
-        <div class="fade-up delay-2" style="padding-left: 20px;">
-          <span class="eyebrow">About</span>
-          <p class="body-sm mb-24">
-            We specialize in editorial photography and short-form video that captures the feeling of a stay — blending architecture, lifestyle, and high-fashion energy into timeless visual narratives.
-          </p>
-          <p class="body-sm mb-24">
-            Our work feels lived-in, aspirational, and effortless — never influencer-led.
-          </p>
-          <p class="body-sm">
-            Based in Palm Beach, Florida, we work with properties across the United States, Caribbean, and Europe who share a commitment to quality and a desire to tell their story with intention and sophistication.
-          </p>
-          <div class="divider"></div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--sage-teal);">— Palm Beach, Florida</span>
           </div>
         </div>
       </div>
@@ -153,7 +129,7 @@
         <span class="eyebrow">Services</span>
         <h2 style="font-size: clamp(28px, 4vw, 50px);">What We Offer</h2>
       </div>
-      <div class="grid-3 fade-up">
+      <div class="grid-3 services-grid fade-up">
         <div style="padding: 44px 36px; background: var(--white);">
           <span class="eyebrow" style="margin-bottom: 14px;">Photography</span>
           <h3 style="font-size: 22px; margin-bottom: 14px;">Editorial Photography</h3>
@@ -169,7 +145,7 @@
           <h3 style="font-size: 22px; margin-bottom: 14px;">Lifestyle & Detail</h3>
           <p class="body-sm">Fashion-forward human moments within your property — from morning coffee rituals to golden-hour pool scenes.</p>
         </div>
-        <div style="padding: 44px 36px; background: var(--black); grid-column: span 2;">
+        <div class="services-feature" style="padding: 44px 36px; background: var(--black);">
           <span class="eyebrow" style="color: var(--sage-teal); margin-bottom: 14px;">Narrative</span>
           <h3 style="font-size: 22px; margin-bottom: 14px; color: var(--white);">Visual Storytelling for Hospitality</h3>
           <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.55); max-width: 520px;">A cohesive brand library built around your property's unique atmosphere — photography, video, and styling united into a single, intentional visual identity.</p>
@@ -190,7 +166,7 @@
       <div class="grid-2 mb-64">
         <div class="fade-up">
           <span class="eyebrow">Signature Collections</span>
-          <h2 style="font-size: clamp(28px, 4vw, 50px);">Three Ways<br />to Work Together</h2>
+          <h2 style="font-size: clamp(28px, 4vw, 50px);">Four Ways<br />to Work Together</h2>
           <div class="divider"></div>
           <p class="body-sm">Our signature collections are pre-defined project frameworks designed to deliver a complete visual library. Each is tailored to a different scope, budget, and intention.</p>
           <a href="collections.html" class="btn btn-dark mt-32" style="display: inline-block;">Explore the Collections</a>
@@ -205,9 +181,13 @@
               <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--sage-teal); display: block; margin-bottom: 8px;">The Fashioned Weekend</span>
               <p class="body-sm">A curated two-day shoot focused on lifestyle, detail, and short-form video with a fashion-forward aesthetic.</p>
             </div>
-            <div style="padding: 36px 0;">
+            <div style="padding: 36px 0; border-bottom: 1px solid rgba(0,0,0,0.08);">
               <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--sage-teal); display: block; margin-bottom: 8px;">The Signature Story</span>
               <p class="body-sm">A brand-defining series built for campaigns — aspirational imagery and film that positions your property for desire.</p>
+            </div>
+            <div style="padding: 36px 0;">
+              <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--sage-teal); display: block; margin-bottom: 8px;">The Listing Upgrade</span>
+              <p class="body-sm">A streamlined one-day shoot for Airbnb hosts and vacation rental owners — listing-ready photography and video that earns its cost back in the first week.</p>
             </div>
           </div>
         </div>
@@ -221,50 +201,27 @@
       <div class="grid-2">
         <div class="fade-up">
           <span class="eyebrow">The Photographer</span>
-          <h2 style="font-size: clamp(30px, 4vw, 52px); line-height: 1.2;">
+          <h2 style="font-size: clamp(30px, 4vw, 52px); line-height: 1.2;" data-content-id="photographer-name">
             Laura Crain
           </h2>
-          <span class="script" style="font-size: clamp(26px, 3.5vw, 44px); color: var(--forest-green); display: block; margin-top: 6px;">Founder &amp; Creative Director</span>
+          <span class="script" style="font-size: clamp(26px, 3.5vw, 44px); color: var(--forest-green); display: block; margin-top: 6px;" data-content-id="photographer-title">Founder &amp; Creative Director</span>
           <div class="divider"></div>
+          <p class="body-sm mb-24" data-content-id="photographer-bio-1">
+            Before Coastal Travel Company, Laura spent years working in corporate fashion, visual merchandising, and brand styling — building a deeply trained eye for how spaces are composed, how light works, and what makes an image feel aspirational rather than artificial.
+          </p>
+          <p class="body-sm mb-24" data-content-id="photographer-bio-2">
+            That background shapes everything she creates. Where most travel photographers see a room, Laura sees a frame. Where most content creators see a pool, she sees the play of light on water at 7am, before anyone else is awake.
+          </p>
           <p class="body-sm mb-24">
-            Laura Crain is the founder and lead photographer behind Coastal Travel Company. Based in Palm Beach, Florida, he specializes in editorial hotel photography that blends architecture, lifestyle, and high-fashion energy into timeless visual narratives.
+            She founded Coastal Travel Company after relocating to Palm Beach, Florida — and realizing that the luxury properties surrounding her were consistently underserved by their own visual content. Beautiful hotels with mediocre Instagram pages. Stunning vacation rentals with listing photos that did not do them justice. A clear gap between the experience a property offered and the content it was using to sell that experience. Coastal Travel Company exists to close that gap.
           </p>
           <p class="body-sm">
-            His work is rooted in the belief that great hospitality photography should feel aspirational, not artificial — and that the best images are the ones that make a traveler feel something before they even book.
+            Every project Laura takes on is treated as a creative partnership — not a vendor transaction. She works directly with property teams, arrives early, and spends the time before a shoot understanding how light moves through a space and which moments matter most. The result is content that feels lived-in, effortless, and genuinely desirable — because it was captured that way.
           </p>
         </div>
         <div class="fade-up delay-2">
           <div style="height: 560px;" class="img-overflow">
-            <img src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=900&q=80" alt="Laura Crain, Founder" style="height: 100%;" />
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Background ────────────────────────────────────── -->
-  <section class="section bg-white">
-    <div class="container">
-      <div class="grid-2">
-        <div class="fade-up" style="height: 480px;">
-          <div class="img-overflow" style="height: 100%;">
-            <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=900&q=80" alt="On location" style="height: 100%;" />
-          </div>
-        </div>
-        <div class="fade-up delay-2" style="padding-left: 20px;">
-          <span class="eyebrow">Background</span>
-          <p class="body-sm mb-24">
-            With a background in editorial and fashion photography, Laura brings a distinctive eye to hospitality — one shaped by years of working with publications, brands, and destinations that demand a higher standard of visual storytelling.
-          </p>
-          <p class="body-sm mb-24">
-            She founded Coastal Travel Company to fill a gap he kept encountering: luxury properties that deserved world-class imagery but were working with photographers who treated hotels like real estate shoots.
-          </p>
-          <p class="body-sm">
-            Every project Laura takes on is treated as a creative partnership — not a vendor relationship. She works closely with property teams to understand their brand, their guest, and the feeling they want to evoke.
-          </p>
-          <div class="divider"></div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--sage-teal);">— Palm Beach, Florida</span>
+            <img src="images/laura-crain.jpg" alt="Laura Crain, Founder" style="height: 100%; object-fit: cover; object-position: top;" />
           </div>
         </div>
       </div>
@@ -274,10 +231,10 @@
   <!-- ── Pull Quote ─────────────────────────────────────── -->
   <section class="pull-quote bg-black">
     <span class="pq-script">the vision</span>
-    <blockquote>
+    <blockquote data-content-id="pullquote">
       "The properties I'm most drawn to are the ones that have a soul — and my job is to find it and put it on screen."
     </blockquote>
-    <cite>— Laura Crain</cite>
+    <cite data-content-id="pullquote-cite">— Laura Crain</cite>
   </section>
 
   <!-- ── Photographer Approach ─────────────────────────── -->
@@ -363,20 +320,22 @@
             <li><a href="services.html">Short-Form Video</a></li>
             <li><a href="services.html">Lifestyle Capture</a></li>
             <li><a href="services.html">Visual Storytelling</a></li>
+            <li><a href="walkthroughs.html">3D Walkthroughs</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h5>Connect</h5>
           <ul>
-            <li><a href="#">Instagram</a></li>
-            <li><a href="#">Pinterest</a></li>
+            <li><a href="https://www.instagram.com/coastaltravelcompany" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.pinterest.com/thecoastaltravelcompany/" target="_blank" rel="noopener">Pinterest</a></li>
+            <li><a href="https://www.facebook.com/share/18zzn7QVWT/" target="_blank" rel="noopener">Facebook</a></li>
             <li><a href="contact.html">Inquire</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Coastal Travel Company. All rights reserved.</p>
-        <p style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+        <p>&copy; 2026 Coastal Travel Company. All rights reserved.</p>
+        <p><a href="privacy.html" style="color:rgba(255,255,255,0.45);text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp; <span style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</span></p>
       </div>
     </div>
   </footer>

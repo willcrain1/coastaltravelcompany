@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="js/cookie-consent.js"></script>
 </head>
 <body>
 
@@ -24,8 +26,8 @@
       <li><a href="services.html">Services</a></li>
       <li><a href="collections.html">Collections</a></li>
       <li><a href="contact.html">Contact</a></li>
+      <li><a href="login.html">Account</a></li>
     </ul>
-    <a href="login.html" class="nav-account">Account</a>
     <button class="nav-toggle" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -36,11 +38,14 @@
     <div class="hero-bg" style="background-image: url('https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=1920&q=80');"></div>
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <p class="hero-eyebrow">Palm Beach, Florida &nbsp;·&nbsp; Editorial Hotel Photography</p>
-      <span class="hero-script">Coastal</span>
-      <h1 class="hero-title">Travel Company</h1>
-      <p class="hero-tagline">Desired, not just seen.</p>
-      <a href="collections.html" class="btn btn-white-outline">View Our Work</a>
+      <p class="hero-eyebrow" data-content-id="hero-eyebrow">Palm Beach, Florida &nbsp;·&nbsp; Editorial Hotel Photography</p>
+      <span class="hero-script" data-content-id="hero-script">Coastal</span>
+      <h1 class="hero-title" data-content-id="hero-title">Travel Company</h1>
+      <p class="hero-tagline" data-content-id="hero-tagline">Desired, not just seen.</p>
+      <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+        <a href="/about.html" class="btn btn-white-outline" style="min-width: 260px; text-align: center;">Meet the Studio</a>
+        <a href="/collections.html" class="btn btn-white-outline" style="min-width: 260px; text-align: center; border-color: rgba(255,255,255,0.35);">Packages &amp; Pricing</a>
+      </div>
     </div>
   </section>
 
@@ -55,7 +60,7 @@
           </h2>
           <span class="script" style="font-size: clamp(28px, 3.5vw, 46px); color: var(--forest-green); display: block; margin-top: 4px;">not just the look.</span>
           <div class="divider"></div>
-          <p class="body-sm" style="max-width: 420px;">
+          <p class="body-sm" style="max-width: 420px;" data-content-id="intro-body">
             Coastal Travel Company creates refined, story-driven visuals for hotels and destinations that want to be desired, not just seen. We specialize in editorial photography and short-form video that blends architecture, lifestyle, and high-fashion energy into timeless visual narratives.
           </p>
         </div>
@@ -68,57 +73,23 @@
     </div>
   </section>
 
-  <!-- ── Portfolio Grid ─────────────────────────────────── -->
-  <section class="section bg-white">
+  <!-- ── Portfolio ─────────────────────────────────────── -->
+  <section id="portfolio" class="section bg-white">
     <div class="container">
-      <div class="text-center mb-48 fade-up">
-        <span class="eyebrow">Selected Work</span>
-        <h2 style="font-size: clamp(30px, 4vw, 50px);">Recent Editorials</h2>
-        <p class="body-sm mt-16" style="max-width: 480px; margin-left: auto; margin-right: auto;">
-          A curated look at the properties and destinations we've partnered with.
+      <div class="text-center fade-up" style="max-width: 620px; margin: 0 auto;">
+        <span class="eyebrow">Our Work</span>
+        <h2 style="font-size: clamp(30px, 4vw, 50px); margin-bottom: 16px;">Portfolio</h2>
+        <span class="script" style="font-size: clamp(22px, 3vw, 36px); color: var(--forest-green); display: block; margin-bottom: 32px;">Real properties. Real results. Every image captured on location.</span>
+        <p class="body-sm" style="margin-bottom: 16px;">
+          Our visual library is built from real client engagements — not stock photography.
         </p>
-      </div>
-
-      <div class="portfolio-grid" style="height: 620px;">
-        <div class="portfolio-item tall fade-up">
-          <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80" alt="Luxury resort" />
-          <div class="port-label">
-            <small>Palm Beach, FL</small>
-            <span>The Waterfront Editorial</span>
-          </div>
-        </div>
-        <div class="portfolio-item fade-up delay-1">
-          <img src="https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80" alt="Hotel lobby" />
-          <div class="port-label">
-            <small>Miami, FL</small>
-            <span>Grand Lobby Series</span>
-          </div>
-        </div>
-        <div class="portfolio-item fade-up delay-2">
-          <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80" alt="Beach resort" />
-          <div class="port-label">
-            <small>Caribbean</small>
-            <span>The Shore Collection</span>
-          </div>
-        </div>
-        <div class="portfolio-item fade-up delay-1" style="margin-top: 0;">
-          <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80" alt="Pool view" />
-          <div class="port-label">
-            <small>Tulum, Mexico</small>
-            <span>Infinity & Light</span>
-          </div>
-        </div>
-        <div class="portfolio-item fade-up delay-3">
-          <img src="https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80" alt="Hotel room" />
-          <div class="port-label">
-            <small>Amalfi Coast, Italy</small>
-            <span>Suite Life Editorial</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="text-center mt-48 fade-up">
-        <a href="collections.html" class="btn btn-outline-dark">View All Work</a>
+        <p class="body-sm" style="margin-bottom: 16px;">
+          Portfolio images are updated as new projects are completed.
+        </p>
+        <p class="body-sm" style="margin-bottom: 48px;">
+          Reach out to see our most recent work and discuss your property.
+        </p>
+        <a href="/contact.html" class="btn btn-dark" style="display: inline-block;">Start a Conversation</a>
       </div>
     </div>
   </section>
@@ -126,10 +97,10 @@
   <!-- ── Pull Quote ─────────────────────────────────────── -->
   <section class="pull-quote bg-black">
     <span class="pq-script">desired,</span>
-    <blockquote>
+    <blockquote data-content-id="pullquote">
       "We create work that makes a property feel aspirational, effortless, and worth traveling across the world for."
     </blockquote>
-    <cite>— The Coastal Travel Company Philosophy</cite>
+    <cite data-content-id="pullquote-cite">— The Coastal Travel Company Philosophy</cite>
   </section>
 
   <!-- ── Services Preview ───────────────────────────────── -->
@@ -179,7 +150,7 @@
         <h2 style="font-size: clamp(28px, 4vw, 50px);">Our Studio Packages</h2>
       </div>
 
-      <div class="grid-3" style="gap: 16px;">
+      <div class="grid-2" style="gap: 16px;">
         <div class="collection-card fade-up" style="height: 480px;">
           <img src="https://images.unsplash.com/photo-1500835556837-99ac94a94552?auto=format&fit=crop&w=700&q=80" alt="The Editorial Stay" />
           <div class="collection-overlay">
@@ -210,6 +181,16 @@
             </div>
           </div>
         </div>
+        <div class="collection-card fade-up delay-3" style="height: 480px;">
+          <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=700&q=80" alt="The Listing Upgrade" />
+          <div class="collection-overlay">
+            <div class="collection-info">
+              <p class="coll-eyebrow">Collection 04</p>
+              <h3>The Listing Upgrade</h3>
+              <span class="coll-script">airbnb-ready</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="text-center mt-48 fade-up">
@@ -223,8 +204,8 @@
     <div style="position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1560347876-aeef00ee58a1?auto=format&fit=crop&w=1800&q=80'); background-size: cover; background-position: center;"></div>
     <div style="position: absolute; inset: 0; background: rgba(28,28,28,0.58);"></div>
     <div style="position: relative; z-index: 2; color: var(--white); padding: 0 40px;" class="fade-up">
-      <span style="font-family: 'Pinyon Script', cursive; font-size: clamp(36px, 5vw, 60px); color: var(--sage-teal); display: block; margin-bottom: 12px;">let's work together</span>
-      <h2 style="font-size: clamp(24px, 3.5vw, 44px); margin-bottom: 32px;">Ready to Elevate Your Property?</h2>
+      <span style="font-family: 'Pinyon Script', cursive; font-size: clamp(36px, 5vw, 60px); color: var(--sage-teal); display: block; margin-bottom: 12px;" data-content-id="cta-script">let's work together</span>
+      <h2 style="font-size: clamp(24px, 3.5vw, 44px); margin-bottom: 32px;" data-content-id="cta-heading">Ready to Elevate Your Property?</h2>
       <a href="contact.html" class="btn btn-white-outline">Start a Conversation</a>
     </div>
   </section>
@@ -256,20 +237,22 @@
             <li><a href="services.html">Short-Form Video</a></li>
             <li><a href="services.html">Lifestyle Capture</a></li>
             <li><a href="services.html">Visual Storytelling</a></li>
+            <li><a href="walkthroughs.html">3D Walkthroughs</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h5>Connect</h5>
           <ul>
-            <li><a href="#">Instagram</a></li>
-            <li><a href="#">Pinterest</a></li>
+            <li><a href="https://www.instagram.com/coastaltravelcompany" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.pinterest.com/thecoastaltravelcompany/" target="_blank" rel="noopener">Pinterest</a></li>
+            <li><a href="https://www.facebook.com/share/18zzn7QVWT/" target="_blank" rel="noopener">Facebook</a></li>
             <li><a href="contact.html">Inquire</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Coastal Travel Company. All rights reserved.</p>
-        <p style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+        <p>&copy; 2026 Coastal Travel Company. All rights reserved.</p>
+        <p><a href="privacy.html" style="color:rgba(255,255,255,0.45);text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp; <span style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</span></p>
       </div>
     </div>
   </footer>

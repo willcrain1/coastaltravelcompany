@@ -4,10 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Invoice — Coastal Travel Company</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <script src="/config.js"></script>
+  <script src="/js/cookie-consent.js"></script>
   <style>
     :root {
       --black: #1C1C1C;
@@ -393,8 +395,11 @@
     const totalsEl = document.getElementById('inv-totals');
     let totalsHtml = '';
     if (inv.tax_cents > 0) {
+      const taxPct = inv.subtotal_cents > 0
+        ? (inv.tax_cents / inv.subtotal_cents * 100).toFixed(2).replace(/\.?0+$/, '') + '%'
+        : '';
       totalsHtml += `<div class="totals-row"><span class="label">Subtotal</span><span class="amount">${fmt(inv.subtotal_cents)}</span></div>`;
-      totalsHtml += `<div class="totals-row"><span class="label">Tax</span><span class="amount">${fmt(inv.tax_cents)}</span></div>`;
+      totalsHtml += `<div class="totals-row"><span class="label">Tax${taxPct ? ' (' + taxPct + ')' : ''}</span><span class="amount">${fmt(inv.tax_cents)}</span></div>`;
     }
     totalsHtml += `<div class="totals-row total-line"><span class="label">Total</span><span class="amount">${fmt(inv.total_cents)}</span></div>`;
     totalsEl.innerHTML = totalsHtml;

@@ -12,13 +12,14 @@
 
 import { test, expect } from '@playwright/test';
 
-const WORKER_URL  = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
-const STATIC_BASE = 'http://localhost:9876';
+const WORKER_URL  = process.env.WORKER_URL || 'https://api.coastaltravelcompany.com';
+const STATIC_BASE = process.env.BASE_URL   || 'http://localhost:9876';
 
 const CORS = {
-  'access-control-allow-origin':  '*',
-  'access-control-allow-methods': 'GET, POST, OPTIONS',
-  'access-control-allow-headers': 'Content-Type, Authorization',
+  'access-control-allow-origin':      STATIC_BASE,
+  'access-control-allow-credentials': 'true',
+  'access-control-allow-methods':     'GET, POST, OPTIONS',
+  'access-control-allow-headers':     'Content-Type, Authorization',
 };
 
 const TOKEN = 'portal-proj-token';
@@ -62,11 +63,11 @@ function makePortalData(overrides = {}) {
       stage:       'Contract Signed',
     },
     documents: [
-      { type: 'proposal', title: 'Editorial Stay Proposal', url: 'https://coastaltravelcompany.com/proposal.html#p1' },
-      { type: 'contract', title: 'Photography Services Agreement', url: 'https://coastaltravelcompany.com/contract.html#c1' },
+      { type: 'proposal', title: 'Editorial Stay Proposal', url: `${STATIC_BASE}/proposal.html#p1` },
+      { type: 'contract', title: 'Photography Services Agreement', url: `${STATIC_BASE}/contract.html#c1` },
     ],
     proposals: [
-      { status: 'approved', public_url: 'https://coastaltravelcompany.com/proposal.html#p1' },
+      { status: 'approved', public_url: `${STATIC_BASE}/proposal.html#p1` },
     ],
     questionnaires: [
       {

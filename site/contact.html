@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <script src="config.js"></script>
+  <script src="js/cookie-consent.js"></script>
 </head>
 <body>
 
@@ -24,8 +27,8 @@
       <li><a href="services.html">Services</a></li>
       <li><a href="collections.html">Collections</a></li>
       <li><a href="contact.html" class="active">Contact</a></li>
+      <li><a href="login.html">Account</a></li>
     </ul>
-    <a href="login.html" class="nav-account">Account</a>
     <button class="nav-toggle" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -49,44 +52,49 @@
 
         <!-- Left: Info -->
         <div class="fade-up">
-          <span class="eyebrow">Get in Touch</span>
-          <h2 style="font-size: clamp(28px, 4vw, 50px); margin-bottom: 12px;">
-            Ready to elevate<br />your property?
+          <h2 style="font-size: clamp(28px, 4vw, 50px); line-height: 1.2; margin-bottom: 24px;">
+            Let's create something your guests will feel before they arrive.
           </h2>
-          <span class="script" style="font-size: clamp(26px, 3.5vw, 44px); color: var(--forest-green); display: block; margin-bottom: 28px;">we'd love to hear from you.</span>
-          <p class="body-sm mb-32">
-            Tell us about your property, your vision, and what you're looking to create. We'll respond within 48 hours to discuss your project and which of our collections may be the right fit.
+          <p class="body-sm mb-32" data-content-id="contact-intro-body">
+            Tell us about your property, your goals, and what you are looking to create. We will respond within 48 hours to discuss your project and guide you toward the collection that is the right fit — or build something custom around what you need.
           </p>
 
           <div style="border-top: 1px solid rgba(0,0,0,0.09); padding-top: 36px; display: flex; flex-direction: column; gap: 28px;">
             <div>
               <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">Location</p>
-              <p style="font-size: 14px; color: var(--text-dark);">Palm Beach, Florida</p>
+              <p style="font-size: 14px; color: var(--text-dark);" data-content-id="contact-location">Palm Beach, Florida</p>
               <p class="body-sm">Available for travel worldwide</p>
             </div>
             <div>
               <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">Email</p>
-              <a href="mailto:thecoastaltravelcompany@gmail.com" style="font-size: 14px; color: var(--forest-green); text-decoration: none; letter-spacing: 0.04em;">thecoastaltravelcompany@gmail.com</a>
+              <a href="mailto:thecoastaltravelcompany@gmail.com" style="font-size: 14px; color: var(--forest-green); text-decoration: none; letter-spacing: 0.04em;" data-content-id="contact-email">thecoastaltravelcompany@gmail.com</a>
             </div>
             <div>
               <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px;">Follow Along</p>
               <div style="display: flex; gap: 24px;">
-                <a href="#" style="font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--forest-green)'" onmouseout="this.style.color='var(--text-mid)'">Instagram</a>
-                <a href="#" style="font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--forest-green)'" onmouseout="this.style.color='var(--text-mid)'">Pinterest</a>
+                <a href="https://www.instagram.com/coastaltravelcompany" target="_blank" rel="noopener" style="font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--forest-green)'" onmouseout="this.style.color='var(--text-mid)'">Instagram</a>
+                <a href="https://www.pinterest.com/thecoastaltravelcompany/" target="_blank" rel="noopener" style="font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--forest-green)'" onmouseout="this.style.color='var(--text-mid)'">Pinterest</a>
+                <a href="https://www.facebook.com/share/18zzn7QVWT/" target="_blank" rel="noopener" style="font-size: 12px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-mid); text-decoration: none; transition: color 0.3s;" onmouseover="this.style.color='var(--forest-green)'" onmouseout="this.style.color='var(--text-mid)'">Facebook</a>
               </div>
             </div>
           </div>
 
-          <div style="margin-top: 52px; padding: 36px; background: var(--forest-green);">
-            <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--sage-teal); margin-bottom: 16px;">Response Time</p>
-            <p style="font-family: 'Gilda Display', serif; font-size: 20px; color: var(--white); margin-bottom: 10px;">We respond within 48 hours.</p>
-            <p style="font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.75;">For time-sensitive inquiries, please note your preferred contact window in your message.</p>
+          <div style="margin-top: 52px;">
+            <div style="padding: 32px 36px; background: var(--forest-green);">
+              <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--sage-teal); margin-bottom: 12px;">Response Time</p>
+              <p style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--white); margin-bottom: 8px;" data-content-id="contact-response-heading">We respond within 48 hours.</p>
+              <p style="font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.75;" data-content-id="contact-response-detail">For urgent inquiries, note your preferred contact window in the message field.</p>
+            </div>
+            <div style="padding: 32px 36px; background: var(--cream); border: 1px solid rgba(0,0,0,0.07); border-top: none;">
+              <p style="font-size: 9px; font-weight: 600; letter-spacing: 0.38em; text-transform: uppercase; color: var(--text-light); margin-bottom: 12px;">Booking Lead Time</p>
+              <p style="font-size: 13px; color: var(--text-dark); line-height: 2;">2–4 weeks for lifestyle packages.<br />4–8 weeks for editorial and signature collections.<br />Book early for peak travel season dates.</p>
+            </div>
           </div>
         </div>
 
         <!-- Right: Form -->
         <div class="fade-up delay-2">
-          <form action="#" method="POST" style="background: var(--white); padding: 52px 48px;">
+          <form id="contact-form" action="#" method="POST" style="background: var(--white); padding: 52px 48px;">
             <p style="font-family: 'Gilda Display', serif; font-size: 24px; color: var(--black); margin-bottom: 8px;">Project Inquiry</p>
             <span style="font-family: 'Pinyon Script', cursive; font-size: 32px; color: var(--sage-teal); display: block; margin-bottom: 36px; line-height: 1;">tell us everything.</span>
 
@@ -123,13 +131,14 @@
                 <option value="editorial-stay">The Editorial Stay</option>
                 <option value="fashioned-weekend">The Fashioned Weekend</option>
                 <option value="signature-story">The Signature Story</option>
+                <option value="listing-upgrade">The Listing Upgrade</option>
                 <option value="custom">Custom / Not Sure Yet</option>
               </select>
             </div>
 
             <div class="form-group">
               <label for="timeline">Ideal Timeline</label>
-              <input type="text" id="timeline" name="timeline" placeholder="e.g. September 2024, or flexible" />
+              <input type="text" id="timeline" name="timeline" placeholder="e.g. September 2026, or flexible" />
             </div>
 
             <div class="form-group">
@@ -146,6 +155,74 @@
       </div>
     </div>
   </section>
+
+
+  <!-- ── What Happens Next ─────────────────────────────────── -->
+  <section class="section bg-white">
+    <div class="container">
+      <div class="text-center mb-48 fade-up">
+        <span class="eyebrow">What Happens Next</span>
+        <h2 style="font-size: clamp(26px, 3.8vw, 46px);">Here's what to expect after you reach out.</h2>
+      </div>
+
+      <div class="fade-up" style="max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 0;">
+
+        <div style="display: flex; gap: 32px; padding: 36px 0; border-bottom: 1px solid rgba(0,0,0,0.07);">
+          <div style="flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--forest-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--forest-green); letter-spacing: 0.05em;">1</div>
+          <div>
+            <p style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--black); margin-bottom: 8px;">We Review Your Inquiry</p>
+            <p class="body-sm">Within 48 hours of receiving your message, we review your property details and goals. If we need any clarification before our call, we will follow up by email.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 32px; padding: 36px 0; border-bottom: 1px solid rgba(0,0,0,0.07);">
+          <div style="flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--forest-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--forest-green); letter-spacing: 0.05em;">2</div>
+          <div>
+            <p style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--black); margin-bottom: 8px;">Discovery Call — 15 to 20 minutes</p>
+            <p class="body-sm">We schedule a brief call to learn more about your property, your visual goals, your timeline, and your budget. This helps us point you to the right collection or build something custom. No pressure, no sales pitch.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 32px; padding: 36px 0; border-bottom: 1px solid rgba(0,0,0,0.07);">
+          <div style="flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--forest-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--forest-green); letter-spacing: 0.05em;">3</div>
+          <div>
+            <p style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--black); margin-bottom: 8px;">Custom Proposal</p>
+            <p class="body-sm">Within 5 business days of your discovery call, we send a detailed proposal: the collection or custom package we recommend, a clear breakdown of deliverables, timeline, and investment.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 32px; padding: 36px 0; border-bottom: 1px solid rgba(0,0,0,0.07);">
+          <div style="flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--forest-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--forest-green); letter-spacing: 0.05em;">4</div>
+          <div>
+            <p style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--black); margin-bottom: 8px;">Contract &amp; 50% Deposit</p>
+            <p class="body-sm">Once you are ready to proceed, we send a simple contract outlining deliverables, usage rights, and timeline. A 50% deposit secures your shoot date. The remaining 50% is due upon final delivery.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 32px; padding: 36px 0; border-bottom: 1px solid rgba(0,0,0,0.07);">
+          <div style="flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--forest-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--forest-green); letter-spacing: 0.05em;">5</div>
+          <div>
+            <p style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--black); margin-bottom: 8px;">Creative Direction &amp; Shoot</p>
+            <p class="body-sm">Before your shoot, we develop a shot list and visual brief tailored to your property. On the day, we arrive early, work seamlessly with your team, and capture every element in the plan.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 32px; padding: 36px 0;">
+          <div style="flex-shrink: 0; width: 36px; height: 36px; border: 1px solid var(--forest-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--forest-green); letter-spacing: 0.05em;">6</div>
+          <div>
+            <p style="font-family: 'Gilda Display', serif; font-size: 18px; color: var(--black); margin-bottom: 8px;">Delivery — Campaign-Ready</p>
+            <p class="body-sm">Your final edited content arrives in a private Coastal Travel Company gallery within 7–14 business days — organized by category, sized for every platform, and ready to deploy immediately. One round of revision feedback included.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="fade-up" style="max-width: 780px; margin: 48px auto 0; padding: 32px 40px; background: var(--cream); border-left: 3px solid var(--forest-green);">
+        <p class="body-sm" style="margin: 0;">We keep the process simple and transparent at every step. You will always know what is happening, what is coming next, and exactly what you will receive. Questions before you submit? <a href="mailto:thecoastaltravelcompany@gmail.com" style="color: var(--forest-green); text-decoration: none;">Email us directly</a> — we are happy to chat before you fill out the form.</p>
+      </div>
+    </div>
+  </section>
+
 
   <!-- ── Availability Calendar ────────────────────────────── -->
   <section class="section bg-white">
@@ -223,7 +300,7 @@
 
   <script>
   (function () {
-    const WORKER = 'https://coastal-gallery-proxy.thecoastaltravelcompany.workers.dev';
+    const WORKER = CTC_CONFIG.workerUrl;
     const DAYS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -306,6 +383,106 @@
   })();
   </script>
 
+
+  <!-- ── FAQ ───────────────────────────────────────────────── -->
+  <section class="section bg-cream">
+    <div class="container">
+      <div class="text-center mb-48 fade-up">
+        <span class="eyebrow">Common Questions</span>
+        <h2 style="font-size: clamp(26px, 3.8vw, 46px);">Everything you might want to know.</h2>
+        <span class="script" style="font-size: clamp(20px, 2.8vw, 34px); color: var(--forest-green); display: block; margin-top: 8px;">If your question isn't here, email us directly — we're happy to talk.</span>
+      </div>
+
+      <div style="max-width: 780px; margin: 0 auto;">
+
+        <details class="faq-item">
+          <summary>Do we need to provide talent or models for the shoot?</summary>
+          <p>Not necessarily. Hotel staff, employees, or even guests (with their permission) work beautifully in lifestyle shots. We can source local talent if needed — just mention it in your inquiry and we will include talent sourcing in the proposal if applicable.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>We already have some photography. Can you add to our existing library?</summary>
+          <p>Absolutely. Many clients have existing assets and just need specific gaps filled — lifestyle moments, updated video, or seasonal refreshes. Tell us what you already have and what you need in the inquiry form and we will tailor a proposal accordingly.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What if we are not in Palm Beach or South Florida?</summary>
+          <p>We travel. Flights, accommodation, and transportation are quoted separately and added to any collection. For properties offering complimentary accommodation during the shoot, we factor that into the overall investment. We work across the U.S., the Caribbean, and internationally.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What usage rights do we get with our content?</summary>
+          <p>All collections include full commercial usage rights for social media, your website, and OTA listing platforms such as Airbnb, Booking.com, and Expedia for an unlimited period. Paid advertising and print use are available as add-ons or included outright in The Signature Story. Everything is clearly outlined in your contract before any payment is made.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>How far in advance should we book?</summary>
+          <p>2 to 4 weeks for The Fashioned Weekend, and 4 to 8 weeks for The Editorial Stay and Signature Story. For peak travel season shoots — winter holidays, spring break, summer — reach out as early as possible. Dates fill quickly.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Can we use the content for paid advertising?</summary>
+          <p>Yes. Paid advertising rights can be added to any collection, or are included in The Signature Story. If you plan to run paid social or display campaigns, mention it in your inquiry so we can build the right rights in from the start.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What if we are a small Airbnb and not a full hotel?</summary>
+          <p>We love working with vacation rental hosts. Our Listing Upgrade starts at $400 and is built specifically for short-term rental properties. See the <a href="/collections.html#airbnb-packages" style="color: var(--forest-green); text-decoration: none;">Airbnb &amp; Vacation Rental section on the Collections page</a> for full details.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>What happens if we need to reschedule or cancel?</summary>
+          <p>Rescheduling requests made more than 14 days before your shoot date are accommodated at no charge, subject to availability. Cancellations within 14 days forfeit the 50% deposit. All details are outlined in your contract before you sign.</p>
+        </details>
+
+        <details class="faq-item">
+          <summary>Do you offer retainer or ongoing content packages?</summary>
+          <p>Yes. For properties that need fresh content on a recurring basis, we offer seasonal retainer arrangements — typically 3 to 4 shoots per year at a bundled rate. This locks in your dates, reduces the per-shoot investment, and keeps your visual library current year-round. Ask about retainer pricing in your inquiry.</p>
+        </details>
+
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .faq-item {
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .faq-item summary {
+      font-family: 'Gilda Display', serif;
+      font-size: 17px;
+      color: var(--black);
+      padding: 24px 0;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: '+';
+      font-family: 'Montserrat', sans-serif;
+      font-size: 20px;
+      font-weight: 300;
+      color: var(--forest-green);
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .faq-item[open] summary::after {
+      transform: rotate(45deg);
+    }
+    .faq-item p {
+      font-size: 13px;
+      line-height: 1.85;
+      color: var(--text-mid);
+      padding-bottom: 24px;
+      margin: 0;
+      max-width: 660px;
+    }
+  </style>
+
   <!-- ── Collections Reference ──────────────────────────── -->
   <section class="section bg-white">
     <div class="container">
@@ -313,7 +490,7 @@
         <span class="eyebrow">Not Sure Which Collection?</span>
         <h2 style="font-size: clamp(26px, 3.8vw, 46px);">Explore the Options</h2>
       </div>
-      <div class="grid-3 fade-up" style="gap: 2px;">
+      <div class="grid-2 fade-up" style="gap: 2px; align-items: stretch;">
         <div style="padding: 44px 36px; background: var(--cream);">
           <span class="eyebrow" style="margin-bottom: 14px;">Collection 01</span>
           <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--forest-green); display: block; margin-bottom: 12px; line-height: 1.1;">The Editorial Stay</span>
@@ -331,6 +508,12 @@
           <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--sage-teal); display: block; margin-bottom: 12px; line-height: 1.1;">The Signature Story</span>
           <p style="font-size: 13px; line-height: 1.85; color: rgba(255,255,255,0.55); margin-bottom: 24px;">Campaign-level, brand-defining. Hero film, full library, and total creative direction.</p>
           <a href="collections.html#signature-story" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--sage-teal); text-decoration: none;">Learn More →</a>
+        </div>
+        <div style="padding: 44px 36px; background: var(--warm-linen);">
+          <span class="eyebrow" style="margin-bottom: 14px;">Collection 04</span>
+          <span style="font-family: 'Pinyon Script', cursive; font-size: 36px; color: var(--forest-green); display: block; margin-bottom: 12px; line-height: 1.1;">The Listing Upgrade</span>
+          <p class="body-sm mb-24">One-day shoot for Airbnb &amp; vacation rental hosts. Listing-ready photos and video for short-term rental properties.</p>
+          <a href="collections.html#listing-upgrade" style="font-size: 10px; font-weight: 600; letter-spacing: 0.3em; text-transform: uppercase; color: var(--forest-green); text-decoration: none;">Learn More →</a>
         </div>
       </div>
     </div>
@@ -362,20 +545,22 @@
             <li><a href="collections.html#editorial-stay">The Editorial Stay</a></li>
             <li><a href="collections.html#fashioned-weekend">The Fashioned Weekend</a></li>
             <li><a href="collections.html#signature-story">The Signature Story</a></li>
+            <li><a href="collections.html#listing-upgrade">The Listing Upgrade</a></li>
           </ul>
         </div>
         <div class="footer-col">
           <h5>Connect</h5>
           <ul>
-            <li><a href="#">Instagram</a></li>
-            <li><a href="#">Pinterest</a></li>
+            <li><a href="https://www.instagram.com/coastaltravelcompany" target="_blank" rel="noopener">Instagram</a></li>
+            <li><a href="https://www.pinterest.com/thecoastaltravelcompany/" target="_blank" rel="noopener">Pinterest</a></li>
+            <li><a href="https://www.facebook.com/share/18zzn7QVWT/" target="_blank" rel="noopener">Facebook</a></li>
             <li><a href="mailto:thecoastaltravelcompany@gmail.com">Email Us</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Coastal Travel Company. All rights reserved.</p>
-        <p style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</p>
+        <p>&copy; 2026 Coastal Travel Company. All rights reserved.</p>
+        <p><a href="privacy.html" style="color:rgba(255,255,255,0.45);text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp; <span style="color: rgba(255,255,255,0.18);">Palm Beach, Florida</span></p>
       </div>
     </div>
   </footer>

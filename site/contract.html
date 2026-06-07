@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sign Contract — Coastal Travel Company</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="js/cookie-consent.js"></script>
   <style>
     :root {
       --black:  #1C1C1C;
@@ -316,6 +318,7 @@
     <!-- Print / download -->
     <div id="printBar" style="display:none; margin-top:24px; display:flex; gap:12px;">
       <button class="btn btn-ghost" onclick="window.print()">Print / Download PDF</button>
+      <button class="btn btn-ghost" id="downloadArchiveBtn" onclick="downloadArchive()">Download Signed Contract</button>
     </div>
 
   </div>
@@ -656,6 +659,26 @@
 
   function labelEvent(type) {
     return { created: 'Contract created', viewed: 'Document viewed', client_signed: 'Client signed', admin_countersigned: 'Admin countersigned', pdf_generated: 'PDF generated' }[type] || type;
+  }
+
+  // ── Archive download ───────────────────────────────────────────────────────
+
+  async function downloadArchive() {
+    const btn = document.getElementById('downloadArchiveBtn');
+    btn.disabled = true;
+    btn.textContent = 'Downloading…';
+    try {
+      const res = await fetch(WORKER_URL + '/contracts/' + token + '/archive', { headers: { Origin: location.origin } });
+      if (!res.ok) { toast('Archive not available yet. Try again later.', true); return; }
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'signed-contract.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { toast('Download failed. Please try again.', true); }
+    finally { btn.disabled = false; btn.textContent = 'Download Signed Contract'; }
   }
 
   // ── Toast ──────────────────────────────────────────────────────────────────

@@ -7,22 +7,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin.css?v=2" />
 </head>
 <body>
 
 <header>
-  <div class="logo-wrap">
+  <a href="/" class="logo-wrap">
     <span class="logo-main">Coastal</span>
     <span class="logo-script">Travel Company</span>
-  </div>
+  </a>
   <div class="header-right">
     <span class="admin-email" id="adminEmail"></span>
     <nav class="admin-nav">
-      <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
+      <a href="pipeline.html" class="admin-nav-link active">Pipeline</a>
       <a href="galleries.html" class="admin-nav-link">Galleries</a>
       <a href="clients.html" class="admin-nav-link">Clients</a>
       <a href="services.html" class="admin-nav-link">Services</a>
+      <a href="content-editor.html" class="admin-nav-link">Content</a>
+      <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link">Customer Portal ↗</a>
     </nav>
     <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
   </div>
@@ -64,6 +66,7 @@
           <option>The Editorial Stay</option>
           <option>The Fashioned Weekend</option>
           <option>The Branded Journey</option>
+          <option>The Listing Upgrade</option>
         </select>
       </div>
       <div class="fg">
@@ -134,6 +137,7 @@
               <option>The Editorial Stay</option>
               <option>The Fashioned Weekend</option>
               <option>The Branded Journey</option>
+              <option>The Listing Upgrade</option>
             </select>
           </div>
           <div class="fg pd-field-full">
@@ -254,8 +258,8 @@
             <div class="note-add-form">
               <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
                 <div>
-                  <label>Tax ($)</label>
-                  <input type="number" id="pd-invoice-tax" placeholder="0.00" min="0" step="0.01" style="width:90px;" />
+                  <label>Tax (%)</label>
+                  <input type="number" id="pd-invoice-tax" value="7" min="0" max="100" step="0.01" style="width:70px;" />
                 </div>
                 <div>
                   <label>Due Date</label>
@@ -296,9 +300,11 @@
 <div class="toast" id="toast"></div>
 
 <script src="../config.js"></script>
-<script src="admin-shared.js"></script>
+<script src="admin-shared.js?v=2"></script>
 <script>
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  const WORKER_URL = getWorkerUrl();
 
   const STAGES = [
     'Inquiry', 'Proposal Sent', 'Contract Sent', 'Contract Signed',
@@ -882,7 +888,7 @@
       return;
     }
     el.innerHTML = msgs.map(m => `
-      <div class="note-item" style="background:${m.sender === 'client' ? 'var(--cream)' : '#fff'};">
+      <div class="note-item" style="background:${m.sender === 'client' ? 'var(--surface)' : 'rgba(42,92,69,0.15)'};padding:10px 12px;border-radius:4px;border-bottom:none;margin-bottom:6px;">
         <div class="note-type-label">${m.sender === 'client' ? esc(m.sender_name || 'Client') : 'You'}</div>
         <div class="note-content">${esc(m.content)}</div>
         <div class="note-date">${esc(relTime(m.created_at))}</div>
@@ -1161,14 +1167,16 @@
         unit_price_cents: Math.round((parseFloat(i.unit_price) || 0) * 100),
       }));
     if (!lineItems.length) { toast('Add at least one line item with a description', true); return; }
-    const tax_cents = Math.round((parseFloat(document.getElementById('pd-invoice-tax').value) || 0) * 100);
+    const subtotal  = lineItems.reduce((s, i) => s + Math.round(i.quantity * i.unit_price_cents), 0);
+    const taxRate   = parseFloat(document.getElementById('pd-invoice-tax').value) || 0;
+    const tax_cents = Math.round(subtotal * taxRate / 100);
     const due_date  = document.getElementById('pd-invoice-due').value;
     const notes     = document.getElementById('pd-invoice-notes').value.trim();
     const { ok, data } = await apiFetch('/admin/projects/' + selectedProjectId + '/invoices', {
       method: 'POST', body: { line_items: lineItems, tax_cents, due_date, notes },
     });
     if (!ok) { toast(data?.error || 'Failed to create invoice', true); return; }
-    document.getElementById('pd-invoice-tax').value   = '';
+    document.getElementById('pd-invoice-tax').value   = '7';
     document.getElementById('pd-invoice-due').value   = '';
     document.getElementById('pd-invoice-notes').value = '';
     invoiceLineItems = [{ description: '', quantity: 1, unit_price: '' }];
