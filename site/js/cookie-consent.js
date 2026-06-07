@@ -21,6 +21,7 @@
       ts: new Date().toISOString(),
     };
     localStorage.setItem(CONSENT_KEY, JSON.stringify(c));
+    try { window.dispatchEvent(new CustomEvent('ctc-consent-changed', { detail: c })); } catch {}
     return c;
   }
 
