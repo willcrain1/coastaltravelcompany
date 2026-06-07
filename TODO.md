@@ -542,3 +542,20 @@ remains is optional and requires creating external accounts by hand:
 
 ---
 
+## 50. Bump vitest to v4 (resolve transitive dev-dependency advisories)
+
+**Goal:** Resolve 3 low-severity advisories surfaced by an OSV dependency scan, all in dev-tooling pulled in transitively through `vitest@2.1.9` in `worker/package.json`. None of these reach production — they're dev-server-only issues (only exploitable if the dev/test server is explicitly exposed to the network) — but they're cheap to fix once a proper Node environment is available to regenerate the lockfile and verify the major-version bump.
+
+| Package | Advisory | Issue |
+|---|---|---|
+| `vite@5.4.21` | GHSA-4w7w-66w2-5vf9 | Dev server path traversal via `.map` requests |
+| `esbuild@0.21.5` | GHSA-67mh-4wv8-2f99 | Dev server CORS allows any site to read responses |
+| `vitest@2.1.9` | GHSA-5xrq-8626-4rwp | Vitest UI server arbitrary file read (Windows / network-exposed) |
+
+- [ ] **Bump `vitest` and `@vitest/coverage-v8`** from `^2.1.9` to `^4.1.0` in `worker/package.json` (pulls in patched `vite`/`esbuild` transitively, resolving all three advisories at once)
+- [ ] **Regenerate the lockfile** — run `npm install` inside `worker/` and commit the updated `worker/package-lock.json` (this is a major version bump, 2.x → 4.x — `npm ci` will reject a stale lockfile)
+- [ ] **Run the full worker test suite** — `npm run test:unit` — and fix any vitest 2→4 config/API breakage (e.g. changes to mocking, coverage config, or matcher behavior) before merging
+- [ ] **Re-scan to confirm** — re-run an OSV/`npm audit` scan and confirm GHSA-4w7w-66w2-5vf9, GHSA-67mh-4wv8-2f99, and GHSA-5xrq-8626-4rwp no longer appear
+
+---
+
