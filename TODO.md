@@ -422,27 +422,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 39. Create Privacy Policy
-
-**Goal:** Publish an accurate, readable privacy policy satisfying CCPA minimum requirements.
-
-### Content — sections to include
-
-- [ ] **What we collect and why** — contact form, user accounts, gallery sessions, booking/invoicing, real estate analytics, real estate lead capture
-- [ ] **Third-party services** — Cloudflare, Resend, Google (OAuth), Stripe, Synology NAS
-- [ ] **Cookies and local storage** — no cookies set; `sessionStorage` for gallery tokens and analytics session IDs; `localStorage` in admin panel
-- [ ] **Your rights (CCPA)** — right to know, right to delete, right to opt-out; include `id="do-not-sell"` anchor
-- [ ] **How to contact us** — email for privacy requests; 30-day target response time
-- [ ] **Effective date and version**
-
-### Implementation
-
-- [ ] Create `site/privacy.html` — shared nav, `styles.css`, and footer pattern from `about.html`
-- [ ] Add privacy link to footer of: `index.html`, `about.html`, `services.html`, `collections.html`, `contact.html`, `login.html`, `portal.html`
-- [ ] Have the policy reviewed by a human before publishing — tag PR with `needs-legal-review`
-
----
-
 ## 40. Create Full Real Estate Portal
 
 **Goal:** Deliver the complete agent portal and public property page as a shippable product. Items 38 and 39 are hard prerequisites.
