@@ -257,17 +257,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 21. FAQ Page
-
-**Goal:** Answer common pre-booking questions so clients arrive at the inquiry form already informed.
-
-- [ ] Build `faq.html` with an accordion layout
-- [ ] Cover: pricing, inclusions, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
-- [ ] Add "FAQ" to footer nav
-- [ ] Link from contact page and collections page
-
----
-
 ## 22. ✅ Photo Favorites / Proofing in Client Gallery
 
 **Goal:** Clients and admins each have independent star/heart capabilities.

@@ -4,6 +4,10 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 21 — FAQ Page
+
+Implemented as an accordion section directly on `contact.html` (rather than a standalone `faq.html`) so visitors arrive at the inquiry form already informed. Uses native `<details class="faq-item">` elements covering talent/models, adding to an existing photo library, travel outside South Florida, usage/licensing rights, booking lead times, paid advertising rights, and small Airbnb/vacation-rental properties (with a link to the Collections page Airbnb packages section).
+
 ### 5 — Online Booking: Billing Automation Hooks
 
 Three billing-triggered automation hooks wired into the hourly cron scheduler and the invoice paid event:
