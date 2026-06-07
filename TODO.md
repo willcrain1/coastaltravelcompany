@@ -225,17 +225,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 21. FAQ Page
-
-**Goal:** Answer common pre-booking questions so clients arrive at the inquiry form already informed.
-
-- [ ] Build `faq.html` with an accordion layout
-- [ ] Cover: pricing, inclusions, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
-- [ ] Add "FAQ" to footer nav
-- [ ] Link from contact page and collections page
-
----
-
 ## 23. Admin Photo Editing
 
 **Goal:** Browser-based, non-destructive photo editor in the gallery admin tool. Edit parameters stored in D1 and applied at serve time; original NAS files never modified.
