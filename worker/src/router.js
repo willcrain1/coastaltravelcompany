@@ -66,7 +66,7 @@ import {
 
 import { handleAdminAutomations, handleAdminAutomationLogs } from './admin/automations.js';
 import { handleAdminMasqueradeStart, handleAdminMasqueradeExit } from './admin/masquerade.js';
-import { handleAdminGallerySyncR2 } from './admin/r2-sync.js';
+import { handleAdminGallerySyncR2, handleAdminR2Storage } from './admin/r2-sync.js';
 
 import {
   handlePublicWalkthroughs,
@@ -80,6 +80,10 @@ import {
   handleAdminCmsHistory,
   handleAdminCmsRevert,
 } from './admin/cms.js';
+
+import {
+  handleAdminStarsGet, handleAdminStarToggle, handleSubmitSelections,
+} from './gallery-favorites.js';
 
 export async function handleRequest(request, env) {
   initCors(env.ALLOWED_ORIGIN);
@@ -137,6 +141,7 @@ export async function handleRequest(request, env) {
   if (method === 'POST' && pathname === '/admin/galleries') return handleAdminCreateGallery(request, env);
   const galleryR2Match  = pathname.match(/^\/admin\/galleries\/([^/]+)\/sync-r2$/);
   if (galleryR2Match && method === 'POST') return handleAdminGallerySyncR2(request, env, galleryR2Match[1]);
+  if (method === 'GET'  && pathname === '/admin/galleries/r2-storage') return handleAdminR2Storage(request, env);
   const galleryIdMatch = pathname.match(/^\/admin\/galleries\/([^/]+)$/);
   if (galleryIdMatch) {
     if (method === 'PUT')    return handleAdminUpdateGallery(request, env, galleryIdMatch[1]);
@@ -270,6 +275,14 @@ export async function handleRequest(request, env) {
     return handlePublicInvoice(request, env, publicInvoiceMatch[1]);
   if (method === 'POST' && pathname === '/stripe/webhook')
     return handleStripeWebhook(request, env);
+
+  // ── Gallery favorites & admin stars ─────────────────────────────────────────
+  const adminStarsGalleryMatch = pathname.match(/^\/gallery\/([^/]+)\/admin-stars$/);
+  const adminStarsPhotoMatch   = pathname.match(/^\/gallery\/([^/]+)\/admin-stars\/([^/]+)$/);
+  const submitSelectionsMatch  = pathname.match(/^\/gallery\/([^/]+)\/submit-selections$/);
+  if (adminStarsGalleryMatch && method === 'GET')  return handleAdminStarsGet(request, env, adminStarsGalleryMatch[1]);
+  if (adminStarsPhotoMatch   && method === 'PUT')  return handleAdminStarToggle(request, env, adminStarsPhotoMatch[1], adminStarsPhotoMatch[2]);
+  if (submitSelectionsMatch  && method === 'POST') return handleSubmitSelections(request, env, submitSelectionsMatch[1]);
 
   // ── CMS ───────────────────────────────────────────────────────────────────────
   if (method === 'GET'  && pathname === '/admin/cms/pages')   return handleAdminCmsPages(request, env);

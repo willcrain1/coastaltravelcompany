@@ -268,7 +268,7 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 22. Photo Favorites / Proofing in Client Gallery
+## 22. ✅ Photo Favorites / Proofing in Client Gallery
 
 **Goal:** Clients and admins each have independent star/heart capabilities.
 
