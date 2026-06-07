@@ -5,6 +5,8 @@
 - Static: `coastaltravelcompany.com` (CF Pages)
 - Data: `CTC_PROJECTS` (D1), `CTC_AUTH` (KV)
 - NAS: `nas.coastaltravelcompany.com` (CF Tunnel)
+- DNS/registrar: registered at name.com, DNS managed/proxied through Cloudflare
+- SEO: Google Search Console (https://search.google.com/search-console) verified for `coastaltravelcompany.com` via DNS TXT record on Cloudflare — used to monitor search queries, rankings, CTR, and indexing/crawl errors (item 32)
 
 ## Router (`worker/src/router.js`)
 - Auth: `/auth/*`
