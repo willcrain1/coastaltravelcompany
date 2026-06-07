@@ -118,6 +118,12 @@ test.describe('CMS content editor', () => {
     await context.unrouteAll({ behavior: 'ignoreErrors' });
   });
 
+  test('shows the logged-in admin email in the header', async ({ page, context }) => {
+    await cmsSetup(context);
+    await gotoEditor(page);
+    await expect(page.locator('#adminEmail')).toHaveText('admin@test.com');
+  });
+
   test('unauthenticated visit redirects to /login.html', async ({ page, context }) => {
     await mockWorker(context, {
       'GET /auth/me': (r) => r.fulfill({ status: 401, headers: CORS, body: '{}' }),

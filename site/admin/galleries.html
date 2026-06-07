@@ -32,31 +32,6 @@
 
 <main class="main">
 
-  <!-- Environment switcher -->
-  <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-    <span style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600;">Environment</span>
-    <div style="display:flex; border:1px solid var(--border,#ddd); border-radius:6px; overflow:hidden; font-family:'Montserrat',sans-serif;">
-      <button id="envBtnProd" onclick="setEnv('production')"
-        style="padding:5px 14px; font-size:10px; font-weight:600; letter-spacing:0.08em; border:none; cursor:pointer; transition:all 0.15s;">
-        Production
-      </button>
-      <button id="envBtnPreprod" onclick="setEnv('preprod')"
-        style="padding:5px 14px; font-size:10px; font-weight:600; letter-spacing:0.08em; border:none; cursor:pointer; transition:all 0.15s;">
-        Preprod
-      </button>
-    </div>
-    <span id="envBadge" style="display:none; padding:3px 10px; border-radius:4px; font-size:9px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; background:#f59e0b22; color:#b45309; font-family:'Montserrat',sans-serif;">PREPROD</span>
-  </div>
-  <div id="preprodUrlRow" style="display:none; margin-bottom:18px;">
-    <div class="card" style="padding:14px 18px;">
-      <label style="font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600; display:block; margin-bottom:6px;">Preprod Worker URL</label>
-      <input type="url" id="preprodWorkerUrl" placeholder="https://api.preprod.coastaltravelcompany.com"
-        style="width:100%; font-size:12px; padding:8px 10px; border:1px solid var(--border,#ddd); border-radius:4px; font-family:'Montserrat',sans-serif;"
-        oninput="localStorage.setItem('ctc_preprod_worker_url', this.value)" />
-      <p style="margin:6px 0 0; font-size:11px; color:var(--dim); font-family:'Montserrat',sans-serif;">Gallery links generated while Preprod is active will use this Worker URL instead of production.</p>
-    </div>
-  </div>
-
   <h2 class="sh">Create New Gallery</h2>
   <div class="card">
     <form id="createForm">
@@ -175,47 +150,6 @@
   let galleries        = [];
   let currentResultUrl = '';
 
-  // ── Environment switcher ────────────────────────────────────────────────────
-  const ENV_KEY        = 'ctc_env';
-  const PREPROD_URL_KEY = 'ctc_preprod_worker_url';
-
-  function getEnv() {
-    return localStorage.getItem(ENV_KEY) || 'production';
-  }
-
-  function getActiveProxyUrl() {
-    if (getEnv() === 'preprod') {
-      return localStorage.getItem(PREPROD_URL_KEY) || '';
-    }
-    return CTC_CONFIG.workerUrl;
-  }
-
-  function setEnv(env) {
-    localStorage.setItem(ENV_KEY, env);
-    updateEnvUI();
-  }
-
-  function updateEnvUI() {
-    const isPreprod = getEnv() === 'preprod';
-    const btnProd    = document.getElementById('envBtnProd');
-    const btnPreprod = document.getElementById('envBtnPreprod');
-    const badge      = document.getElementById('envBadge');
-    const urlRow     = document.getElementById('preprodUrlRow');
-    const urlInput   = document.getElementById('preprodWorkerUrl');
-
-    btnProd.style.background    = isPreprod ? '' : 'var(--green,#2A5C45)';
-    btnProd.style.color         = isPreprod ? '' : '#fff';
-    btnPreprod.style.background = isPreprod ? '#f59e0b' : '';
-    btnPreprod.style.color      = isPreprod ? '#fff' : '';
-
-    badge.style.display  = isPreprod ? 'inline-block' : 'none';
-    urlRow.style.display = isPreprod ? 'block' : 'none';
-
-    if (isPreprod) {
-      urlInput.value = localStorage.getItem(PREPROD_URL_KEY) || '';
-    }
-  }
-
   // ── URL helpers ──────────────────────────────────────────────────────────────
   function parseShareUrl(raw) {
     try {
@@ -299,15 +233,8 @@
     const created = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
     const { nasClientUrl } = getSettings();
 
-    const activeProxyUrl = getActiveProxyUrl();
-    if (getEnv() === 'preprod' && !activeProxyUrl) {
-      toast('Enter the Preprod Worker URL above before generating a preprod link', true);
-      btn.disabled = false; btn.textContent = 'Generate Gallery Link';
-      return;
-    }
-
     const gallery = {
-      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: activeProxyUrl,
+      id, nasUrl: parsed.nasUrl, nasClientUrl, proxyUrl: CTC_CONFIG.workerUrl,
       passphrase: parsed.passphrase, sharePassword, eventName,
       created, notes, watermark, assignedUsers: [],
     };
@@ -741,7 +668,6 @@
   async function init() {
     const authed = await authGate();
     if (!authed) return;
-    updateEnvUI();
     await loadGalleries();
     await loadWalkthroughs();
     loadR2Storage();
