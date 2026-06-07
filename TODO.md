@@ -349,20 +349,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 - [ ] Physical cards created
 - [ ] Digital cards created
 - [ ] QR codes on cards route through the site where traffic can be tracked via website analytics
-
----
-
-## 32. Website Analytics — Remaining Manual Setup
-
-**Goal:** Understand how people find the site, what actions they take, and where they drop off.
-
-First-party tracking, conversion events, scroll depth, and traffic-source/UTM
-capture now ship in code (see CHANGELOG "Website & Clickstream Analytics").
-What remains requires creating external accounts/dashboards by hand:
-
-- [ ] **Google Analytics 4 (GA4)** — create a GA4 property; add tracking snippet to `<head>` of every HTML page (optional, complements the first-party pipeline)
-- [ ] **Cloudflare Web Analytics** — enable in Cloudflare dashboard (privacy-friendly, no cookies)
-- [ ] **Google Search Console** — set up and link to GA4
 - [ ] Generate a QR code linking to `https://coastaltravelcompany.com/?utm_source=businesscard&utm_medium=qr&utm_campaign=networking` for printed materials
 
 ---
@@ -476,8 +462,9 @@ tracking now ship in code as a first-party pipeline (see CHANGELOG "Website &
 Clickstream Analytics") — no GA4/Clarity dependency required to use them. What
 remains is optional and requires creating external accounts by hand:
 
-- [ ] **Microsoft Clarity** (optional, for session-recording heatmaps) — create a project at clarity.microsoft.com; add its tracking snippet to `<head>`; allow 24–48 hours for recordings to populate
-- [ ] If GA4 is also adopted (item 32), mirror `section_dwell`/`scroll_depth`/conversion events into GA4 and build an Exploration report grouping `section_dwell` by `section_id`
+- [x] **Microsoft Clarity** (optional, for session-recording heatmaps) — create a project at clarity.microsoft.com; add its tracking snippet to `<head>`; allow 24–48 hours for recordings to populate
+- [x] Mirror `section_dwell`/`scroll_depth`/`conversion`/`click` events into GA4 (`site/js/analytics.js::mirrorToGA4`, no-op until `window.gtag` loads post-consent)
+- [ ] Build a GA4 Exploration report grouping `section_dwell` by `section_id` (manual setup in the GA4 UI)
 
 ---
 
