@@ -1034,6 +1034,7 @@ function renderPhotos(filtered) {
     const img = document.createElement('img');
     img.dataset.src = thumbUrl(mediaItem, 'm');
     img.alt = (video ? 'Video' : 'Photo') + ' ' + (gi + 1);
+    if (cfg.adminMode && mediaItem.filename) img.title = mediaItem.filename;
     img.style.aspectRatio = (w && h) ? (w + '/' + h) : '4/3';
 
     const hover = document.createElement('div');
