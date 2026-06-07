@@ -7,6 +7,7 @@
 - NAS: `nas.coastaltravelcompany.com` (CF Tunnel)
 - DNS/registrar: registered at name.com, DNS managed/proxied through Cloudflare
 - SEO: Google Search Console (https://search.google.com/search-console) verified for `coastaltravelcompany.com` via DNS TXT record on Cloudflare — used to monitor search queries, rankings, CTR, and indexing/crawl errors (item 32)
+- Analytics: Cloudflare Web Analytics enabled for `coastaltravelcompany.com` (Cloudflare dashboard → Analytics → Web analytics) — Core Web Vitals, visits, page views, no cookies; complements the first-party `/admin/analytics.html` pipeline (item 32/46)
 
 ## Router (`worker/src/router.js`)
 - Auth: `/auth/*`
