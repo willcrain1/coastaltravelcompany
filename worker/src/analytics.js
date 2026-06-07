@@ -88,7 +88,7 @@ export async function handleAdminAnalyticsSummary(request, env) {
   if (!Number.isFinite(days) || days <= 0 || days > 365) days = 30;
   const since = `-${days} days`;
 
-  const [pageviews, topPages, conversions, scrollDepth, sectionDwell, sources] = await Promise.all([
+  const [pageviews, topPages, conversions, scrollDepth, sectionDwell, sources, landingPages, timeOfDay, bounce] = await Promise.all([
     env.DB.prepare(
       `SELECT COUNT(*) AS total, COUNT(DISTINCT session_id) AS sessions
          FROM analytics_events
@@ -133,6 +133,38 @@ export async function handleAdminAnalyticsSummary(request, env) {
         WHERE event_type = 'pageview' AND created_at >= datetime('now', ?)
         GROUP BY source, medium, campaign ORDER BY count DESC LIMIT 20`
     ).bind(since).all(),
+
+    // Item 49A — landing pages: the first page viewed in each session ("entry page").
+    env.DB.prepare(
+      `SELECT page, COUNT(*) AS sessions FROM (
+         SELECT session_id, page, MIN(created_at) AS first_seen
+           FROM analytics_events
+          WHERE event_type = 'pageview' AND created_at >= datetime('now', ?)
+          GROUP BY session_id
+       )
+       GROUP BY page ORDER BY sessions DESC LIMIT 20`
+    ).bind(since).all(),
+
+    // Item 49A — time-of-day traffic pattern: pageviews bucketed by hour (UTC).
+    env.DB.prepare(
+      `SELECT CAST(strftime('%H', created_at) AS INTEGER) AS hour, COUNT(*) AS count
+         FROM analytics_events
+        WHERE event_type = 'pageview' AND created_at >= datetime('now', ?)
+        GROUP BY hour ORDER BY hour`
+    ).bind(since).all(),
+
+    // Item 49A — bounce rate: share of sessions that viewed exactly one page.
+    env.DB.prepare(
+      `SELECT
+         COUNT(*) AS sessions,
+         SUM(CASE WHEN cnt = 1 THEN 1 ELSE 0 END) AS single_page_sessions
+       FROM (
+         SELECT session_id, COUNT(*) AS cnt
+           FROM analytics_events
+          WHERE event_type = 'pageview' AND created_at >= datetime('now', ?)
+          GROUP BY session_id
+       )`
+    ).bind(since).first(),
   ]);
 
   return jsonResponse({
@@ -143,5 +175,12 @@ export async function handleAdminAnalyticsSummary(request, env) {
     scrollDepth: scrollDepth.results || [],
     sectionDwell: sectionDwell.results || [],
     sources: sources.results || [],
+    landingPages: landingPages.results || [],
+    timeOfDay: timeOfDay.results || [],
+    bounce: {
+      sessions: bounce?.sessions || 0,
+      singlePageSessions: bounce?.single_page_sessions || 0,
+      rate: bounce?.sessions ? Math.round(((bounce.single_page_sessions || 0) / bounce.sessions) * 100) : 0,
+    },
   });
 }
