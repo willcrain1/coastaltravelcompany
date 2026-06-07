@@ -180,7 +180,7 @@ export async function handleAdminAnalyticsSummary(request, env) {
     bounce: {
       sessions: bounce?.sessions || 0,
       singlePageSessions: bounce?.single_page_sessions || 0,
-      rate: bounce?.sessions ? Math.round((bounce.single_page_sessions / bounce.sessions) * 100) : 0,
+      rate: bounce?.sessions ? Math.round(((bounce.single_page_sessions || 0) / bounce.sessions) * 100) : 0,
     },
   });
 }
