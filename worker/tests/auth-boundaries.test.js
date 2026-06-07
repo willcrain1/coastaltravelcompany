@@ -228,6 +228,7 @@ const PUBLIC_ROUTES = [
     // Infrastructure public routes
     ['GET',  '/public/availability',         undefined,  'public availability'],
     ['GET',  '/public/walkthroughs',         undefined,  'public walkthroughs'],
+    ['GET',  '/gallery/g1/admin-stars',      undefined,  'admin-starred photo list (public so clients see Admin Pick badges)'],
     ['POST', '/contact',                     '{}',       'contact form (empty body → 400)'],
     ['POST', '/stripe/webhook',              '',         'stripe webhook (no sig → 400)'],
 ];
