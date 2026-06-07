@@ -74,6 +74,8 @@ import {
   handleAdminWalkthroughById,
 } from './walkthroughs.js';
 
+import { handleAnalyticsEvent, handleAdminAnalyticsSummary } from './analytics.js';
+
 import {
   handleAdminCmsPages,
   handleAdminCmsPage,
@@ -296,6 +298,10 @@ export async function handleRequest(request, env) {
   if (pathname === '/admin/walkthroughs') return handleAdminWalkthroughs(request, env);
   const walkthroughIdMatch = pathname.match(/^\/admin\/walkthroughs\/([^/]+)$/);
   if (walkthroughIdMatch) return handleAdminWalkthroughById(request, env, walkthroughIdMatch[1]);
+
+  // ── Analytics (items 32 & 46) ────────────────────────────────────────────────
+  if (method === 'POST' && pathname === '/analytics/event')          return handleAnalyticsEvent(request, env);
+  if (method === 'GET'  && pathname === '/admin/analytics/summary')  return handleAdminAnalyticsSummary(request, env);
 
   // ── Token exchange + contact form ────────────────────────────────────────────
   if (method === 'POST' && pathname === '/token')   return handleTokenExchange(request, env);

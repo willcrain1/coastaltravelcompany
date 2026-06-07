@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analytics — Coastal Travel Company Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="admin.css?v=2" />
+  <style>
+    .an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .an-stat { background: #fff; border: 1px solid #eee; border-radius: 6px; padding: 18px 20px; }
+    .an-stat .num { font-family: 'Gilda Display', serif; font-size: 30px; color: #2A5C45; }
+    .an-stat .lbl { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #888; margin-top: 4px; }
+    table.an-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.an-table th { text-align: left; padding: 8px 12px; background: #f4f1ec; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #666; }
+    table.an-table td { padding: 7px 12px; border-top: 1px solid #f0f0f0; }
+    .an-section { margin-bottom: 36px; }
+    .an-empty { color: #999; font-size: 13px; padding: 16px 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="/" class="logo-wrap">
+    <span class="logo-main">Coastal</span>
+    <span class="logo-script">Travel Company</span>
+  </a>
+  <div class="header-right">
+    <span class="admin-email" id="adminEmail"></span>
+    <nav class="admin-nav">
+      <a href="pipeline.html" class="admin-nav-link">Pipeline</a>
+      <a href="galleries.html" class="admin-nav-link">Galleries</a>
+      <a href="clients.html" class="admin-nav-link">Clients</a>
+      <a href="services.html" class="admin-nav-link">Services</a>
+      <a href="content-editor.html" class="admin-nav-link">Content</a>
+      <a href="analytics.html" class="admin-nav-link active">Analytics</a>
+      <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link">Customer Portal ↗</a>
+    </nav>
+    <button class="sign-out-btn" onclick="signOut()">Sign Out</button>
+  </div>
+</header>
+
+<main class="main">
+  <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px;">
+    <h2 class="sh" style="margin:0;">Website Analytics</h2>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="https://search.google.com/search-console" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Google Search Console ↗</a>
+      <a href="https://dash.cloudflare.com/?to=/:account/coastaltravelcompany.com/analytics/web" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Cloudflare Web Analytics ↗</a>
+      <a href="https://analytics.google.com/" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Google Analytics (GA4) ↗</a>
+      <a href="https://clarity.microsoft.com/" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Microsoft Clarity ↗</a>
+      <label style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#888; margin-right:8px;">Window</label>
+      <select id="an-days" onchange="loadSummary()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+    </div>
+  </div>
+
+  <p style="margin-bottom:24px; font-size:14px; line-height:1.7; color:#d8d8d8; max-width:none;">
+    <strong style="color:#ffffff;">Privacy-friendly first-party tracking</strong> — no IP addresses, user agents, or device fingerprints are ever stored.
+    Visitors who decline analytics consent in the cookie banner are never counted. For the full
+    <a href="https://analytics.google.com/" target="_blank" rel="noopener" style="color:#7ec8a8; font-weight:600; text-decoration:underline;">GA4</a> /
+    <a href="https://clarity.microsoft.com/" target="_blank" rel="noopener" style="color:#7ec8a8; font-weight:600; text-decoration:underline;">Microsoft Clarity</a>
+    rollout, account setup is a manual, non-code step.
+    For search-query and ranking data, see <a href="https://search.google.com/search-console" target="_blank" rel="noopener" style="color:#7ec8a8; font-weight:600; text-decoration:underline;">Google Search Console</a>;
+    for Core Web Vitals and an independent cookie-free pageview cross-check, see <a href="https://dash.cloudflare.com/?to=/:account/coastaltravelcompany.com/analytics/web" target="_blank" rel="noopener" style="color:#7ec8a8; font-weight:600; text-decoration:underline;">Cloudflare Web Analytics</a>.
+  </p>
+
+  <div class="an-grid" id="an-stats"></div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Top Pages</h3>
+    <div id="an-pages"></div>
+  </div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Conversion Events</h3>
+    <p class="hint">Counts of <code>contact_click</code>, <code>form_submit</code>, <code>booking_click</code>, <code>social_click</code>, and other tagged actions.</p>
+    <div id="an-conversions"></div>
+  </div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Traffic Sources (UTM)</h3>
+    <div id="an-sources"></div>
+  </div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Section Dwell Time</h3>
+    <p class="hint">Average time a <code>data-track-section</code> element stayed in view, across all sessions.</p>
+    <div id="an-dwell"></div>
+  </div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Scroll Depth</h3>
+    <p class="hint">How many sessions reached each scroll milestone, per page.</p>
+    <div id="an-scroll"></div>
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script src="../config.js"></script>
+<script src="admin-shared.js"></script>
+<script>
+  function table(rows, cols) {
+    if (!rows || !rows.length) return '<p class="an-empty">No data yet for this window.</p>';
+    const head = cols.map(c => `<th>${esc(c.label)}</th>`).join('');
+    const body = rows.map(r => '<tr>' + cols.map(c => `<td>${esc(c.fmt ? c.fmt(r[c.key]) : (r[c.key] ?? '—'))}</td>`).join('') + '</tr>').join('');
+    return `<table class="an-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+
+  function ms(v) {
+    if (v == null) return '—';
+    const s = Math.round(v / 1000);
+    if (s < 60) return s + 's';
+    return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+  }
+
+  async function loadSummary() {
+    const days = document.getElementById('an-days').value;
+    const { ok, data } = await apiFetch('/admin/analytics/summary?days=' + days, { method: 'GET' });
+    if (!ok) { toast(data?.error || 'Failed to load analytics', true); return; }
+
+    document.getElementById('an-stats').innerHTML = `
+      <div class="an-stat"><div class="num">${data.pageviews.total.toLocaleString()}</div><div class="lbl">Pageviews</div></div>
+      <div class="an-stat"><div class="num">${data.pageviews.sessions.toLocaleString()}</div><div class="lbl">Unique Sessions</div></div>
+      <div class="an-stat"><div class="num">${data.conversions.reduce((a,c)=>a+c.count,0).toLocaleString()}</div><div class="lbl">Conversion Events</div></div>
+    `;
+
+    document.getElementById('an-pages').innerHTML = table(data.topPages, [
+      { key: 'page', label: 'Page' },
+      { key: 'views', label: 'Views' },
+      { key: 'sessions', label: 'Sessions' },
+    ]);
+
+    document.getElementById('an-conversions').innerHTML = table(data.conversions, [
+      { key: 'label', label: 'Event' },
+      { key: 'count', label: 'Count' },
+    ]);
+
+    document.getElementById('an-sources').innerHTML = table(data.sources, [
+      { key: 'source', label: 'Source' },
+      { key: 'medium', label: 'Medium' },
+      { key: 'campaign', label: 'Campaign' },
+      { key: 'count', label: 'Visits' },
+      { key: 'sessions', label: 'Sessions' },
+    ]);
+
+    document.getElementById('an-dwell').innerHTML = table(data.sectionDwell, [
+      { key: 'page', label: 'Page' },
+      { key: 'section_id', label: 'Section' },
+      { key: 'avg_dwell_ms', label: 'Avg. Dwell', fmt: ms },
+      { key: 'samples', label: 'Samples' },
+    ]);
+
+    document.getElementById('an-scroll').innerHTML = table(data.scrollDepth, [
+      { key: 'page', label: 'Page' },
+      { key: 'depth_pct', label: 'Depth', fmt: v => v + '%' },
+      { key: 'count', label: 'Sessions Reached' },
+    ]);
+  }
+
+  async function init() {
+    const authed = await authGate();
+    if (!authed) return;
+    await loadSummary();
+  }
+
+  init();
+</script>
+</body>
+</html>

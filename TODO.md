@@ -201,38 +201,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## ~~18. Admin Content Editor (CMS)~~ ✅ Done
-
-**Goal:** Allow the admin to update text and photos on every public page from the browser — no HTML editing or git required.
-
-### Architecture
-- Extend `gallery-admin.html` or create `admin/content-editor.html` (admin-auth gated)
-- Mark editable zones in HTML using `data-content-id` attributes
-- Worker reads/writes file content via GitHub Contents API; commits changes server-side using `GITHUB_TOKEN` Worker secret
-- "Deploying — live in ~2 minutes" status badge after successful commit
-
-### Editable content zones
-- `index.html`: hero headline, subheadline, CTA label, about-preview paragraph, collection cards, testimonial quotes
-- `about.html`: bio paragraphs, brand photo, pull-quote overlays
-- `services.html`: per-collection name, description, inclusions, price range, hero photo
-- `collections.html`: portfolio photos — add, remove, reorder; per-photo caption
-- `contact.html`: intro paragraph, contact details
-- `testimonials.html`: add/edit/remove testimonials
-- `faq.html`: add/edit/remove FAQ entries; drag-to-reorder
-
-### Photo management
-- Upload: admin drags image → Worker uploads to R2 → returns CDN URL
-- Pick from NAS: admin opens picker → Worker fetches full-res from NAS and copies to R2
-- Reorder: drag-and-drop handles on photo grids
-
-### Editor UI
-- Per-page editor with labeled content zone fields; single-line or minimal rich-text inputs
-- Live preview in an `<iframe>` using current unsaved edits
-- **Save & Publish** commits all changed zones in one GitHub API call
-- **Change history**: list of recent commits with a "Revert" action
-
----
-
 ## 19. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients.
@@ -254,36 +222,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 - [ ] Build or use a lightweight CSS-only or JS drag slider (range input over two stacked images)
 - [ ] Add a "The Edit" section to `services.html` or standalone `/editing.html`
 - [ ] Optionally embed one slider on the homepage
-
----
-
-## 21. FAQ Page
-
-**Goal:** Answer common pre-booking questions so clients arrive at the inquiry form already informed.
-
-- [ ] Build `faq.html` with an accordion layout
-- [ ] Cover: pricing, inclusions, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
-- [ ] Add "FAQ" to footer nav
-- [ ] Link from contact page and collections page
-
----
-
-## 22. ✅ Photo Favorites / Proofing in Client Gallery
-
-**Goal:** Clients and admins each have independent star/heart capabilities.
-
-**Client favorites**
-- [ ] Add a heart button to each photo card in `client-gallery.html`
-- [ ] Store client favorites in `localStorage` keyed by gallery ID
-- [ ] Add a "My Selections" filtered grid view with count in nav
-- [ ] Add a "Submit Selections" action — compiles filenames and POSTs to a Worker endpoint that emails the list to the admin
-
-**Admin favorites (separate track)**
-- [ ] Add an admin preview mode to `client-gallery.html` (secret URL param or admin portal)
-- [ ] In admin mode, show a separate star icon (different color/shape) on each photo
-- [ ] Store admin stars in Cloudflare KV keyed by gallery ID and photo ID
-- [ ] Display admin stars as a read-only "Admin pick" badge overlay for clients
-- [ ] In `gallery-admin.html`, show admin-starred photos per gallery with a "View Admin Picks" filtered view
 
 ---
 
@@ -414,29 +352,18 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 32. Website Analytics
+## 32. Website Analytics — Remaining Manual Setup
 
 **Goal:** Understand how people find the site, what actions they take, and where they drop off.
 
-### Analytics Platform
-- [ ] **Google Analytics 4 (GA4)** — create a GA4 property; add tracking snippet to `<head>` of every HTML page
+First-party tracking, conversion events, scroll depth, and traffic-source/UTM
+capture now ship in code (see CHANGELOG "Website & Clickstream Analytics").
+What remains requires creating external accounts/dashboards by hand:
+
+- [ ] **Google Analytics 4 (GA4)** — create a GA4 property; add tracking snippet to `<head>` of every HTML page (optional, complements the first-party pipeline)
 - [ ] **Cloudflare Web Analytics** — enable in Cloudflare dashboard (privacy-friendly, no cookies)
-
-### Core Tracking Requirements
-- [ ] Pageview tracking with URL, title, and referrer
-- [ ] Traffic source tracking (organic, direct, social, referral, UTM)
-- [ ] Conversion events: `contact_click`, `form_submit`, `booking_click`, `social_click`, `qr_scan_landing`
-- [ ] Engagement: time on page, scroll depth (25/50/75/100%), bounce rate
-
-### UTM Campaign Tracking
-- [ ] QR code links to `https://coastaltravelcompany.com/?utm_source=businesscard&utm_medium=qr&utm_campaign=networking`
-
-### Search Console Integration
-- [ ] Set up Google Search Console and link to GA4
-
-### Privacy & Compliance
-- [ ] Add Privacy Policy page disclosing use of Google Analytics
-- [ ] Consider a cookie consent banner (CookieYes free tier) for EU visitors
+- [ ] **Google Search Console** — set up and link to GA4
+- [ ] Generate a QR code linking to `https://coastaltravelcompany.com/?utm_source=businesscard&utm_medium=qr&utm_campaign=networking` for printed materials
 
 ---
 
@@ -481,27 +408,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 - [ ] Complete item 39 (privacy policy) before any real estate pages go live
 - [ ] `property_events` must never store IP addresses, user agents, or device fingerprints
 - [ ] "Do Not Sell or Share My Personal Information" link in every property page footer
-
----
-
-## 39. Create Privacy Policy
-
-**Goal:** Publish an accurate, readable privacy policy satisfying CCPA minimum requirements.
-
-### Content — sections to include
-
-- [ ] **What we collect and why** — contact form, user accounts, gallery sessions, booking/invoicing, real estate analytics, real estate lead capture
-- [ ] **Third-party services** — Cloudflare, Resend, Google (OAuth), Stripe, Synology NAS
-- [ ] **Cookies and local storage** — no cookies set; `sessionStorage` for gallery tokens and analytics session IDs; `localStorage` in admin panel
-- [ ] **Your rights (CCPA)** — right to know, right to delete, right to opt-out; include `id="do-not-sell"` anchor
-- [ ] **How to contact us** — email for privacy requests; 30-day target response time
-- [ ] **Effective date and version**
-
-### Implementation
-
-- [ ] Create `site/privacy.html` — shared nav, `styles.css`, and footer pattern from `about.html`
-- [ ] Add privacy link to footer of: `index.html`, `about.html`, `services.html`, `collections.html`, `contact.html`, `login.html`, `portal.html`
-- [ ] Have the policy reviewed by a human before publishing — tag PR with `needs-legal-review`
 
 ---
 
@@ -561,48 +467,17 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 46. Advanced Clickstream Analytics & User Behavior Tracking
+## 46. Advanced Clickstream Analytics — Remaining Manual Setup
 
 **Goal:** Understand what visitors are looking at on each page, how long they spend in specific sections, where attention drops off, and what content drives inquiry.
 
-### Approach: Microsoft Clarity (free, no-code starting point)
+Section-dwell instrumentation, scroll-depth milestones, and click-path/conversion
+tracking now ship in code as a first-party pipeline (see CHANGELOG "Website &
+Clickstream Analytics") — no GA4/Clarity dependency required to use them. What
+remains is optional and requires creating external accounts by hand:
 
-- [ ] Create a Clarity project at clarity.microsoft.com
-- [ ] Add the Clarity tracking snippet to the `<head>` of all public HTML pages
-- [ ] Link the Clarity project to the existing GA4 property for combined reporting
-- [ ] Verify session recording is capturing in the Clarity dashboard (allow 24–48 hours)
-
-### Custom section-timing instrumentation
-
-- [ ] Add `data-track-section` attributes to key sections on each page
-- [ ] Implement `IntersectionObserver`-based tracker in `main.js` that fires `section_dwell` GA4 events with `section_id` and `dwell_seconds`
-- [ ] Verify events appear in GA4 DebugView (`?debug_mode=1`)
-- [ ] Build a GA4 Exploration report grouping `section_dwell` events by `section_id`
-
-### Scroll-depth milestones (25 / 50 / 75 / 100%)
-
-- [ ] Implement scroll-percentage listener firing `scroll_depth` events at 25/50/75/100% of each page, once per session
-- [ ] Compare scroll depth across pages to identify where visitors disengage
-
-### Click-path analysis
-
-- [ ] Ensure all internal nav clicks and CTA buttons fire named GA4 events
-- [ ] Track which portfolio images are clicked (pass image title as event parameter)
-- [ ] Track which collection cards are expanded or linked out from
-
-### Acceptance criteria
-
-- [ ] Clarity snippet live on all public pages; session recordings and heatmaps populating after 48 hours
-- [ ] `section_dwell` custom event firing and visible in GA4 DebugView for each tracked section
-- [ ] Scroll-depth events firing at 25/50/75/100% per page
-- [ ] GA4 Exploration report saved showing avg dwell time by section across the last 30 days
-- [ ] No PII captured in event parameters
-
----
-
-## 47. Allow Users to Create Project
-
-**Goal:** Right now the only way a project can be created is by an admin. Make a change so a user without a project can navigate to 'My Project' and create a new project to start the initial inquiry — self-service.
+- [ ] **Microsoft Clarity** (optional, for session-recording heatmaps) — create a project at clarity.microsoft.com; add its tracking snippet to `<head>`; allow 24–48 hours for recordings to populate
+- [ ] If GA4 is also adopted (item 32), mirror `section_dwell`/`scroll_depth`/conversion events into GA4 and build an Exploration report grouping `section_dwell` by `section_id`
 
 ---
 

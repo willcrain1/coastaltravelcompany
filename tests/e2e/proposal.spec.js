@@ -109,6 +109,15 @@ test.describe('Proposal Page', () => {
     const calls = { views: 0, analytics: 0, selection: null };
     await useMockProposalWorker(context, calls);
 
+    // Pre-seed analytics consent so the cookie-consent banner (site/js/cookie-consent.js)
+    // doesn't render and overlap/intercept clicks on page controls like #approveBtn —
+    // this page's own approval flow isn't what we're testing here.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('ctc_cookie_consent', JSON.stringify({
+        essential: true, analytics: true, marketing: true, ts: new Date().toISOString(),
+      }));
+    });
+
     await page.goto(`${STATIC_BASE}/proposal.html#prop1`);
 
     await expect(page.locator('h1')).toContainText('Grand Palms Resort');
