@@ -506,3 +506,39 @@ remains is optional and requires creating external accounts by hand:
 
 ---
 
+## 49. Expand Admin Analytics Page — Additional Metrics & Integrations
+
+**Goal:** Build out the admin Analytics page (`site/admin/analytics.html`) beyond the current pageviews/conversions/sources/dwell/scroll-depth panels, adding more first-party breakdowns, business/CRM-linked metrics, and links to additional third-party dashboards — all consent-gated and privacy-preserving like the existing pipeline.
+
+### A. Extend the first-party pipeline (builds on existing D1 schema + `/admin/analytics/summary`)
+
+- [ ] **Referrer / landing-page breakdown** — surface which external sites or campaigns brought visitors in, and which page they landed on first; extend `worker/src/analytics.js` summary query and add an `an-landing` panel
+- [ ] **Device / browser / viewport breakdown** — coarse buckets only (e.g. "mobile/tablet/desktop", browser family, viewport width ranges) — no fingerprinting; capture at event-ingest time in `site/js/analytics.js` and add a summary aggregation + panel
+- [ ] **Funnel / path analysis** — common navigation sequences (e.g. home → services → contact); requires sequencing pageview events by `session_id` and `created_at` in a new query
+- [ ] **Bounce / exit rate per page** — single-pageview sessions vs. multi-pageview sessions, and last-page-of-session counts
+- [ ] **Geographic breakdown (country/region)** — pull from Cloudflare's `cf-ipcountry`/`cf.country` request properties at ingest time rather than storing raw IPs; aggregate and display as a table or simple map
+- [ ] **New vs. returning visitor counts** — based on whether a `session_id` (or longer-lived anonymous identifier) has been seen before; needs a privacy-conscious design decision on how "returning" is determined without persistent cross-session identifiers
+- [ ] **Time-of-day / day-of-week traffic patterns** — bucket `created_at` timestamps and render as a heatmap or grouped bar chart
+- [ ] **404 / error-page hit tracking** — log when visitors land on broken/missing pages so dead links can be found and fixed
+
+### B. Business/CRM-linked metrics (pull from existing D1 tables, not visitor tracking)
+
+- [ ] **Lead-to-booking conversion rate** — join `contact_click`/`form_submit` analytics events against `projects`/`proposals` creation timestamps to estimate inquiry → booking conversion
+- [ ] **Gallery engagement stats** — views, favorites, and downloads per client gallery, sourced from existing gallery session/favorites tables
+- [ ] **Email engagement** — open/click rates, if/when Resend's API exposes that data for transactional sends
+- [ ] **Proposal/contract funnel** — sent → viewed → signed conversion rates, sourced from `proposals`, `contracts`, and `contract_signing_events` tables
+
+### C. Additional third-party dashboard links (same pattern as existing GA4/Clarity/Search Console/Cloudflare links)
+
+- [ ] **Stripe dashboard link** — for payment and revenue analytics
+- [ ] **Resend dashboard link** — for email deliverability stats
+- [ ] Consider surfacing a Core Web Vitals trend inline (data already available via Cloudflare/GA4 — mainly a UI/aggregation decision, not a new data source)
+
+### Notes
+
+- All new first-party metrics must remain anonymous/aggregate and respect the existing cookie-consent gate — no IP storage, no fingerprinting, no PII
+- Prioritize section A items that reuse the existing `analytics_events` table/shape (referrer, device, time-of-day, 404s) before tackling items that need schema changes (funnel/path analysis, new-vs-returning)
+- Section B items depend on joining analytics data with operational tables — confirm timestamp formats and indexing are compatible before writing cross-table queries
+
+---
+
