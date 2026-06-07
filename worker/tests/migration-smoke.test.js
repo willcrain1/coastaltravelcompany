@@ -51,9 +51,9 @@ describe('D1 migration smoke tests', () => {
     }
   });
 
-  it('covers all 17 migration files', () => {
+  it('covers all 18 migration files', () => {
     const files = applyAll(new Database(':memory:'));
-    expect(files).toHaveLength(17);
+    expect(files).toHaveLength(18);
   });
 
   it('migrations are idempotent — re-running does not throw', () => {

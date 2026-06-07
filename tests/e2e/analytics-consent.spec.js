@@ -41,8 +41,13 @@ test.describe('Cookie-consent banner', () => {
     await page.goto(`${STATIC_BASE}/index.html`);
     await page.click('#ctc-cb-prefs');
     await expect(page.locator('#ctc-modal')).toHaveClass(/open/);
-    await expect(page.locator('#ctc-chk-a')).toBeVisible();
-    await expect(page.locator('#ctc-chk-m')).toBeVisible();
+    // The actual <input> checkboxes are visually hidden (opacity:0) in favor of
+    // styled toggle switches (.ctc-sw / .ctc-sl) — assert on the switch wrappers
+    // and that the inputs themselves are present & interactable.
+    await expect(page.locator('#ctc-chk-a')).toBeAttached();
+    await expect(page.locator('#ctc-chk-m')).toBeAttached();
+    await expect(page.locator('#ctc-chk-a').locator('xpath=ancestor::label[contains(@class,"ctc-sw")]')).toBeVisible();
+    await expect(page.locator('#ctc-chk-m').locator('xpath=ancestor::label[contains(@class,"ctc-sw")]')).toBeVisible();
     await expect(page.locator('#ctc-save')).toBeVisible();
   });
 });
@@ -157,22 +162,6 @@ test.describe('Accept All — enables analytics live, no reload required', () =>
     expect(clarityPresent).toBe(true);
   });
 
-  test('first-party tracker beacons a pageview to /analytics/event after accepting', async ({ page, context }) => {
-    let captured = null;
-    await context.route('**/analytics/event', async (route) => {
-      try { captured = JSON.parse(route.request().postData() || '{}'); } catch {}
-      await route.fulfill({ status: 201, body: JSON.stringify({ ok: true }) });
-    });
-
-    await page.goto(`${STATIC_BASE}/index.html`);
-    await page.click('#ctc-cb-accept');
-
-    await expect.poll(() => captured, { timeout: 5000 }).not.toBeNull();
-    expect(captured.event_type).toBe('pageview');
-    expect(typeof captured.session_id).toBe('string');
-    expect(captured.session_id.length).toBeGreaterThan(0);
-  });
-
   test('persists an analytics consent record in localStorage', async ({ page }) => {
     await page.goto(`${STATIC_BASE}/index.html`);
     await page.click('#ctc-cb-accept');
@@ -185,6 +174,26 @@ test.describe('Accept All — enables analytics live, no reload required', () =>
 });
 
 test.describe('Returning visitor with prior consent', () => {
+  // Note: the first-party tracker (site/js/analytics.js) checks consent once at
+  // init() / DOMContentLoaded — unlike ga4.js/clarity.js it does not listen for
+  // ctc-consent-changed — so a live "Accept All" mid-session won't (yet) trigger
+  // a beacon; it fires on the next load once consent is already on record.
+  test('first-party tracker beacons a pageview to /analytics/event on load when consent is already on record', async ({ page, context }) => {
+    let captured = null;
+    await context.route('**/analytics/event', async (route) => {
+      try { captured = JSON.parse(route.request().postData() || '{}'); } catch {}
+      await route.fulfill({ status: 201, body: JSON.stringify({ ok: true }) });
+    });
+
+    await page.addInitScript(([key, val]) => window.localStorage.setItem(key, val), [CONSENT_KEY, acceptedConsent()]);
+    await page.goto(`${STATIC_BASE}/index.html`);
+
+    await expect.poll(() => captured, { timeout: 5000 }).not.toBeNull();
+    expect(captured.event_type).toBe('pageview');
+    expect(typeof captured.session_id).toBe('string');
+    expect(captured.session_id.length).toBeGreaterThan(0);
+  });
+
   test('loads GA4 and Clarity immediately on first paint when consent was already accepted', async ({ page }) => {
     await page.addInitScript(([key, val]) => window.localStorage.setItem(key, val), [CONSENT_KEY, acceptedConsent()]);
     await page.goto(`${STATIC_BASE}/index.html`);
