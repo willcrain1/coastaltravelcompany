@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Pinyon+Script&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="admin.css" />
+  <link rel="stylesheet" href="admin.css?v=2" />
   <script src="../config.js"></script>
   <style>
     .cms-layout {
@@ -315,7 +315,7 @@
         <a href="clients.html" class="admin-nav-link">Clients</a>
         <a href="services.html" class="admin-nav-link">Services</a>
         <a href="content-editor.html" class="admin-nav-link active">Content</a>
-        <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link" style="color:var(--teal);">Customer Portal ↗</a>
+        <a href="../portal.html?preview=1" target="_blank" class="admin-nav-link">Customer Portal ↗</a>
       </nav>
       <button class="sign-out-btn" id="btn-logout">Sign Out</button>
     </div>
@@ -396,6 +396,7 @@
         if (!res.ok) { location.href = '../login.html'; return false; }
         const user = await res.json();
         if (user.role !== 'admin') { location.href = '../portal.html'; return false; }
+        document.getElementById('adminEmail').textContent = user.email;
         return true;
       } catch {
         location.href = '../login.html';
