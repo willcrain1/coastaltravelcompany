@@ -512,13 +512,13 @@ remains is optional and requires creating external accounts by hand:
 
 ### A. Extend the first-party pipeline (builds on existing D1 schema + `/admin/analytics/summary`)
 
-- [ ] **Referrer / landing-page breakdown** — surface which external sites or campaigns brought visitors in, and which page they landed on first; extend `worker/src/analytics.js` summary query and add an `an-landing` panel
+- [x] **Referrer / landing-page breakdown** — surface which page visitors landed on first per session; added `landingPages` query/panel to `worker/src/analytics.js` and `site/admin/analytics.html` (referrer/UTM breakdown already shipped as "Traffic Sources")
 - [ ] **Device / browser / viewport breakdown** — coarse buckets only (e.g. "mobile/tablet/desktop", browser family, viewport width ranges) — no fingerprinting; capture at event-ingest time in `site/js/analytics.js` and add a summary aggregation + panel
 - [ ] **Funnel / path analysis** — common navigation sequences (e.g. home → services → contact); requires sequencing pageview events by `session_id` and `created_at` in a new query
-- [ ] **Bounce / exit rate per page** — single-pageview sessions vs. multi-pageview sessions, and last-page-of-session counts
+- [x] **Bounce rate** — single- vs. multi-pageview session ratio, surfaced as a stat panel (`an-bounce`) in `worker/src/analytics.js`/`site/admin/analytics.html`; per-page exit-rate breakdown still open
 - [ ] **Geographic breakdown (country/region)** — pull from Cloudflare's `cf-ipcountry`/`cf.country` request properties at ingest time rather than storing raw IPs; aggregate and display as a table or simple map
 - [ ] **New vs. returning visitor counts** — based on whether a `session_id` (or longer-lived anonymous identifier) has been seen before; needs a privacy-conscious design decision on how "returning" is determined without persistent cross-session identifiers
-- [ ] **Time-of-day / day-of-week traffic patterns** — bucket `created_at` timestamps and render as a heatmap or grouped bar chart
+- [x] **Time-of-day traffic pattern** — pageviews bucketed by hour (UTC), added `timeOfDay` query/panel (`an-tod`); day-of-week breakdown still open
 - [ ] **404 / error-page hit tracking** — log when visitors land on broken/missing pages so dead links can be found and fixed
 
 ### B. Business/CRM-linked metrics (pull from existing D1 tables, not visitor tracking)
@@ -530,8 +530,8 @@ remains is optional and requires creating external accounts by hand:
 
 ### C. Additional third-party dashboard links (same pattern as existing GA4/Clarity/Search Console/Cloudflare links)
 
-- [ ] **Stripe dashboard link** — for payment and revenue analytics
-- [ ] **Resend dashboard link** — for email deliverability stats
+- [x] **Stripe dashboard link** — added to `site/admin/analytics.html` header links
+- [x] **Resend dashboard link** — added to `site/admin/analytics.html` header links
 - [ ] Consider surfacing a Core Web Vitals trend inline (data already available via Cloudflare/GA4 — mainly a UI/aggregation decision, not a new data source)
 
 ### Notes

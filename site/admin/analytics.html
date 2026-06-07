@@ -51,6 +51,8 @@
       <a href="https://dash.cloudflare.com/?to=/:account/coastaltravelcompany.com/analytics/web/overview" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Cloudflare Web Analytics ↗</a>
       <a href="https://analytics.google.com/" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Google Analytics (GA4) ↗</a>
       <a href="https://clarity.microsoft.com/" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Microsoft Clarity ↗</a>
+      <a href="https://dashboard.stripe.com/" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Stripe ↗</a>
+      <a href="https://resend.com/emails" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Resend ↗</a>
       <label style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#888; margin-right:8px;">Window</label>
       <select id="an-days" onchange="loadSummary()">
         <option value="7">Last 7 days</option>
@@ -86,6 +88,23 @@
   <div class="an-section">
     <h3 class="sh" style="font-size:16px;">Traffic Sources (UTM)</h3>
     <div id="an-sources"></div>
+  </div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Landing Pages</h3>
+    <p class="hint">The first page seen in each session — where visitors enter the site.</p>
+    <div id="an-landing"></div>
+  </div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Bounce Rate</h3>
+    <p class="hint">Share of sessions that viewed only a single page before leaving.</p>
+    <div id="an-bounce"></div>
+  </div>
+
+  <div class="an-section">
+    <h3 class="sh" style="font-size:16px;">Traffic by Hour of Day (UTC)</h3>
+    <div id="an-tod"></div>
   </div>
 
   <div class="an-section">
@@ -148,6 +167,21 @@
       { key: 'campaign', label: 'Campaign' },
       { key: 'count', label: 'Visits' },
       { key: 'sessions', label: 'Sessions' },
+    ]);
+
+    document.getElementById('an-landing').innerHTML = table(data.landingPages, [
+      { key: 'page', label: 'Landing Page' },
+      { key: 'sessions', label: 'Sessions' },
+    ]);
+
+    const b = data.bounce || { sessions: 0, singlePageSessions: 0, rate: 0 };
+    document.getElementById('an-bounce').innerHTML = b.sessions
+      ? `<div class="an-stat" style="max-width:260px;"><div class="num">${b.rate}%</div><div class="lbl">${b.singlePageSessions.toLocaleString()} of ${b.sessions.toLocaleString()} sessions viewed only one page</div></div>`
+      : '<p class="an-empty">No data yet for this window.</p>';
+
+    document.getElementById('an-tod').innerHTML = table(data.timeOfDay, [
+      { key: 'hour', label: 'Hour (UTC)', fmt: v => String(v).padStart(2, '0') + ':00' },
+      { key: 'count', label: 'Pageviews' },
     ]);
 
     document.getElementById('an-dwell').innerHTML = table(data.sectionDwell, [
