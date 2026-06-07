@@ -5,6 +5,7 @@
 - Static: `coastaltravelcompany.com` (CF Pages)
 - Data: `CTC_PROJECTS` (D1), `CTC_AUTH` (KV)
 - NAS: `nas.coastaltravelcompany.com` (CF Tunnel)
+- Analytics: Cloudflare Web Analytics enabled for `coastaltravelcompany.com` (Cloudflare dashboard → Analytics → Web analytics) — Core Web Vitals, visits, page views, no cookies; complements the first-party `/admin/analytics.html` pipeline (item 32/46)
 
 ## Router (`worker/src/router.js`)
 - Auth: `/auth/*`
