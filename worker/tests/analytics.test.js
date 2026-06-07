@@ -132,6 +132,11 @@ describe('handleAdminAnalyticsSummary', () => {
     expect(Array.isArray(json.scrollDepth)).toBe(true);
     expect(Array.isArray(json.sectionDwell)).toBe(true);
     expect(Array.isArray(json.sources)).toBe(true);
+    expect(Array.isArray(json.landingPages)).toBe(true);
+    expect(Array.isArray(json.timeOfDay)).toBe(true);
+    // Shared mock returns the same `firstRow` for every `.first()` call (pageviews and bounce),
+    // so `bounce.sessions` reflects `firstRow.sessions` while `single_page_sessions` is absent.
+    expect(json.bounce).toEqual({ sessions: 4, singlePageSessions: 0, rate: 0 });
   });
 
   it('clamps an out-of-range "days" query param back to the 30-day default', async () => {
