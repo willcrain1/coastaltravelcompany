@@ -341,3 +341,73 @@ test.describe('Masquerade: banner persists across tab navigation', () => {
     await expect(page.locator('text=Exit Masquerade')).toBeVisible();
   });
 });
+
+// ── XSS escaping in masquerade banner (regression for PR #364) ───────────────
+//
+// The "Admin View — Viewing portal as <name>" banner interpolates the client's
+// name/email into innerHTML. `name` is user-supplied at registration and only
+// trimmed server-side — never HTML-sanitized — so a malicious client could set
+// their display name to an HTML/script payload. If the banner doesn't escape
+// it, that payload would execute in the *admin's* authenticated browser the
+// moment they masquerade as that client (stored XSS / privilege escalation).
+//
+// These tests assert the payload is rendered as literal escaped text (and
+// therefore never executes) on all three pages that show the banner.
+
+const XSS_NAME = '<img src=x onerror="window.__xss = true">';
+const XSS_USER = { id: 'usr-evil', email: 'evil@test.com', role: 'client', name: XSS_NAME, hasPassword: true };
+
+async function expectBannerEscaped(page) {
+  const banner = page.locator('text=Admin View');
+  await expect(banner).toBeVisible({ timeout: 10_000 });
+
+  // The raw payload must be present as literal text (HTML-escaped), not parsed as markup.
+  await expect(page.locator('strong', { hasText: XSS_NAME })).toBeVisible();
+
+  // No <img> element should have been created from the payload, and the
+  // onerror handler must never have fired.
+  await expect(page.locator(`strong img[src="x"]`)).toHaveCount(0);
+  const fired = await page.evaluate(() => window.__xss === true);
+  expect(fired).toBe(false);
+}
+
+test.describe('Masquerade banner escapes malicious client name (XSS regression)', () => {
+  test.afterEach(async ({ context }) => {
+    await context.unrouteAll({ behavior: 'ignoreErrors' });
+  });
+
+  test('portal.html escapes HTML in masquerade banner name', async ({ page, context }) => {
+    await setMasquerade(page, XSS_USER);
+    await mockWorker(context, {
+      'GET /auth/me':          (route) => json(route, XSS_USER),
+      'GET /portal/galleries': (route) => json(route, []),
+      'GET /portal/contracts': (route) => json(route, []),
+      'GET /portal/invoices':  (route) => json(route, []),
+    });
+
+    await page.goto(`${STATIC_BASE}/portal.html`);
+    await expectBannerEscaped(page);
+  });
+
+  test('portal-project.html escapes HTML in masquerade banner name', async ({ page, context }) => {
+    const PROJ_TOKEN = 'masq-xss-proj-token';
+    await setMasquerade(page, XSS_USER);
+    await mockWorker(context, {
+      'GET /auth/me':                        (route) => json(route, XSS_USER),
+      [`GET /portal/project/${PROJ_TOKEN}`]: (route) => json(route, makePortalData()),
+    });
+
+    await page.goto(`${STATIC_BASE}/portal-project.html#${PROJ_TOKEN}`);
+    await expectBannerEscaped(page);
+  });
+
+  test('profile.html escapes HTML in masquerade banner name', async ({ page, context }) => {
+    await setMasquerade(page, XSS_USER);
+    await mockWorker(context, {
+      'GET /auth/me': (route) => json(route, XSS_USER),
+    });
+
+    await page.goto(`${STATIC_BASE}/profile.html`);
+    await expectBannerEscaped(page);
+  });
+});
