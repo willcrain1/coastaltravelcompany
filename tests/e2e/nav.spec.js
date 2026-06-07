@@ -152,4 +152,83 @@ test.describe('Admin nav', () => {
     const normalized = texts.map(t => t.replace(/\s*↗\s*$/, '').trim());
     expect(normalized).toEqual(ADMIN_NAV);
   });
+
+  // Pages keyed by both their on-disk filename (used for the href match) and
+  // the visible label (used to find the link by text).
+  const ADMIN_PAGES = [
+    { file: 'pipeline.html',       label: 'Pipeline' },
+    { file: 'galleries.html',      label: 'Galleries' },
+    { file: 'clients.html',        label: 'Clients' },
+    { file: 'services.html',       label: 'Services' },
+    { file: 'content-editor.html', label: 'Content' },
+  ];
+
+  for (const { file, label } of ADMIN_PAGES) {
+    test(`${file} highlights "${label}" as the active nav link, even without a .html suffix in the URL`, async ({ page, context }) => {
+      await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-admin'));
+      await mockWorker(context, {
+        'GET /auth/me':         (route) => json(route, { id: 'u1', email: 'admin@test.com', role: 'admin' }),
+        'GET /admin/projects':  (route) => json(route, []),
+        'GET /admin/galleries':    (route) => json(route, []),
+        'GET /admin/walkthroughs': (route) => json(route, []),
+        'GET /admin/users':        (route) => json(route, []),
+        'GET /admin/cms/pages': (route) => json(route, []),
+      });
+
+      // Simulate production's extension-less URLs (e.g. GitHub Pages / Worker
+      // rewrites serve /admin/clients for clients.html) — this is exactly the
+      // mismatch that caused the active highlight to disappear after load.
+      const bareName = file.replace(/\.html$/, '');
+      await page.goto(`${STATIC_BASE}/admin/${bareName}`);
+
+      const activeLinks = page.locator('.admin-nav .admin-nav-link.active');
+      await expect(activeLinks).toHaveCount(1, { timeout: 10_000 });
+      await expect(activeLinks).toHaveText(label);
+
+      // Confirm it's not just a stale class from initial HTML — highlightNav()
+      // must keep it active after authGate() runs (it previously stripped it).
+      await page.waitForTimeout(500);
+      await expect(page.locator('.admin-nav .admin-nav-link.active')).toHaveText(label);
+    });
+  }
+
+  test('Customer Portal nav link is not styled differently from other inactive nav links', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-admin'));
+    await mockWorker(context, {
+      'GET /auth/me':        (route) => json(route, { id: 'u1', email: 'admin@test.com', role: 'admin' }),
+      'GET /admin/projects': (route) => json(route, []),
+    });
+
+    await page.goto(`${STATIC_BASE}/admin/pipeline.html`);
+    const portalLink   = page.locator('.admin-nav .admin-nav-link', { hasText: 'Customer Portal' });
+    const servicesLink = page.locator('.admin-nav .admin-nav-link', { hasText: 'Services' });
+    await expect(portalLink).toHaveCount(1, { timeout: 10_000 });
+
+    // It should no longer carry a hardcoded teal inline color that makes it
+    // look like the active page — it should match an ordinary inactive link.
+    const [portalColor, servicesColor] = await Promise.all([
+      portalLink.evaluate((el) => getComputedStyle(el).color),
+      servicesLink.evaluate((el) => getComputedStyle(el).color),
+    ]);
+    expect(portalColor).toBe(servicesColor);
+  });
+
+  test('galleries.html no longer shows the preprod/production environment switcher', async ({ page, context }) => {
+    await page.addInitScript(() => localStorage.setItem('ctc_jwt', 'mock-jwt-admin'));
+    await mockWorker(context, {
+      'GET /auth/me':            (route) => json(route, { id: 'u1', email: 'admin@test.com', role: 'admin' }),
+      'GET /admin/galleries':    (route) => json(route, []),
+      'GET /admin/walkthroughs': (route) => json(route, []),
+    });
+
+    await page.goto(`${STATIC_BASE}/admin/galleries.html`);
+    await expect(page.locator('h2.sh', { hasText: 'Create New Gallery' })).toBeVisible({ timeout: 10_000 });
+
+    await expect(page.locator('#envBtnProd')).toHaveCount(0);
+    await expect(page.locator('#envBtnPreprod')).toHaveCount(0);
+    await expect(page.locator('#envBadge')).toHaveCount(0);
+    await expect(page.locator('#preprodUrlRow')).toHaveCount(0);
+    await expect(page.locator('#preprodWorkerUrl')).toHaveCount(0);
+    await expect(page.getByText('Environment', { exact: true })).toHaveCount(0);
+  });
 });
