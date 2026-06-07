@@ -51,7 +51,7 @@
           <p class="hint">In Synology Photos, open the share settings and set a password on this album first, then enter it here.</p>
         </div>
 
-        <div class="fg">
+        <div class="fg full">
           <label>Event / Gallery Name</label>
           <input type="text" id="eventName" required placeholder="Rivera Wedding · May 2024" />
         </div>
@@ -382,8 +382,7 @@
               <span class="gr-chevron" id="gchev-${esc(g.id)}">▾</span>
             </div>
             <div class="gr-meta">
-              ${esc(g.clientName)}
-              &nbsp;·&nbsp; Created ${esc(g.created)}
+              Created ${esc(g.created)}
               ${g.watermark ? ' &nbsp;·&nbsp; <span style="color:var(--teal)">Watermarked</span>' : ''}
               ${g.notes ? ' &nbsp;·&nbsp; ' + esc(g.notes) : ''}
               ${g.assignedUsers && g.assignedUsers.length
@@ -413,13 +412,9 @@
               <input type="password" id="gedit-sharePassword-${esc(g.id)}"
                 placeholder="Enter new password to change" />
             </div>
-            <div class="fg">
+            <div class="fg full">
               <label>Event / Gallery Name</label>
               <input type="text" id="gedit-eventName-${esc(g.id)}" value="${esc(g.eventName)}" required />
-            </div>
-            <div class="fg">
-              <label>Client Name</label>
-              <input type="text" id="gedit-clientName-${esc(g.id)}" value="${esc(g.clientName)}" required />
             </div>
             <div class="fg full">
               <label>Internal Notes</label>
@@ -473,17 +468,16 @@
     const shareRaw      = document.getElementById('gedit-shareUrl-' + id).value.trim();
     const sharePassword = document.getElementById('gedit-sharePassword-' + id).value;
     const eventName     = document.getElementById('gedit-eventName-' + id).value.trim();
-    const clientName    = document.getElementById('gedit-clientName-' + id).value.trim();
     const notes         = document.getElementById('gedit-notes-' + id).value.trim();
     const watermark  = document.getElementById('gedit-watermark-' + id).checked;
     const splat_url  = document.getElementById('gedit-splat_url-' + id).value.trim();
 
-    if (!eventName || !clientName) {
-      toast('Event name and client name are required', true);
+    if (!eventName) {
+      toast('Event name is required', true);
       return;
     }
 
-    const updates = { eventName, clientName, notes, watermark, splat_url: splat_url || null };
+    const updates = { eventName, notes, watermark, splat_url: splat_url || null };
 
     if (shareRaw) {
       const parsed = parseShareUrl(shareRaw);
