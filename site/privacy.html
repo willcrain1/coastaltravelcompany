@@ -132,6 +132,20 @@
         <h3>Invoices and contracts</h3>
         <p>As part of our booking process we collect your name, email address, and invoice and contract data. This information is stored in a Cloudflare D1 database. Payment is processed by Stripe — we receive a confirmation token from Stripe but never see or store your card number or full payment details. Stripe's handling of payment data is governed by their own privacy policy.</p>
 
+        <h3>Website &amp; clickstream analytics</h3>
+        <p>With your consent (see "Cookies and Local Storage" below), we collect anonymized analytics about how visitors use this site — pages viewed, navigation paths, referrers, device/browser type, and approximate location derived from IP address. This is gathered through:</p>
+        <ul>
+          <li><strong>Our first-party analytics pipeline</strong> — page views and clickstream events are sent to our own Cloudflare Worker and stored in our Cloudflare D1 database. A randomly generated session identifier (not linked to your account or identity) is used to group events from the same visit.</li>
+          <li><strong>Google Analytics (GA4)</strong> — a third-party analytics service from Google that helps us understand site traffic and usage trends. IP addresses are anonymized before being processed.</li>
+          <li><strong>Microsoft Clarity</strong> — a third-party service that provides aggregated heatmaps and session recordings so we can understand how visitors interact with the site.</li>
+        </ul>
+        <p>None of these tools load, and no associated cookies or identifiers are set, until you actively opt in to "Analytics" via the cookie-consent banner. You may withdraw consent at any time through "Manage Preferences" in the banner, which stops these tools from running on future page loads.</p>
+        <p>We also use the following privacy-friendly tools that do <em>not</em> require consent because they do not use cookies or collect personal information:</p>
+        <ul>
+          <li><strong>Cloudflare Web Analytics</strong> — provides aggregate traffic and Core Web Vitals metrics (visits, page views, load performance) without setting cookies or tracking individuals.</li>
+          <li><strong>Google Search Console</strong> — provides aggregate data about how our site appears in Google Search results (search queries, rankings, click-through rates, indexing status). Google Search Console does not track individual visitors to our site.</li>
+        </ul>
+
         <h3>Real estate analytics (when live)</h3>
         <p>Our planned real estate property pages will collect anonymized room engagement events and hotspot interactions for property owners. A session identifier (a random UUID) is generated in your browser and stored in <code>sessionStorage</code> only — it is cleared when you close the tab and is never linked to your identity. No personally identifiable information is collected. Analytics events are only sent if you grant consent via the on-page consent banner.</p>
 
@@ -142,22 +156,28 @@
         <h2>2. Third-Party Services</h2>
         <p>We use the following third-party services. Each processes data according to their own privacy policy, linked below.</p>
         <ul>
-          <li><strong>Cloudflare</strong> — provides our website hosting (Pages), serverless compute (Workers), database (D1), key-value storage (KV), and secure NAS tunnel. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy</a></li>
+          <li><strong>Cloudflare</strong> — provides our website hosting (Pages), serverless compute (Workers), database (D1), key-value storage (KV), secure NAS tunnel, and (cookie-free) Web Analytics. <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">Cloudflare Privacy Policy</a></li>
           <li><strong>Resend</strong> — delivers transactional emails including contact form forwards and booking notifications. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend Privacy Policy</a></li>
-          <li><strong>Google</strong> — provides optional OAuth login ("Sign in with Google"). If you use this option, Google shares your email address and profile identifier with us. We do not receive your password. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+          <li><strong>Google</strong> — provides optional OAuth login ("Sign in with Google"); Google Analytics (GA4), used only with your analytics consent; and Google Search Console, which provides aggregate, cookie-free search-performance data and does not track individual visitors. If you sign in with Google, Google shares your email address and profile identifier with us — we do not receive your password. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+          <li><strong>Microsoft Clarity</strong> — provides aggregated heatmaps and session-recording analytics, used only with your analytics consent. <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">Microsoft Privacy Statement</a></li>
           <li><strong>Stripe</strong> — processes all payments. Stripe receives your payment card details directly; we receive only a confirmation token. <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe Privacy Policy</a></li>
           <li><strong>Synology NAS</strong> — client photos are stored on a self-hosted Synology NAS accessed through a Cloudflare Tunnel. Photos are not transmitted to any external cloud storage provider.</li>
         </ul>
 
         <!-- 3. Cookies and local storage -->
         <h2>3. Cookies and Local Storage</h2>
-        <p>We do not set any cookies on this site.</p>
+        <p>We use a cookie-consent banner to let you choose whether we may set analytics cookies and identifiers. Until you actively accept "Analytics" (or "Accept All"), no analytics cookies, scripts, or tracking identifiers are loaded — only strictly necessary items run, such as your authentication session.</p>
+        <p>Depending on your choice, the following may be set:</p>
+        <ul>
+          <li><strong>Essential cookies</strong> — used to keep you securely signed in to the client portal and admin panel (e.g. <code>auth_token</code>). These are always active and cannot be disabled, as the site cannot function securely without them.</li>
+          <li><strong>Analytics cookies/identifiers</strong> — set only if you opt in via the consent banner. These come from our first-party analytics pipeline, Google Analytics (GA4), and Microsoft Clarity, and are used solely to understand how visitors use the site (see "Website &amp; clickstream analytics" above). Your choice is remembered for up to 12 months and can be changed at any time via "Manage Preferences" in the banner.</li>
+        </ul>
         <p>We use browser storage as follows:</p>
         <ul>
+          <li><strong>localStorage</strong> — stores your cookie-consent preference (<code>ctc_cookie_consent</code>), and is used in the client portal to store your authentication token and in the admin panel to store saved settings. This data persists across sessions until you sign out, withdraw consent, or clear your browser data.</li>
           <li><strong>sessionStorage</strong> — used for gallery session tokens and, when live, real estate analytics session IDs. All sessionStorage data is cleared automatically when you close the browser tab.</li>
-          <li><strong>localStorage</strong> — used in the client portal to store your authentication token and in the admin panel to store saved settings. This data persists across sessions until you sign out or clear your browser data.</li>
         </ul>
-        <p>No tracking pixels, advertising cookies, or cross-site tracking technologies are used on this site.</p>
+        <p>We do not use advertising cookies or cross-site tracking technologies, and we do not sell or share your data with advertisers.</p>
 
         <!-- 4. CCPA rights -->
         <h2 id="do-not-sell">4. Your Rights (CCPA)</h2>
