@@ -4,6 +4,18 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 47 — Allow Users to Create Project
+
+Self-service project creation: clients without an existing project who navigate to "My Project" (`portal-project.html`) now see a "New Project Inquiry" form (`createProject()`) instead of a dead end, which submits to the Worker (`worker/src/portal.js`) and notifies the admin via email with a link into the pipeline.
+
+### 22 — Photo Favorites / Proofing in Client Gallery
+
+Independent client and admin favoriting tracks in `client-gallery.html`: clients can heart photos (stored in `localStorage` per gallery, with a "My Selections" filtered view and a "Submit Selections" action that emails the admin via `worker/src/gallery-favorites.js::handleSubmitSelections`); admins get a separate star track stored in Cloudflare KV (`adminstars:<galleryId>`) via `handleAdminStarsGet`/`handleAdminStarToggle`, shown to clients as read-only "Admin pick" badges and viewable in `gallery-admin.html`.
+
+### 18 — Admin Content Editor (CMS)
+
+Browser-based content editor (`site/admin/content-editor.html`, admin-auth gated) lets admins update page copy without touching HTML or git. Editable zones are marked with `data-content-id` attributes and registered in the `PAGES` map in `worker/src/admin/cms.js`; the Worker reads/writes files via the GitHub Contents API using the `CMS_GITHUB_TOKEN` secret, committing directly to `master` (prod) or `preprod`. Zones are wired up across `index.html`, `about.html`, `services.html`, and `contact.html`.
+
 ### 5 — Online Booking: Billing Automation Hooks
 
 Three billing-triggered automation hooks wired into the hourly cron scheduler and the invoice paid event:
