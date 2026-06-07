@@ -63,7 +63,7 @@ export async function handleSubmitSelections(request, env, galleryId) {
 
   const html = `<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1C1C1C;max-width:600px;margin:0 auto;padding:24px">
 <h2 style="color:#2A5C45;margin-bottom:4px">Client Selections — ${escHtml(gallery.eventName || 'Gallery')}</h2>
-<p style="color:#666;margin-bottom:20px;font-size:13px">${escHtml(gallery.clientName || '')} submitted ${selections.length} photo selection${selections.length !== 1 ? 's' : ''}.</p>
+<p style="color:#666;margin-bottom:20px;font-size:13px">A client submitted ${selections.length} photo selection${selections.length !== 1 ? 's' : ''} for &ldquo;${escHtml(gallery.eventName || 'Gallery')}&rdquo;.</p>
 ${note ? `<div style="background:#f4f1ec;padding:14px 16px;margin-bottom:20px;border-left:3px solid #2A5C45"><strong style="font-size:12px;letter-spacing:0.05em">Note from client:</strong><br><span style="font-size:13px;line-height:1.7">${escHtml(note)}</span></div>` : ''}
 <table style="border-collapse:collapse;width:100%;border:1px solid #eee">
   <thead><tr><th style="padding:10px 14px;background:#2A5C45;color:#fff;text-align:left;font-size:11px;letter-spacing:0.08em;font-weight:600">SELECTED PHOTOS (${selections.length})</th></tr></thead>
