@@ -492,9 +492,10 @@ select option { background: #2a2a2a; }
 .questionnaire-row { display: flex; flex-direction: column; gap: 10px; }
 
 @media (max-width: 640px) {
-  header { padding: 16px 20px; }
+  header { padding: 16px 20px; flex-direction: column; align-items: flex-start; gap: 14px; }
+  .header-right { width: 100%; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .admin-nav { flex-wrap: wrap; gap: 6px 4px; }
   .main { padding-left: 20px; padding-right: 20px; }
-  .admin-nav { flex-wrap: wrap; }
   .form-grid { grid-template-columns: 1fr; }
   .full { grid-column: span 1; }
   .gr-header, .user-header { grid-template-columns: 1fr; }
