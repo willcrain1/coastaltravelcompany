@@ -21,6 +21,7 @@
       ts: new Date().toISOString(),
     };
     localStorage.setItem(CONSENT_KEY, JSON.stringify(c));
+    try { window.dispatchEvent(new CustomEvent('ctc-consent-changed', { detail: c })); } catch {}
     return c;
   }
 
@@ -47,6 +48,10 @@
       '#ctc-cb-accept{background:#2A5C45;color:#fff}',
       '#ctc-cb-essential{background:transparent;color:#ccc;border:1px solid #555}',
       '#ctc-cb-prefs{background:transparent;color:#999;border:1px solid #444;font-size:11px}',
+      '@media(min-width:901px){#ctc-cb{padding:26px 40px;font-size:16px;gap:20px}',
+      '#ctc-cb p{font-size:16px;line-height:1.6;min-width:320px}',
+      '.ctc-cb-btn{padding:13px 28px;font-size:15px;border-radius:6px}',
+      '#ctc-cb-prefs{font-size:14px}}',
       '@media(max-width:600px){#ctc-cb{flex-direction:column;align-items:stretch;padding:16px}',
       '#ctc-cb p{min-width:0}',
       '.ctc-cb-btn{width:100%;padding:12px;font-size:13px;text-align:center}}',

@@ -11,6 +11,9 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <script src="js/cookie-consent.js"></script>
+  <script src="js/analytics.js" defer></script>
+  <script src="js/ga4.js" defer></script>
+  <script src="js/clarity.js" defer></script>
   <style>
     .coll-includes {
       display: grid;
@@ -154,7 +157,7 @@
   </nav>
 
   <!-- ── Page Hero ──────────────────────────────────────── -->
-  <section class="page-hero">
+  <section class="page-hero" data-track-section="hero">
     <div class="page-hero-bg" style="background-image: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1920&q=80');"></div>
     <div class="page-hero-overlay"></div>
     <div class="page-hero-content">
@@ -231,7 +234,7 @@
             </div>
           </div>
 
-          <a href="contact.html" class="btn btn-dark">Inquire About This Collection</a>
+          <a href="contact.html" class="btn btn-dark" data-track-event="contact_click">Inquire About This Collection</a>
         </div>
       </div>
     </div>
@@ -287,7 +290,7 @@
             </div>
           </div>
 
-          <a href="contact.html" class="btn btn-dark">Inquire About This Collection</a>
+          <a href="contact.html" class="btn btn-dark" data-track-event="contact_click">Inquire About This Collection</a>
         </div>
         <div style="height: 600px;" class="coll-img fade-up delay-2">
           <div class="img-overflow" style="height: 100%;">
@@ -353,7 +356,7 @@
             </div>
           </div>
 
-          <a href="contact.html" class="btn btn-white-outline">Inquire About This Collection</a>
+          <a href="contact.html" class="btn btn-white-outline" data-track-event="contact_click">Inquire About This Collection</a>
         </div>
       </div>
     </div>
@@ -407,7 +410,7 @@
             </div>
           </div>
 
-          <a href="contact.html" class="btn btn-dark">Inquire About This Collection</a>
+          <a href="contact.html" class="btn btn-dark" data-track-event="contact_click">Inquire About This Collection</a>
         </div>
         <div style="height: 600px;" class="coll-img fade-up delay-2">
           <div class="img-overflow" style="height: 100%;">

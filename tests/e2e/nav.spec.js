@@ -26,7 +26,7 @@ const CORS = {
 
 const PUBLIC_NAV = ['Home', 'About', 'Services', 'Collections', 'Contact', 'Account'];
 const PORTAL_TABS = ['My Account', 'My Project', 'My Profile'];
-const ADMIN_NAV = ['Pipeline', 'Galleries', 'Clients', 'Services', 'Content', 'Customer Portal'];
+const ADMIN_NAV = ['Pipeline', 'Galleries', 'Clients', 'Services', 'Content', 'Analytics', 'Customer Portal'];
 
 function mockWorker(context, handlers) {
   return context.route(
