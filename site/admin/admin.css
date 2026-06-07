@@ -63,7 +63,7 @@ a.logo-wrap { text-decoration: none; }
   transition: all 0.2s;
 }
 .admin-nav-link:hover { color: var(--white); }
-.admin-nav-link.active { color: var(--teal); border-color: rgba(143,191,190,0.35); }
+.admin-nav-link.active { color: var(--teal); border-color: rgba(143,191,190,0.35); background: rgba(143,191,190,0.12); border-radius: 3px; }
 
 .sign-out-btn {
   font-family: 'Montserrat', sans-serif;

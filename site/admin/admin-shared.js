@@ -74,8 +74,9 @@ function toast(msg, isErr = false) {
 
 // ── Nav highlight ──────────────────────────────────────────────────────────────
 function highlightNav() {
-  const page = location.pathname.split('/').pop();
+  const page = location.pathname.split('/').pop().replace(/\.html$/, '');
   document.querySelectorAll('.admin-nav-link').forEach(a => {
-    a.classList.toggle('active', a.getAttribute('href') === page);
+    const href = (a.getAttribute('href') || '').replace(/\.html$/, '');
+    a.classList.toggle('active', href === page);
   });
 }
