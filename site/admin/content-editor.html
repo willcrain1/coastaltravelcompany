@@ -382,25 +382,34 @@
     const WORKER = CTC_CONFIG.workerUrl;
 
     const token = () => localStorage.getItem('ctc_jwt');
-    const headers = () => ({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token()}`,
-    });
+    // Mirrors admin-shared.js apiFetch: prefer the HttpOnly auth_token cookie
+    // (sent via credentials: 'include'), with a Bearer fallback for browsers
+    // that block cross-origin cookies. Sending only a Bearer header (and bailing
+    // out to /login.html when localStorage has no JWT) ignores visitors who are
+    // authenticated solely via the cookie — which then bounces them through
+    // login.html (which *does* see the cookie) straight to /admin/pipeline.html,
+    // never landing back on the content editor.
+    const headers = () => {
+      const h = { 'Content-Type': 'application/json' };
+      const t = token();
+      if (t) h['Authorization'] = `Bearer ${t}`;
+      return h;
+    };
+    const authedFetch = (url, opts = {}) =>
+      fetch(url, { ...opts, headers: { ...headers(), ...(opts.headers || {}) }, credentials: 'include' });
 
     // ── Auth guard ────────────────────────────────────────────────────────────
 
     async function checkAuth() {
-      const t = token();
-      if (!t) { location.href = '../login.html'; return false; }
       try {
-        const res = await fetch(`${WORKER}/auth/me`, { headers: headers() });
-        if (!res.ok) { location.href = '../login.html'; return false; }
+        const res = await authedFetch(`${WORKER}/auth/me`);
+        if (!res.ok) { location.href = '../login.html?redirect=' + encodeURIComponent(location.pathname); return false; }
         const user = await res.json();
         if (user.role !== 'admin') { location.href = '../portal.html'; return false; }
         document.getElementById('adminEmail').textContent = user.email;
         return true;
       } catch {
-        location.href = '../login.html';
+        location.href = '../login.html?redirect=' + encodeURIComponent(location.pathname);
         return false;
       }
     }
@@ -419,7 +428,7 @@
     // ── Page list ─────────────────────────────────────────────────────────────
 
     async function loadPages() {
-      const res = await fetch(`${WORKER}/admin/cms/pages`, { headers: headers() });
+      const res = await authedFetch(`${WORKER}/admin/cms/pages`);
       if (!res.ok) return;
       const pages = await res.json();
 
@@ -465,7 +474,7 @@
 
       // Fetch zones
       try {
-        const res = await fetch(`${WORKER}/admin/cms/page?file=${file}`, { headers: headers() });
+        const res = await authedFetch(`${WORKER}/admin/cms/page?file=${file}`);
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
           return setStatus('error', err.error || 'Failed to load page content.');
@@ -534,7 +543,7 @@
       });
 
       try {
-        const res = await fetch(`${WORKER}/admin/cms/page?file=${activePage.file}`, {
+        const res = await authedFetch(`${WORKER}/admin/cms/page?file=${activePage.file}`, {
           method:  'PUT',
           headers: headers(),
           body:    JSON.stringify({ zones: updates }),
@@ -584,7 +593,7 @@
       list.innerHTML = '<div class="skeleton" style="height:70px;margin-bottom:10px;"></div>'.repeat(5);
 
       try {
-        const res = await fetch(`${WORKER}/admin/cms/history?file=${activePage.file}`, { headers: headers() });
+        const res = await authedFetch(`${WORKER}/admin/cms/history?file=${activePage.file}`);
         if (!res.ok) { list.innerHTML = '<p class="history-empty">Could not load history.</p>'; return; }
         const commits = await res.json();
 
@@ -626,7 +635,7 @@
       btn.textContent = 'Reverting…';
 
       try {
-        const res = await fetch(`${WORKER}/admin/cms/revert`, {
+        const res = await authedFetch(`${WORKER}/admin/cms/revert`, {
           method:  'POST',
           headers: headers(),
           body:    JSON.stringify({ file: activePage.file, sha }),

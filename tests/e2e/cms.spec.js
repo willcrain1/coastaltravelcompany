@@ -129,8 +129,8 @@ test.describe('CMS content editor', () => {
       'GET /auth/me': (r) => r.fulfill({ status: 401, headers: CORS, body: '{}' }),
     });
     await page.goto(`${STATIC_BASE}/admin/content-editor.html`);
-    await page.waitForURL(/\/login(\.html)?$/, { timeout: 10_000 });
-    expect(page.url()).toMatch(/\/login(\.html)?$/);
+    await page.waitForURL(/\/login(\.html)?(\?|$)/, { timeout: 10_000 });
+    expect(page.url()).toMatch(/\/login(\.html)?(\?|$)/);
   });
 
   test('client JWT redirects to /portal.html', async ({ page, context }) => {
