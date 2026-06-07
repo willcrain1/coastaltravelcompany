@@ -45,7 +45,8 @@
 <main class="main">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px;">
     <h2 class="sh" style="margin:0;">Website Analytics</h2>
-    <div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="https://search.google.com/search-console" target="_blank" rel="noopener" class="admin-nav-link" style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">Google Search Console ↗</a>
       <label style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#888; margin-right:8px;">Window</label>
       <select id="an-days" onchange="loadSummary()">
         <option value="7">Last 7 days</option>
@@ -58,6 +59,7 @@
   <p class="hint" style="margin-bottom:24px;">
     Privacy-friendly first-party tracking — no IP addresses, user agents, or device fingerprints are ever stored.
     Visitors who decline analytics consent in the cookie banner are never counted. See items 32 &amp; 46 in the project TODO for the full GA4 / Microsoft Clarity rollout (account setup is a manual, non-code step).
+    For search-query and ranking data, see <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> (verified for this domain — see DOCS.md).
   </p>
 
   <div class="an-grid" id="an-stats"></div>
