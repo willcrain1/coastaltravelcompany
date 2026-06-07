@@ -57,6 +57,11 @@ const ALLOWLIST = new Set([
   'PUT /admin/cms/page',
   'GET /admin/cms/history',
   'POST /admin/cms/revert',
+  // First-party analytics ingest — fired client-side from analytics.js on real
+  // page interaction; not meaningfully exercisable via mocked Playwright runs
+  'POST /analytics/event',
+  // Admin analytics summary — aggregate-only read, requires seeded event history
+  'GET /admin/analytics/summary',
 ]);
 
 // ── Step 1: Extract routes from router.js ─────────────────────────────────────

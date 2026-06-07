@@ -352,29 +352,18 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 32. Website Analytics
+## 32. Website Analytics — Remaining Manual Setup
 
 **Goal:** Understand how people find the site, what actions they take, and where they drop off.
 
-### Analytics Platform
-- [ ] **Google Analytics 4 (GA4)** — create a GA4 property; add tracking snippet to `<head>` of every HTML page
+First-party tracking, conversion events, scroll depth, and traffic-source/UTM
+capture now ship in code (see CHANGELOG "Website & Clickstream Analytics").
+What remains requires creating external accounts/dashboards by hand:
+
+- [ ] **Google Analytics 4 (GA4)** — create a GA4 property; add tracking snippet to `<head>` of every HTML page (optional, complements the first-party pipeline)
 - [ ] **Cloudflare Web Analytics** — enable in Cloudflare dashboard (privacy-friendly, no cookies)
-
-### Core Tracking Requirements
-- [ ] Pageview tracking with URL, title, and referrer
-- [ ] Traffic source tracking (organic, direct, social, referral, UTM)
-- [ ] Conversion events: `contact_click`, `form_submit`, `booking_click`, `social_click`, `qr_scan_landing`
-- [ ] Engagement: time on page, scroll depth (25/50/75/100%), bounce rate
-
-### UTM Campaign Tracking
-- [ ] QR code links to `https://coastaltravelcompany.com/?utm_source=businesscard&utm_medium=qr&utm_campaign=networking`
-
-### Search Console Integration
-- [ ] Set up Google Search Console and link to GA4
-
-### Privacy & Compliance
-- [ ] Add Privacy Policy page disclosing use of Google Analytics
-- [ ] Consider a cookie consent banner (CookieYes free tier) for EU visitors
+- [ ] **Google Search Console** — set up and link to GA4
+- [ ] Generate a QR code linking to `https://coastaltravelcompany.com/?utm_source=businesscard&utm_medium=qr&utm_campaign=networking` for printed materials
 
 ---
 
@@ -478,42 +467,17 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## 46. Advanced Clickstream Analytics & User Behavior Tracking
+## 46. Advanced Clickstream Analytics — Remaining Manual Setup
 
 **Goal:** Understand what visitors are looking at on each page, how long they spend in specific sections, where attention drops off, and what content drives inquiry.
 
-### Approach: Microsoft Clarity (free, no-code starting point)
+Section-dwell instrumentation, scroll-depth milestones, and click-path/conversion
+tracking now ship in code as a first-party pipeline (see CHANGELOG "Website &
+Clickstream Analytics") — no GA4/Clarity dependency required to use them. What
+remains is optional and requires creating external accounts by hand:
 
-- [ ] Create a Clarity project at clarity.microsoft.com
-- [ ] Add the Clarity tracking snippet to the `<head>` of all public HTML pages
-- [ ] Link the Clarity project to the existing GA4 property for combined reporting
-- [ ] Verify session recording is capturing in the Clarity dashboard (allow 24–48 hours)
-
-### Custom section-timing instrumentation
-
-- [ ] Add `data-track-section` attributes to key sections on each page
-- [ ] Implement `IntersectionObserver`-based tracker in `main.js` that fires `section_dwell` GA4 events with `section_id` and `dwell_seconds`
-- [ ] Verify events appear in GA4 DebugView (`?debug_mode=1`)
-- [ ] Build a GA4 Exploration report grouping `section_dwell` events by `section_id`
-
-### Scroll-depth milestones (25 / 50 / 75 / 100%)
-
-- [ ] Implement scroll-percentage listener firing `scroll_depth` events at 25/50/75/100% of each page, once per session
-- [ ] Compare scroll depth across pages to identify where visitors disengage
-
-### Click-path analysis
-
-- [ ] Ensure all internal nav clicks and CTA buttons fire named GA4 events
-- [ ] Track which portfolio images are clicked (pass image title as event parameter)
-- [ ] Track which collection cards are expanded or linked out from
-
-### Acceptance criteria
-
-- [ ] Clarity snippet live on all public pages; session recordings and heatmaps populating after 48 hours
-- [ ] `section_dwell` custom event firing and visible in GA4 DebugView for each tracked section
-- [ ] Scroll-depth events firing at 25/50/75/100% per page
-- [ ] GA4 Exploration report saved showing avg dwell time by section across the last 30 days
-- [ ] No PII captured in event parameters
+- [ ] **Microsoft Clarity** (optional, for session-recording heatmaps) — create a project at clarity.microsoft.com; add its tracking snippet to `<head>`; allow 24–48 hours for recordings to populate
+- [ ] If GA4 is also adopted (item 32), mirror `section_dwell`/`scroll_depth`/conversion events into GA4 and build an Exploration report grouping `section_dwell` by `section_id`
 
 ---
 

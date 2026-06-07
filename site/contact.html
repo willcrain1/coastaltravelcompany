@@ -12,6 +12,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <script src="config.js"></script>
   <script src="js/cookie-consent.js"></script>
+  <script src="js/analytics.js" defer></script>
 </head>
 <body>
 
@@ -35,7 +36,7 @@
   </nav>
 
   <!-- ── Page Hero ──────────────────────────────────────── -->
-  <section class="page-hero">
+  <section class="page-hero" data-track-section="hero">
     <div class="page-hero-bg" style="background-image: url('https://images.unsplash.com/photo-1560347876-aeef00ee58a1?auto=format&fit=crop&w=1920&q=80');"></div>
     <div class="page-hero-overlay"></div>
     <div class="page-hero-content">
@@ -146,7 +147,7 @@
               <textarea id="message" name="message" placeholder="Share the feeling you'd like to create, your goals, and anything else that would help us understand your property and vision..." required></textarea>
             </div>
 
-            <button type="submit" class="btn btn-dark" style="width: 100%; text-align: center; margin-top: 8px;">Send Inquiry</button>
+            <button type="submit" class="btn btn-dark" style="width: 100%; text-align: center; margin-top: 8px;" data-track-event="form_submit">Send Inquiry</button>
 
             <p id="form-status" style="font-size: 11px; color: var(--text-light); margin-top: 16px; text-align: center; line-height: 1.6;">We'll respond within 48 hours. Your information is kept private and never shared.</p>
           </form>

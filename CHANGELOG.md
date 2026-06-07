@@ -4,6 +4,18 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 32 & 46 — Website & Clickstream Analytics
+
+Privacy-friendly, first-party analytics pipeline covering the core engineering requirements of both items (external dashboard accounts — GA4, Clarity, Search Console — remain manual setup, tracked as the trimmed-down "Remaining Manual Setup" entries):
+
+**Client tracker** (`site/js/analytics.js`): Gated on `window.CTC_Consent.hasAnalytics()` from the existing cookie-consent banner — nothing is sent until the visitor opts in. Generates an ephemeral per-tab `session_id` (`crypto.randomUUID`, `sessionStorage` only) and fires `pageview` (path, referrer truncated to origin+pathname, `utm_source`/`utm_medium`/`utm_campaign`), `conversion` events from `data-track-event` attributes (`contact_click`, `form_submit`, `booking_click`), `click` events from `data-track-click`/`title` attributes for portfolio/collection click-path analysis, `scroll_depth` milestones at 25/50/75/100% (once per session per page via `requestAnimationFrame`-throttled scroll listener), and `section_dwell` cumulative visible-time per `data-track-section` element via `IntersectionObserver` (flushed on intersection-exit, `pagehide`, and `visibilitychange`). Beacons use `navigator.sendBeacon` with a `fetch keepalive` fallback.
+
+**Worker ingest** (`worker/src/analytics.js`, `POST /analytics/event`): Validates event shape, rate-limits 60 events/session/minute via KV (mirroring the item-38 property-analytics design), and inserts into the new `analytics_events` D1 table (`worker/migrations/018_analytics.sql`). Strictly no IP addresses, user agents, or device fingerprints are stored or accepted — only the client-generated session id, event type/page/label/value, sanitized referrer, and UTM fields.
+
+**Admin dashboard** (`site/admin/analytics.html`, `GET /admin/analytics/summary`, admin-auth gated): Aggregate-only rollups for a selectable 7/30/90-day window — pageview/session totals, top pages, conversion-event counts, traffic sources by UTM, average section-dwell time, and scroll-depth funnel per page. New "Analytics" tab added to the admin nav across `pipeline.html`, `galleries.html`, `clients.html`, `services.html`, and `content-editor.html`.
+
+**Instrumentation wired up** across `index.html`, `about.html`, `services.html`, `collections.html`, `contact.html`, `portal.html`, and `login.html`: hero/portfolio/pull-quote sections tagged with `data-track-section`, primary CTAs tagged with `data-track-event` (`contact_click`, `booking_click`, `form_submit`).
+
 ### 39 — Create Privacy Policy
 
 Published `site/privacy.html`, an accurate, readable privacy policy satisfying CCPA minimum requirements, using the shared nav, `styles.css`, and footer pattern from `about.html`.
