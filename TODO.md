@@ -201,38 +201,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 
 ---
 
-## ~~18. Admin Content Editor (CMS)~~ ✅ Done
-
-**Goal:** Allow the admin to update text and photos on every public page from the browser — no HTML editing or git required.
-
-### Architecture
-- Extend `gallery-admin.html` or create `admin/content-editor.html` (admin-auth gated)
-- Mark editable zones in HTML using `data-content-id` attributes
-- Worker reads/writes file content via GitHub Contents API; commits changes server-side using `GITHUB_TOKEN` Worker secret
-- "Deploying — live in ~2 minutes" status badge after successful commit
-
-### Editable content zones
-- `index.html`: hero headline, subheadline, CTA label, about-preview paragraph, collection cards, testimonial quotes
-- `about.html`: bio paragraphs, brand photo, pull-quote overlays
-- `services.html`: per-collection name, description, inclusions, price range, hero photo
-- `collections.html`: portfolio photos — add, remove, reorder; per-photo caption
-- `contact.html`: intro paragraph, contact details
-- `testimonials.html`: add/edit/remove testimonials
-- `faq.html`: add/edit/remove FAQ entries; drag-to-reorder
-
-### Photo management
-- Upload: admin drags image → Worker uploads to R2 → returns CDN URL
-- Pick from NAS: admin opens picker → Worker fetches full-res from NAS and copies to R2
-- Reorder: drag-and-drop handles on photo grids
-
-### Editor UI
-- Per-page editor with labeled content zone fields; single-line or minimal rich-text inputs
-- Live preview in an `<iframe>` using current unsaved edits
-- **Save & Publish** commits all changed zones in one GitHub API call
-- **Change history**: list of recent commits with a "Revert" action
-
----
-
 ## 19. Licensing Information
 
 **Goal:** Make usage rights clear for commercial hotel/property clients.
@@ -265,25 +233,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 - [ ] Cover: pricing, inclusions, licensing and usage rights, travel fees, turnaround time, how to book, what to expect on shoot day
 - [ ] Add "FAQ" to footer nav
 - [ ] Link from contact page and collections page
-
----
-
-## 22. ✅ Photo Favorites / Proofing in Client Gallery
-
-**Goal:** Clients and admins each have independent star/heart capabilities.
-
-**Client favorites**
-- [ ] Add a heart button to each photo card in `client-gallery.html`
-- [ ] Store client favorites in `localStorage` keyed by gallery ID
-- [ ] Add a "My Selections" filtered grid view with count in nav
-- [ ] Add a "Submit Selections" action — compiles filenames and POSTs to a Worker endpoint that emails the list to the admin
-
-**Admin favorites (separate track)**
-- [ ] Add an admin preview mode to `client-gallery.html` (secret URL param or admin portal)
-- [ ] In admin mode, show a separate star icon (different color/shape) on each photo
-- [ ] Store admin stars in Cloudflare KV keyed by gallery ID and photo ID
-- [ ] Display admin stars as a read-only "Admin pick" badge overlay for clients
-- [ ] In `gallery-admin.html`, show admin-starred photos per gallery with a "View Admin Picks" filtered view
 
 ---
 
@@ -597,12 +546,6 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
 - [ ] Scroll-depth events firing at 25/50/75/100% per page
 - [ ] GA4 Exploration report saved showing avg dwell time by section across the last 30 days
 - [ ] No PII captured in event parameters
-
----
-
-## 47. Allow Users to Create Project
-
-**Goal:** Right now the only way a project can be created is by an admin. Make a change so a user without a project can navigate to 'My Project' and create a new project to start the initial inquiry — self-service.
 
 ---
 
