@@ -1,0 +1,15 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /gallery/
+Disallow: /portal.html
+Disallow: /portal-project.html
+Disallow: /profile.html
+Disallow: /login.html
+Disallow: /register.html
+Disallow: /proposal.html
+Disallow: /questionnaire.html
+Disallow: /contract.html
+Disallow: /invoice.html
+Disallow: /schedule.html
+
+Sitemap: https://coastaltravelcompany.com/sitemap.xml
