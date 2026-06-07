@@ -4,6 +4,12 @@ Completed features and improvements, in order of implementation.
 
 ---
 
+### 32 — Website Analytics: Remaining Manual Setup Complete
+
+The external dashboard/account setup that remained after the engineering work landed (see "Website & Clickstream Analytics" below) has now been completed by hand: a Google Analytics 4 property was created and linked, Cloudflare Web Analytics was enabled on the production zone, Microsoft Clarity is recording sessions, and Google Search Console was set up, verified, and linked with `site/sitemap.xml` submitted for indexing. The QR-code-for-business-cards item was carved out and relocated to TODO item 31 (Physical/Digital Business Cards), since it belongs with the rest of that printed-materials work rather than the analytics setup.
+
+---
+
 ### 32 & 46 — Website & Clickstream Analytics
 
 Privacy-friendly, first-party analytics pipeline covering the core engineering requirements of both items (external dashboard accounts — GA4, Clarity, Search Console — remain manual setup, tracked as the trimmed-down "Remaining Manual Setup" entries):
