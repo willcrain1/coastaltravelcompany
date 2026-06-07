@@ -29,10 +29,11 @@
 
 ## R2 Hybrid Asset Serving (item 37)
 - **Bucket bindings:** `ASSETS` → `ctc-assets` (prod), `ctc-assets-preprod` (preprod) in `wrangler.toml`.
-- **R2 key layout:** `galleries/{galleryId}/thumbs/{photoId}.jpg`
+- **R2 key layout:** `galleries/{galleryId}/thumbs/{photoId}.jpg` (photo thumbnails); `galleries/{galleryId}/videos/{itemId}` (full video files, original quality).
 - **Token exchange:** `tok:{sid}` now stores `{ passphrase, sharePassword, galleryId, r2Synced }`.
 - **Thumbnail routing:** `handleNasProxy` checks R2 first when `r2Synced=true`; serves with `Cache-Control: public, max-age=86400` and `X-Asset-Source: r2`. Falls back to NAS with `X-Asset-Source: nas`.
-- **Sync endpoint:** `POST /admin/galleries/:id/sync-r2?offset=N` (admin-auth). Paginates via `offset`; sets `gallery.r2_synced=true` in KV when `done=true`.
+- **Video routing:** `handleNasProxy` serves full videos from R2 (`galleries/{galleryId}/videos/{unitId}`) when present, with HTTP Range request support for in-browser seeking; falls back to streaming directly from the NAS (`Content-Type: video/*` is streamed, not buffered, to stay within Worker memory limits).
+- **Sync endpoint:** `POST /admin/galleries/:id/sync-r2?offset=N` (admin-auth). Paginates via `offset`; syncs both photo thumbnails (`thumbs/`) and full video files (`videos/`, streamed directly via `vidRes.body` to avoid buffering); sets `gallery.r2_synced=true` in KV when `done=true`.
 - **Sync script:** `worker/scripts/sync-gallery-to-r2.sh` — calls the Worker endpoint; loops over offset until `done`. Reads `ADMIN_JWT` and `WORKER_URL` from env.
 - **GHA workflow:** `.github/workflows/sync-gallery-to-r2.yml` — manual dispatch, targets preprod or prod, single gallery or all.
 
