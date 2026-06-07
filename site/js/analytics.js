@@ -37,10 +37,54 @@
     catch { return null; }
   }
 
+  // Item 46 — optional GA4 mirroring. If a GA4 property is configured (gtag.js
+  // loaded and `window.gtag` present), mirror the same engagement signals into
+  // GA4 so an Exploration report can group `section_dwell` by `section_id`.
+  // This never substitutes for the first-party pipeline — it's additive only,
+  // and still gated on analytics consent like everything else here.
+  function mirrorToGA4(event_type, extra) {
+    if (typeof window.gtag !== 'function') return;
+    const e = extra || {};
+    switch (event_type) {
+      case 'conversion':
+        window.gtag('event', e.label || 'conversion', {
+          event_category: 'conversion',
+          page_path: window.location.pathname,
+        });
+        break;
+      case 'click':
+        window.gtag('event', 'click', {
+          event_category: 'click_path',
+          event_label: e.label || null,
+          page_path: window.location.pathname,
+        });
+        break;
+      case 'scroll_depth':
+        window.gtag('event', 'scroll_depth', {
+          event_category: 'engagement',
+          percent_scrolled: e.value,
+          page_path: window.location.pathname,
+        });
+        break;
+      case 'section_dwell':
+        window.gtag('event', 'section_dwell', {
+          event_category: 'engagement',
+          section_id: e.label || null,
+          value: e.value,
+          page_path: window.location.pathname,
+        });
+        break;
+      default:
+        break;
+    }
+  }
+
   function send(event_type, extra) {
     if (!consentGiven()) return;
     const sid = getSessionId();
     if (!sid) return;
+
+    mirrorToGA4(event_type, extra);
 
     const payload = Object.assign({
       session_id: sid,
