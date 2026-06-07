@@ -25,7 +25,8 @@
 - **Logout:** `POST /auth/logout` clears cookie via `Max-Age=0`.
 - **Frontend:** All browser fetches use `credentials: 'include'`. No JWT in `localStorage`. Masquerade sessions still use explicit `Authorization: Bearer <masq_token>` header from `sessionStorage`.
 - **CORS:** `Access-Control-Allow-Credentials: true` required; `Access-Control-Allow-Origin` must never be `*`.
-- **Cookie consent:** `site/js/cookie-consent.js` — exposes `window.CTC_Consent.hasAnalytics()` and `hasMarketing()`; persists choice in `localStorage` under `ctc_cookie_consent`.
+- **Cookie consent:** `site/js/cookie-consent.js` — exposes `window.CTC_Consent.hasAnalytics()` and `hasMarketing()`; persists choice in `localStorage` under `ctc_cookie_consent`. Fires `window` `CustomEvent('ctc-consent-changed')` on save so dependent scripts can react live.
+- **Microsoft Clarity:** `site/js/clarity.js` — loads Clarity (project `x3do0vxltp`) only after `CTC_Consent.hasAnalytics()` is true (checked on load and on `ctc-consent-changed`). Wired via `<script src="js/clarity.js" defer></script>` (or `/js/clarity.js` on `invoice.html`) after `cookie-consent.js` on all 17 public/portal pages.
 
 ## R2 Hybrid Asset Serving (item 37)
 - **Bucket bindings:** `ASSETS` → `ctc-assets` (prod), `ctc-assets-preprod` (preprod) in `wrangler.toml`.
