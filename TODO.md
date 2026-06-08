@@ -42,7 +42,7 @@ Items ordered by revenue impact. Completed features are in `CHANGELOG.md`.
   pip install nerfstudio
   ```
 - [ ] **Install Postshot** as a GUI alternative (~$50 one-time) — evaluate against nerfstudio on 2–3 test scenes
-- [ ] **Install SuperSplat CLI** — `npm install -g supersplat`
+- [x] **Install PlayCanvas splat-transform CLI** — `npm install -g @playcanvas/splat-transform` (the `supersplat` package name doesn't exist on npm; SuperSplat itself is the browser tool at supersplat.playcanvas.com — `splat-transform` is PlayCanvas's official CLI for converting/compressing `.ply`/`.splat`/`.sog` scenes)
 
 #### Per-scene workflow
 
@@ -526,6 +526,30 @@ remains is optional and requires creating external accounts by hand:
 - All new first-party metrics must remain anonymous/aggregate and respect the existing cookie-consent gate — no IP storage, no fingerprinting, no PII
 - Prioritize section A items that reuse the existing `analytics_events` table/shape (referrer, device, time-of-day, 404s) before tackling items that need schema changes (funnel/path analysis, new-vs-returning)
 - Section B items depend on joining analytics data with operational tables — confirm timestamp formats and indexing are compatible before writing cross-table queries
+
+---
+
+## 51. Segment Site Content for Three Client Types (Individuals, Hospitality, Real Estate)
+
+**Goal:** Make it immediately obvious to each of the three distinct customer types — Individual Clients (portraits/commissions), Hotels & Airbnbs (hospitality), and Real Estate Agents — that they're in the right place and what's offered to them, without diluting the high-end editorial homepage aesthetic or mixing budget tiers on one pricing page.
+
+### Homepage funnel
+- [ ] Add a "Who We Serve" / "Collaborations" section directly below the core philosophy/portfolio area: three editorial column cards (Hospitality & Destinations, Real Estate Media, Commissions & Portraits), each with a headline, one-sentence value prop, and a CTA routing to a dedicated landing page
+  - [ ] Column 1: Hospitality & Boutique BrandsVisual: A styled detail shot (e.g., a beautifully lit luxury interior or a poolside cocktail at dusk).Headline: Hospitality & DestinationsSub-text: Bespoke visual libraries, editorial lookbooks, and cinematic short-form stories for luxury hotels, premium resorts, and curated vacation rentals.CTA Button: Explore Editorial Production $\rightarrow$ (Links to a dedicated hospitality page)
+  - [ ] Column 2: Residential & Commercial ListingsVisual: A crisp, wide architectural shot or a preview of an immersive interface.Headline: Real Estate MediaSub-text: High-fidelity architectural stills, premium HDR imaging, and advanced 3D walkthroughs engineered to elevate listings and capture space with precision.CTA Button: View Listing Solutions $\rightarrow$ (Links to a dedicated real estate/walkthrough page)
+  - [ ] Column 3: Individual CommissionsVisual: A high-fashion, movement-focused lifestyle portrait.Headline: Portraits & EditorialSub-text: Tailored personal branding, creative direction, and styled lookbook sessions for individuals seeking a distinct, filmic aesthetic.CTA Button: Book a Commission $\rightarrow$ (Links to a dedicated portrait/contact booking page)
+- [ ] Optionally tweak the hero sub-headline to explicitly bridge all three audiences (e.g. "Editorial imagery, cinematic video, and immersive media for premium properties, real estate listings, and individual commissions")
+
+### Dedicated landing pages (siloed by audience so pricing/tone don't clash)
+- [ ] **Hospitality & Destinations** — keep current luxury/editorial packages (The Editorial Stay, The Fashioned Weekend, The Signature Story); frame around commercial licensing, brand libraries, multi-day production value
+- [ ] **Real Estate Media** — clean/technical tone; tiered by property size/scope: "The Showcase" (architectural stills + drone) vs. "The Immersive" (stills + 3D walkthroughs + floor plans); emphasize turnaround time ("Next-Day Delivery")
+- [ ] **Commissions & Portraits** — reframe "photoshoot" as a styled creative session; clear packages such as "The Editorial Portrait" (hours, location, set number of retouched images) and "The Creative Campaign" (full creative direction, wardrobe consulting, extended gallery for personal branding)
+
+### Reposition "The Listing Upgrade"
+- [ ] Move "The Listing Upgrade" (Airbnb-ready) off the homepage hospitality grid entirely and onto the new Real Estate / Vacation Rental landing page, alongside a new "The Immersive Listing" (stills + 3D walkthrough) tier
+
+### Navigation
+- [ ] Split the single "Services" nav item into a hover dropdown: Hospitality & Resorts / Real Estate Media (incl. 3D Walkthroughs) / Individual & Editorial Portraits
 
 ---
 
