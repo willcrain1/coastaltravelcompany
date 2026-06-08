@@ -95,7 +95,7 @@ Update-SessionPath
 if (Get-Command ffmpeg -ErrorAction SilentlyContinue) {
     Write-Ok "ffmpeg in PATH: $((ffmpeg -version 2>&1 | Select-Object -First 1) -replace 'ffmpeg version ','')"
 } else {
-    Write-Warn "ffmpeg not in PATH yet — open a new PowerShell window after setup completes if needed."
+    Write-Warn "ffmpeg not in PATH yet -- open a new PowerShell window after setup completes if needed."
 }
 
 # ── COLMAP ────────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ if (Get-Command colmap -ErrorAction SilentlyContinue) {
         [System.Environment]::SetEnvironmentVariable("PATH", "$userPath;$colmapBin", "User")
     }
     Update-SessionPath
-    Write-Ok "COLMAP $tag installed → $colmapBin"
+    Write-Ok "COLMAP $tag installed -> $colmapBin"
 }
 
 # ── nerfstudio conda environment ──────────────────────────────────────────────
@@ -183,7 +183,7 @@ if ($LASTEXITCODE -ne 0 -or $gpuCheck -match "Error|not available") {
 # ── SuperSplat ────────────────────────────────────────────────────────────────
 
 Write-Step "SuperSplat (browser-based, no install required)"
-Write-Ok "Opening supersplat.playcanvas.com — bookmark it for the review and export step."
+Write-Ok "Opening supersplat.playcanvas.com -- bookmark it for the review and export step."
 Start-Process "https://supersplat.playcanvas.com"
 
 # ── Working directory structure ───────────────────────────────────────────────
@@ -203,12 +203,12 @@ if (Test-Path $processSrc) {
     Copy-Item $processSrc $processDst -Force
     Write-Ok "process-scene.ps1 copied to $workRoot"
 } else {
-    Write-Warn "process-scene.ps1 not found at $processSrc — copy workstation\splatting\process-scene.ps1 to $workRoot manually."
+    Write-Warn "process-scene.ps1 not found at $processSrc -- copy workstation\splatting\process-scene.ps1 to $workRoot manually."
 }
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
-Write-Step "Setup complete — installed versions"
+Write-Step "Setup complete -- installed versions"
 
 $summary = [ordered]@{
     "ffmpeg"     = { (ffmpeg -version 2>&1 | Select-Object -First 1) -replace "ffmpeg version ","" }
@@ -221,7 +221,7 @@ $summary = [ordered]@{
 
 foreach ($kv in $summary.GetEnumerator()) {
     try   { $val = & $kv.Value }
-    catch { $val = "(not in PATH — open a new shell)" }
+    catch { $val = "(not in PATH -- open a new shell)" }
     Write-Host ("    {0,-15} {1}" -f $kv.Key, $val)
 }
 
