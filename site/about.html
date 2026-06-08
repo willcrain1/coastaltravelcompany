@@ -15,6 +15,43 @@
   <script src="js/analytics.js" defer></script>
   <script src="js/ga4.js" defer></script>
   <script src="js/clarity.js" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "https://coastaltravelcompany.com/about#laura-crain",
+        "name": "Laura Crain",
+        "jobTitle": "Founder & Creative Director",
+        "description": "Founder of Coastal Travel Company, an editorial hotel photography studio in Palm Beach, Florida. Background in corporate fashion, visual merchandising, and brand styling.",
+        "url": "https://coastaltravelcompany.com/about",
+        "image": "https://coastaltravelcompany.com/images/laura-crain.jpg",
+        "worksFor": {
+          "@type": "ProfessionalService",
+          "@id": "https://coastaltravelcompany.com/#organization",
+          "name": "Coastal Travel Company"
+        },
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Palm Beach",
+          "addressRegion": "FL",
+          "addressCountry": "US"
+        },
+        "sameAs": [
+          "https://www.instagram.com/coastaltravelcompany"
+        ]
+      },
+      {
+        "@type": "ProfessionalService",
+        "@id": "https://coastaltravelcompany.com/#organization",
+        "name": "Coastal Travel Company",
+        "url": "https://coastaltravelcompany.com",
+        "founder": {"@id": "https://coastaltravelcompany.com/about#laura-crain"}
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
 

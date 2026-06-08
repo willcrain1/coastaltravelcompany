@@ -15,6 +15,84 @@
   <script src="js/analytics.js" defer></script>
   <script src="js/ga4.js" defer></script>
   <script src="js/clarity.js" defer></script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": ["ProfessionalService", "LocalBusiness"],
+        "@id": "https://coastaltravelcompany.com/#organization",
+        "name": "Coastal Travel Company",
+        "description": "Editorial hotel photography studio specializing in editorial photography and short-form video for luxury hotels and destinations. Based in Palm Beach, Florida.",
+        "url": "https://coastaltravelcompany.com",
+        "logo": "https://coastaltravelcompany.com/favicon.svg",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Palm Beach",
+          "addressRegion": "FL",
+          "addressCountry": "US"
+        },
+        "areaServed": [
+          {"@type": "Place", "name": "Palm Beach, Florida"},
+          {"@type": "Place", "name": "Southeast United States"},
+          {"@type": "Place", "name": "Caribbean"}
+        ],
+        "founder": {
+          "@type": "Person",
+          "@id": "https://coastaltravelcompany.com/about#laura-crain",
+          "name": "Laura Crain",
+          "jobTitle": "Founder & Creative Director"
+        },
+        "sameAs": [
+          "https://www.instagram.com/coastaltravelcompany",
+          "https://www.pinterest.com/thecoastaltravelcompany/",
+          "https://www.facebook.com/share/18zzn7QVWT/"
+        ],
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "Signature Collections",
+          "itemListElement": [
+            {
+              "@type": "Offer",
+              "itemOffered": {"@type": "Service", "name": "The Fashioned Weekend"},
+              "price": "1200",
+              "priceCurrency": "USD",
+              "url": "https://coastaltravelcompany.com/collections#fashioned-weekend"
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {"@type": "Service", "name": "The Editorial Stay"},
+              "price": "2500",
+              "priceCurrency": "USD",
+              "url": "https://coastaltravelcompany.com/collections#editorial-stay"
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {"@type": "Service", "name": "The Signature Story"},
+              "price": "4500",
+              "priceCurrency": "USD",
+              "url": "https://coastaltravelcompany.com/collections#signature-story"
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {"@type": "Service", "name": "The Listing Upgrade"},
+              "price": "400",
+              "priceCurrency": "USD",
+              "url": "https://coastaltravelcompany.com/collections#listing-upgrade"
+            }
+          ]
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://coastaltravelcompany.com/#website",
+        "url": "https://coastaltravelcompany.com",
+        "name": "Coastal Travel Company",
+        "publisher": {"@id": "https://coastaltravelcompany.com/#organization"}
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
 
