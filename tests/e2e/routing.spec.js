@@ -1,5 +1,5 @@
 /**
- * Routing acceptance tests — ACTION-PLAN items 2 (soft 404s) and 3 (www redirect).
+ * Routing acceptance tests — soft 404s and www redirect.
  *
  * Content tests (run locally + CI):
  *  1. /404.html renders branded heading and nav
@@ -9,7 +9,7 @@
  *
  * Status-code tests (deployed Pages only — skipped locally):
  *  5. A random non-existent path returns HTTP 404
- *  6. /llms.txt returns HTTP 404 (was a soft-404 before the fix)
+ *  6. /llms.txt returns HTTP 200 with real llms.txt content
  *  7. A nested non-existent path returns HTTP 404
  *  8. The 404 response body is the branded 404 page, not the homepage
  *  9. Known-good public pages still return HTTP 200 (no over-blocking)
@@ -77,9 +77,13 @@ test.describe('HTTP 404 for unmatched routes', () => {
     expect(response.status()).toBe(404);
   });
 
-  test('/llms.txt returns 404 (was a soft-404 before the fix)', async ({ request }) => {
+  test('/llms.txt returns 200 with real llms.txt content', async ({ request }) => {
     const response = await request.get(`${STATIC_BASE}/llms.txt`);
-    expect(response.status()).toBe(404);
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    // Real llms.txt starts with the site title, not homepage HTML
+    expect(body).toContain('# Coastal Travel Company');
+    expect(body).not.toContain('<html');
   });
 
   test('nested non-existent path returns 404', async ({ request }) => {

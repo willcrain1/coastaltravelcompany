@@ -1,5 +1,5 @@
 /**
- * SEO meta tests — ACTION-PLAN items 4 (sitemap) and 5 (canonical tags).
+ * SEO meta tests — sitemap and canonical tags.
  *
  * Sitemap tests (run locally + CI):
  *  1. sitemap.xml returns 200
