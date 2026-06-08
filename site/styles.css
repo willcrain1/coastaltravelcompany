@@ -317,6 +317,13 @@ nav.scrolled .nav-toggle span {
   margin-bottom: 22px;
 }
 
+.hero-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
 .hero-script {
   font-family: 'Pinyon Script', cursive;
   font-size: clamp(56px, 9vw, 110px);
@@ -324,6 +331,8 @@ nav.scrolled .nav-toggle span {
   display: block;
   line-height: 1;
   margin-bottom: -8px;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .hero-title {
@@ -331,7 +340,7 @@ nav.scrolled .nav-toggle span {
   font-size: clamp(36px, 5.5vw, 70px);
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-bottom: 28px;
+  display: block;
 }
 
 .hero-tagline {
