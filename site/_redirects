@@ -1,3 +1,6 @@
 # Cloudflare Pages redirect rules.
 # No catch-all rule here — this intentionally disables SPA mode so that
 # unmatched paths return a real 404 (served via 404.html) instead of 200.
+
+# Canonicalize www → non-www (item 3)
+https://www.coastaltravelcompany.com/* https://coastaltravelcompany.com/:splat 301
