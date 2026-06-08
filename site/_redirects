@@ -4,3 +4,4 @@
 
 # Canonicalize www → non-www (item 3)
 https://www.coastaltravelcompany.com/* https://coastaltravelcompany.com/:splat 301
+https://www.preprod.coastaltravelcompany.com/* https://preprod.coastaltravelcompany.com/:splat 301
