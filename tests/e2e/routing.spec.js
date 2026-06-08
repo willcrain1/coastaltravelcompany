@@ -24,14 +24,15 @@
 
 import { test, expect } from '@playwright/test';
 
-const STATIC_BASE   = process.env.BASE_URL || 'http://localhost:9876';
-const IS_DEPLOYED   = !!process.env.BASE_URL;
-// www redirect tests only make sense against production — skip on preprod/staging deployments
-const IS_PRODUCTION = IS_DEPLOYED && !STATIC_BASE.includes('preprod');
+const STATIC_BASE  = process.env.BASE_URL || 'http://localhost:9876';
+const IS_DEPLOYED  = !!process.env.BASE_URL;
 
-// www always points to the live domain regardless of BASE_URL
-const WWW_ORIGIN    = 'https://www.coastaltravelcompany.com';
-const NONWWW_ORIGIN = 'https://coastaltravelcompany.com';
+// Derive www/non-www origins from BASE_URL so tests work for any deployed environment.
+// e.g. https://preprod.coastaltravelcompany.com → www.preprod.coastaltravelcompany.com
+// e.g. https://coastaltravelcompany.com         → www.coastaltravelcompany.com
+const _base        = IS_DEPLOYED ? new URL(STATIC_BASE) : new URL('https://coastaltravelcompany.com');
+const NONWWW_ORIGIN = _base.origin;
+const WWW_ORIGIN    = `${_base.protocol}//www.${_base.hostname}`;
 
 // ── Content tests (local + CI) ────────────────────────────────────────────────
 
@@ -110,7 +111,7 @@ test.describe('HTTP 404 for unmatched routes', () => {
 // ── www redirect tests (deployed Pages only) ──────────────────────────────────
 
 test.describe('www → non-www 301 redirect', () => {
-  test.skip(!IS_PRODUCTION, 'Redirect tests require a production deployment — skipped on preprod/staging (BASE_URL contains "preprod")');
+  test.skip(!IS_DEPLOYED, 'Redirect tests require a deployed Cloudflare Pages environment (set BASE_URL)');
 
   test('www root redirects to non-www root with 301', async ({ request }) => {
     const response = await request.get(`${WWW_ORIGIN}/`, { maxRedirects: 0 });
