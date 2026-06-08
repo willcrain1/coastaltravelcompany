@@ -1,0 +1,7 @@
+# Cloudflare Pages redirect rules.
+# No catch-all rule here — this intentionally disables SPA mode so that
+# unmatched paths return a real 404 (served via 404.html) instead of 200.
+#
+# www → non-www redirects are handled by Cloudflare Redirect Rules (dashboard),
+# not here. Pages _redirects absolute URL matching does not fire for custom
+# domains registered on the same Pages project.
