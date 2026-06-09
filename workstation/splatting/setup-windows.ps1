@@ -3,7 +3,7 @@
 .SYNOPSIS
     One-time setup for the CTC Gaussian Splatting processing workstation.
     Installs COLMAP, ffmpeg, Miniconda, nerfstudio (splatfacto), and Node.js.
-    Run from an elevated PowerShell prompt (right-click → Run as Administrator).
+    Run from an elevated PowerShell prompt (right-click -> Run as Administrator).
 #>
 
 Set-StrictMode -Version Latest
@@ -73,7 +73,7 @@ if ($freeGB -lt 20) {
 
 Write-Step "Installing base packages via winget"
 
-# Exit code -1978335189 (0x8A150021) = WINGET_INSTALLED_STATUS_ALREADY_INSTALLED — treat as success
+# Exit code -1978335189 (0x8A150021) = WINGET_INSTALLED_STATUS_ALREADY_INSTALLED -- treat as success
 $packages = @(
     @{ Id = "Git.Git";             Label = "Git" },
     @{ Id = "Gyan.FFmpeg";         Label = "ffmpeg" },
@@ -180,12 +180,6 @@ if ($LASTEXITCODE -ne 0 -or $gpuCheck -match "Error|not available") {
     Write-Ok "PyTorch sees GPU: $gpuCheck"
 }
 
-# ── SuperSplat ────────────────────────────────────────────────────────────────
-
-Write-Step "SuperSplat (browser-based, no install required)"
-Write-Ok "Opening supersplat.playcanvas.com -- bookmark it for the review and export step."
-Start-Process "https://supersplat.playcanvas.com"
-
 # ── Working directory structure ───────────────────────────────────────────────
 
 Write-Step "Creating working directory structure"
@@ -196,14 +190,13 @@ foreach ($d in @("incoming", "frames", "colmap_out", "outputs", "export", "done"
 }
 Write-Ok "Directories created under $workRoot"
 
-# Copy process-scene.ps1 next to the working dirs for easy access
 $processSrc = Join-Path $PSScriptRoot "process-scene.ps1"
 $processDst = "$workRoot\process-scene.ps1"
 if (Test-Path $processSrc) {
     Copy-Item $processSrc $processDst -Force
     Write-Ok "process-scene.ps1 copied to $workRoot"
 } else {
-    Write-Warn "process-scene.ps1 not found at $processSrc -- copy workstation\splatting\process-scene.ps1 to $workRoot manually."
+    Write-Warn "process-scene.ps1 not found at $processSrc -- copy it to $workRoot manually."
 }
 
 # ── Summary ───────────────────────────────────────────────────────────────────
@@ -228,7 +221,6 @@ foreach ($kv in $summary.GetEnumerator()) {
 Write-Host ""
 Write-Host "    Working directory  : $workRoot" -ForegroundColor Cyan
 Write-Host "    Processing script  : $processDst" -ForegroundColor Cyan
-Write-Host "    SuperSplat viewer  : https://supersplat.playcanvas.com" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "    File naming convention (required for NAS upload trigger):" -ForegroundColor Yellow
 Write-Host "      YYYY-MM_property-slug_room-slug.splat"
