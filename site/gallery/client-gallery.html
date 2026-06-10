@@ -763,8 +763,11 @@ function updateFavUI() {
 // ── Admin stars ───────────────────────────────────────────
 async function loadAdminStars() {
   if (!cfg?.id) return;
+  const jwt = localStorage.getItem('ctc_jwt') || '';
   try {
-    const res = await fetch(proxyBase() + '/gallery/' + cfg.id + '/admin-stars');
+    const res = await fetch(proxyBase() + '/gallery/' + cfg.id + '/admin-stars', {
+      headers: { 'Authorization': 'Bearer ' + jwt },
+    });
     if (!res.ok) return;
     const data = await res.json();
     adminStars = new Set((data.stars || []).map(String));

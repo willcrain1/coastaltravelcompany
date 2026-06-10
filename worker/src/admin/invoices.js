@@ -280,18 +280,31 @@ export async function handleStripeWebhook(request, env) {
   return jsonResponse({ ok: true });
 }
 
+// Reject events older than 5 minutes (Stripe's recommended tolerance) so a
+// captured webhook payload cannot be replayed indefinitely.
+const STRIPE_SIG_TOLERANCE_SECS = 300;
+
+function timingSafeEqualStr(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 async function verifyStripeSignature(rawBody, sigHeader, secret) {
   const parts = sigHeader.split(',');
   const t  = (parts.find(s => s.startsWith('t='))  || '').slice(2);
   const v1 = (parts.find(s => s.startsWith('v1=')) || '').slice(3);
   if (!t || !v1) return false;
+  const ts = parseInt(t, 10);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > STRIPE_SIG_TOLERANCE_SECS) return false;
   const key = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
   );
   const sig      = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(t + '.' + rawBody));
   const computed = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return computed === v1;
+  return timingSafeEqualStr(computed, v1);
 }
 
 export async function handlePortalInvoices(request, env) {
