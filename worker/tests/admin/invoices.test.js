@@ -510,6 +510,23 @@ describe('handleStripeWebhook', () => {
     expect(r.status).toBe(400);
   });
 
+  it('400 on stale timestamp (replay protection)', async () => {
+    const secret  = 'whsec_test_at_least_32_chars_long_enough!!';
+    const rawBody = JSON.stringify({ type: 'customer.created' });
+    const stale   = Math.floor(Date.now() / 1000) - 600; // 10 min old > 5 min tolerance
+    const key = await crypto.subtle.importKey(
+      'raw', new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+    );
+    const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(stale + '.' + rawBody));
+    const v1  = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const r = await handleStripeWebhook(
+      new Request('http://t', { method: 'POST', body: rawBody, headers: { 'Stripe-Signature': `t=${stale},v1=${v1}` } }),
+      { DB: makeDb(), STRIPE_WEBHOOK_SECRET: secret },
+    );
+    expect(r.status).toBe(400);
+  });
+
   it('400 on valid sig but invalid JSON body', async () => {
     const rawBody   = 'not-json';
     const secret    = 'whsec_test_at_least_32_chars_long_enough!!';

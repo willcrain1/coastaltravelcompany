@@ -404,10 +404,19 @@ describe('handlePublicContractSign', () => {
   it('200 signs contract with no client_email (no email sent)', async () => {
     const contract = { id: 'c2', status: 'sent', client_email: '', client_name: 'Bob', title: 'D', body_hash: 'xyz' };
     const r = await handlePublicContractSign(
-      new Request('http://t', { method: 'POST', body: '{"signature":"sig","signature_type":"drawn"}' }),
+      new Request('http://t', { method: 'POST', body: '{"signature":"data:image/png;base64,iVBOR","signature_type":"drawn"}' }),
       { DB: makeDb([contract]) }, 'tok',
     );
     expect(r.status).toBe(200);
+  });
+
+  it('400 when drawn signature is not an image data URL', async () => {
+    const contract = { id: 'c3', status: 'sent', client_email: '', client_name: 'Bob', title: 'D', body_hash: '' };
+    const r = await handlePublicContractSign(
+      new Request('http://t', { method: 'POST', body: '{"signature":"https://evil.example/sig.png","signature_type":"drawn"}' }),
+      { DB: makeDb([contract]) }, 'tok',
+    );
+    expect(r.status).toBe(400);
   });
 });
 

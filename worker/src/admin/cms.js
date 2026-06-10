@@ -122,10 +122,18 @@ function extractZone(html, zoneId) {
   return m ? m[1].trim() : '';
 }
 
+// Zones are plain text only (see CLAUDE.md) — escape angle brackets so a saved
+// value can never introduce markup or scripts into the published page.
+function sanitizeZoneValue(value) {
+  return String(value).replace(/</g, '&lt;').replace(/>/g, '&gt;').trim();
+}
+
 function updateZone(html, zoneId, value) {
   return html.replace(
     new RegExp(`(data-content-id="${zoneId}"[^>]*>)[\\s\\S]*?(<\\/[a-z0-9]+>)`, 'i'),
-    `$1${value}$2`,
+    // Function replacement so `$` sequences in the value (e.g. prices like
+    // "$1,200") are inserted literally instead of as replacement patterns.
+    (m, open, close) => open + value + close,
   );
 }
 
@@ -185,8 +193,9 @@ export async function handleAdminCmsPage(request, env) {
     for (const [zoneId, value] of Object.entries(updates)) {
       const zone = cfg.zones.find(z => z.id === zoneId);
       if (!zone) continue;
-      if (extractZone(html, zoneId) === String(value).trim()) continue;
-      html = updateZone(html, zoneId, value);
+      const safeValue = sanitizeZoneValue(value);
+      if (extractZone(html, zoneId) === safeValue) continue;
+      html = updateZone(html, zoneId, safeValue);
       changedLabels.push(zone.label);
     }
 

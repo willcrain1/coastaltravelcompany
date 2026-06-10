@@ -5,7 +5,21 @@ import { CONTACT_TO } from './constants.js';
 
 // KV key: adminstars:<galleryId> → JSON array of photo ID strings
 
+// Same access rule as the /token exchange: admins see everything, clients
+// only galleries they are assigned to.
+function canAccessGallery(payload, gallery) {
+  if (payload.role === 'admin') return true;
+  return (gallery.assignedUsers || []).includes(payload.sub);
+}
+
 export async function handleAdminStarsGet(request, env, galleryId) {
+  const auth = await getAuth(request, env);
+  if (!auth) return authRequired();
+
+  const gallery = await getGallery(galleryId, env.KV);
+  if (!gallery) return jsonResponse({ error: 'Gallery not found' }, 404);
+  if (!canAccessGallery(auth, gallery)) return forbidden();
+
   const raw = await env.KV.get('adminstars:' + galleryId);
   const stars = raw ? JSON.parse(raw) : [];
   return jsonResponse({ stars });
@@ -40,6 +54,7 @@ export async function handleSubmitSelections(request, env, galleryId) {
 
   const gallery = await getGallery(galleryId, env.KV);
   if (!gallery) return jsonResponse({ error: 'Gallery not found' }, 404);
+  if (!canAccessGallery(auth, gallery)) return forbidden();
 
   const rlKey = 'selrl:' + galleryId + ':' + auth.sub;
   const countStr = await env.KV.get(rlKey);
