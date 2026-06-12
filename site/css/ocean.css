@@ -1,0 +1,265 @@
+/* ═══════════════════════════════════════════════════════════════
+   Ocean UI — water-themed dynamic layer
+   Loaded after styles.css on public marketing pages. Everything in
+   here is additive: ocean.js adds .ocean-on to <html> only when
+   motion is allowed, so with JS disabled or prefers-reduced-motion
+   the site renders exactly as before.
+
+   Pointer/scroll state written by ocean.js as custom properties:
+     --mx, --my  smoothed pointer offset from viewport center (−.5….5)
+     --sp        page scroll progress (0…1)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --ocean-deep:    #0E3A4D;
+  --ocean-mid:     #176273;
+  --ocean-foam:    #DDF0EE;
+  --mx: 0;
+  --my: 0;
+  --sp: 0;
+}
+
+/* ─── Hero wave + caustics canvases ───────────────────────── */
+
+.ocean-waves {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px; /* avoid sub-pixel seam against the next section */
+  width: 100%;
+  height: 28%;
+  min-height: 140px;
+  max-height: 260px;
+  pointer-events: none;
+  z-index: 1; /* above photo + overlay, below .hero-content (z 2) */
+}
+
+.page-hero .ocean-waves {
+  height: 30%;
+  min-height: 90px;
+  max-height: 140px;
+}
+
+/* Light refracting through water — two soft radial "sun shafts"
+   that drift with the pointer, over hero photos only. */
+.ocean-caustics {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: soft-light;
+  opacity: 0.85;
+  background:
+    radial-gradient(38% 30% at calc(30% + var(--mx) * 18%) calc(22% + var(--my) * 14%),
+      rgba(221, 240, 238, 0.55), transparent 70%),
+    radial-gradient(46% 38% at calc(72% - var(--mx) * 22%) calc(60% - var(--my) * 16%),
+      rgba(143, 191, 190, 0.4), transparent 72%);
+}
+
+/* JS drives hero photo drift + parallax; retire the CSS Ken Burns
+   so inline transforms aren't fought by the animation fill. */
+.ocean-on .hero-bg,
+.ocean-on .page-hero-bg {
+  animation: none;
+  transform: scale(1.1);
+  will-change: transform;
+}
+
+.ocean-on .hero-content,
+.ocean-on .page-hero-content {
+  will-change: transform;
+  z-index: 3; /* above the in-hero wave divider (z 2) */
+}
+
+/* ─── Wave dividers between sections ──────────────────────── */
+/* <div class="ocean-divider" data-top="cream" data-bottom="white">
+   background = section above, wave fill = section below.
+   ocean.js generates seamless sine paths and drives their drift
+   from time + scroll position. */
+
+.ocean-divider {
+  position: relative;
+  height: 88px;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.ocean-divider svg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 200%;
+  height: 100%;
+  will-change: transform;
+}
+
+/* Divider placed inside a hero/banner: overlaps the bottom of the
+   photo so the next section's color rolls into it as a wave. */
+.hero > .ocean-divider,
+.page-hero > .ocean-divider,
+[data-ocean-waves] > .ocean-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 72px;
+  background: transparent;
+  z-index: 2;
+}
+
+.ocean-divider[data-top="cream"]  { background: var(--cream); }
+.ocean-divider[data-top="linen"]  { background: var(--warm-linen); }
+.ocean-divider[data-top="white"]  { background: var(--white); }
+.ocean-divider[data-top="black"]  { background: var(--black); }
+.ocean-divider[data-top="green"]  { background: var(--forest-green); }
+
+.ocean-divider[data-bottom="cream"]  { color: var(--cream); }
+.ocean-divider[data-bottom="linen"]  { color: var(--warm-linen); }
+.ocean-divider[data-bottom="white"]  { color: var(--white); }
+.ocean-divider[data-bottom="black"]  { color: var(--black); }
+.ocean-divider[data-bottom="green"]  { color: var(--forest-green); }
+
+/* ─── Descend-into-the-deep tint ──────────────────────────── */
+/* Fixed overlay whose teal deepens slightly as you scroll —
+   the page "submerges". Kept subtle to preserve the brand. */
+
+.ocean-depth {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  mix-blend-mode: multiply;
+  background: linear-gradient(180deg,
+    rgba(221, 240, 238, 0.45) 0%,
+    rgba(23, 98, 115, 0.55) 60%,
+    rgba(14, 58, 77, 0.7) 100%);
+  opacity: calc(var(--sp) * 0.12);
+}
+
+/* ─── Photos: scroll parallax + caustic sheen ─────────────── */
+/* Route the existing hover scales through variables so they
+   compose with the JS-driven --oc-py vertical parallax. Base
+   scale gives headroom so the shift never reveals edges. */
+
+.ocean-on .img-overflow img {
+  transform: translate3d(0, var(--oc-py, 0px), 0) scale(var(--oc-s, 1.1));
+}
+.ocean-on .img-overflow:hover img { --oc-s: 1.14; }
+
+.ocean-on .collection-card img {
+  transform: translate3d(0, var(--oc-py, 0px), 0) scale(var(--oc-s, 1.1));
+}
+.ocean-on .collection-card:hover img { --oc-s: 1.16; }
+
+/* Pointer-tracking tilt (set by ocean.js on fine pointers). */
+.ocean-on .collection-card {
+  transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+  transition: transform 0.3s ease-out;
+}
+
+/* Caustic light sheen that follows the cursor across a photo. */
+.ocean-on .collection-card::after,
+.ocean-on .img-overflow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  mix-blend-mode: soft-light;
+  background: radial-gradient(42% 38% at var(--px, 50%) var(--py, 50%),
+    rgba(221, 240, 238, 0.9), rgba(143, 191, 190, 0.35) 55%, transparent 75%);
+}
+.ocean-on .collection-card:hover::after,
+.ocean-on .img-overflow:hover::after { opacity: 1; }
+
+.ocean-on .img-overflow { position: relative; }
+
+/* ─── Click ripple ────────────────────────────────────────── */
+
+.ocean-ripple {
+  position: fixed;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  border: 1.5px solid rgba(143, 191, 190, 0.85);
+  animation: oc-ripple 0.9s cubic-bezier(0.16, 0.6, 0.4, 1) forwards;
+}
+.ocean-ripple::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(143, 191, 190, 0.45);
+}
+
+@keyframes oc-ripple {
+  0%   { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(7);   opacity: 0; }
+}
+
+/* ─── Liquid-fill buttons ─────────────────────────────────── */
+/* A rotating rounded mass rises like water on hover. Translucent
+   so the label stays readable without re-stacking the text. */
+
+.ocean-on .btn {
+  position: relative;
+  overflow: hidden;
+}
+.ocean-on .btn::after {
+  content: '';
+  position: absolute;
+  left: -25%;
+  top: 115%;
+  width: 150%;
+  padding-bottom: 150%;
+  border-radius: 43%;
+  background: rgba(143, 191, 190, 0.3);
+  transition: top 0.9s cubic-bezier(0.22, 0.8, 0.32, 1);
+  animation: oc-slosh 7s linear infinite;
+  pointer-events: none;
+}
+.ocean-on .btn:hover::after { top: -45%; }
+
+@keyframes oc-slosh {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ─── Micro touches ───────────────────────────────────────── */
+
+.ocean-on .nav-links a:hover {
+  text-decoration: underline wavy;
+  text-decoration-color: var(--sage-teal);
+  text-underline-offset: 7px;
+  text-decoration-thickness: 1px;
+}
+
+/* Deep-rise reveal: existing .fade-up elements surface with a
+   touch of blur, like coming up through water. */
+.ocean-on .fade-up {
+  filter: blur(6px);
+  transition-property: opacity, transform, filter;
+}
+.ocean-on .fade-up.in-view {
+  filter: blur(0);
+}
+
+/* ─── Guard rails ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .ocean-waves,
+  .ocean-caustics,
+  .ocean-depth,
+  .ocean-ripple { display: none; }
+  .ocean-on .btn::after { animation: none; }
+}
+
+@media (max-width: 768px) {
+  .ocean-divider { height: 48px; }
+  .ocean-caustics { display: none; }
+}
