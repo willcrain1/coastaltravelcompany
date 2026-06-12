@@ -252,6 +252,32 @@ describe('handleAdminCmsPage PUT', () => {
     expect(body.commit).toBe('commit456');
   });
 
+  it('escapes angle brackets in zone values (plain text only)', async () => {
+    mockGitHub();
+    const r = await handleAdminCmsPage(
+      await adminReq('PUT', url, { zones: { 'hero-title': '<script>alert(1)</script>' } }),
+      makeEnv(),
+    );
+    expect(r.status).toBe(200);
+    const putCall = fetch.mock.calls.find(([, opts]) => opts?.method === 'PUT');
+    expect(putCall).toBeDefined();
+    const committed = atob(JSON.parse(putCall[1].body).content);
+    expect(committed).not.toContain('<script>alert(1)</script>');
+    expect(committed).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+  });
+
+  it('inserts dollar signs literally (no regex replacement patterns)', async () => {
+    mockGitHub();
+    const r = await handleAdminCmsPage(
+      await adminReq('PUT', url, { zones: { 'hero-title': 'From $1,200 per trip' } }),
+      makeEnv(),
+    );
+    expect(r.status).toBe(200);
+    const putCall = fetch.mock.calls.find(([, opts]) => opts?.method === 'PUT');
+    const committed = atob(JSON.parse(putCall[1].body).content);
+    expect(committed).toContain('From $1,200 per trip');
+  });
+
   it('skips unknown zone IDs silently', async () => {
     mockGitHub();
     const r = await handleAdminCmsPage(

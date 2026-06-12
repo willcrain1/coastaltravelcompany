@@ -3,14 +3,22 @@
 .SYNOPSIS
     Per-job Gaussian Splatting processing pipeline.
     Drop one video file in the incoming\ folder, then run this script.
-    It runs ffmpeg → COLMAP → nerfstudio splatfacto → export, then
+    It runs ffmpeg -> COLMAP -> nerfstudio splatfacto -> export, then
     opens the result in Explorer and SuperSplat for review.
+
+.PARAMETER Resume
+    Skip frame extraction and COLMAP if frames and transforms.json already
+    exist for the video in incoming\. Jumps straight to training.
+    Use this when a previous run failed at the training step.
 
 .NOTES
     This script expects to live alongside the CTC-Splatting working
     directories (incoming\, frames\, colmap_out\, outputs\, export\, done\).
     setup-windows.ps1 copies it there automatically.
 #>
+param(
+    [switch]$Resume
+)
 
 Set-StrictMode -Version Latest
 
@@ -93,31 +101,47 @@ Write-Ok "Slug  : $slug"
 
 # ── Frame extraction ──────────────────────────────────────────────────────────
 
-Write-Step "Extracting frames with ffmpeg (fps=3, 4K)"
+$existingFrames = (Get-ChildItem "$frames\*.jpg" -ErrorAction SilentlyContinue).Count
+$colmapDone     = Test-Path "$colmapOut\$slug\transforms.json"
 
-# Wipe and re-create the frames directory for a clean run
-if (Test-Path $frames) { Remove-Item "$frames\*" -Force -Recurse -ErrorAction SilentlyContinue }
-New-Item -ItemType Directory -Path $frames -Force | Out-Null
+if ($Resume -and $existingFrames -gt 0 -and $colmapDone) {
+    Write-Step "Extracting frames with ffmpeg (fps=3, 4K)"
+    Write-Ok "Skipping -- $existingFrames frames already extracted and COLMAP output exists (-Resume)"
+    $frameCount = $existingFrames
+} else {
+    Write-Step "Extracting frames with ffmpeg (fps=3, 4K)"
 
-# fps=3: 3 frames/sec, enough overlap for a slow walkthrough pass
-# scale=3840:-1: scale to 3840 px wide, preserve aspect ratio
-# -q:v 2: near-lossless JPEG quality
-$ffmpegArgs = @(
-    "-i", $video.FullName,
-    "-vf", "fps=3,scale=3840:-1",
-    "-q:v", "2",
-    "$frames\%05d.jpg",
-    "-y"
-)
-& ffmpeg @ffmpegArgs
-if ($LASTEXITCODE -ne 0) { Write-Fail "ffmpeg failed. Is ffmpeg installed? Run setup-windows.ps1." }
+    # Wipe and re-create the frames directory for a clean run
+    if (Test-Path $frames) { Remove-Item "$frames\*" -Force -Recurse -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Path $frames -Force | Out-Null
 
-$frameCount = (Get-ChildItem "$frames\*.jpg" -ErrorAction SilentlyContinue).Count
-Write-Ok "$frameCount frames extracted"
+    # fps=3: 3 frames/sec, enough overlap for a slow walkthrough pass
+    # scale=3840:-1: scale to 3840 px wide, preserve aspect ratio
+    # -q:v 2: near-lossless JPEG quality
+    # HDR tone-mapping chain: iPhone footage is Dolby Vision / HLG (arib-std-b67, BT.2020 10-bit).
+    # Without explicit tone mapping ffmpeg converts each frame inconsistently, which destroys
+    # COLMAP feature matching. zscale linearises the HLG signal, tonemap=hable maps to SDR
+    # cleanly (must run while signal is still linear), then the second zscale converts
+    # primaries/matrix/transfer to BT.709 JPEG-ready output.
+    # IMPORTANT: tonemap=hable must come BEFORE the second zscale that applies bt709 transfer;
+    # applying bt709 transfer first makes the signal non-linear and breaks the tone mapper.
+    $ffmpegArgs = @(
+        "-i", $video.FullName,
+        "-vf", "fps=3,scale=3840:-1,zscale=transfer=linear:npl=100,format=gbrpf32le,tonemap=hable:desat=0,zscale=primaries=bt709:transfer=bt709:matrix=bt709,zscale=range=tv,format=yuv420p",
+        "-q:v", "2",
+        "$frames\%05d.jpg",
+        "-y"
+    )
+    & ffmpeg @ffmpegArgs
+    if ($LASTEXITCODE -ne 0) { Write-Fail "ffmpeg failed. Is ffmpeg installed? Run setup-windows.ps1." }
 
-if ($frameCount -lt 100) {
-    Write-Warn "Fewer than 100 frames — the video may be too short for reliable reconstruction."
-    Write-Warn "Aim for 200-600 frames (3-5 min of footage at fps=3). Consider bumping to fps=5 for short clips."
+    $frameCount = (Get-ChildItem "$frames\*.jpg" -ErrorAction SilentlyContinue).Count
+    Write-Ok "$frameCount frames extracted"
+
+    if ($frameCount -lt 100) {
+        Write-Warn "Fewer than 100 frames - the video may be too short for reliable reconstruction."
+        Write-Warn "Aim for 200-600 frames (3-5 min of footage at fps=3). Consider bumping to fps=5 for short clips."
+    }
 }
 
 # ── COLMAP reconstruction ─────────────────────────────────────────────────────
@@ -125,13 +149,22 @@ if ($frameCount -lt 100) {
 Write-Step "COLMAP reconstruction via ns-process-data"
 
 $colmapScene = "$colmapOut\$slug"
-New-Item -ItemType Directory -Path $colmapScene -Force | Out-Null
 
-& $condaExe run -n nerfstudio ns-process-data images `
-    --data "$frames" `
-    --output-dir "$colmapScene"
-if ($LASTEXITCODE -ne 0) {
-    Write-Fail "ns-process-data (COLMAP) failed.`nCommon causes: too few frames, low overlap, dark or blurry footage, or mirrors causing duplicate geometry."
+if ($Resume -and $colmapDone) {
+    Write-Ok "Skipping -- transforms.json already exists for '$slug' (-Resume)"
+} else {
+    New-Item -ItemType Directory -Path $colmapScene -Force | Out-Null
+
+    # Sequential matching is correct for video-derived frames: it connects each frame to the
+    # next N frames in capture order. Vocab-tree (the default) fails on single-room scenes
+    # because the visual vocabulary is too repetitive for global bag-of-words matching.
+    & $condaExe run -n nerfstudio ns-process-data images `
+        --data "$frames" `
+        --output-dir "$colmapScene" `
+        --matching-method sequential
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "ns-process-data (COLMAP) failed.`nCommon causes: too few frames, low overlap, dark or blurry footage, or mirrors causing duplicate geometry."
+    }
 }
 
 # Report registration rate
@@ -142,7 +175,9 @@ if (Test-Path $transformsJson) {
         $registered  = $transforms.frames.Count
         $pct         = if ($frameCount -gt 0) { [math]::Round(($registered / $frameCount) * 100) } else { 0 }
         Write-Ok "$registered / $frameCount frames registered ($pct%)"
-        if ($pct -lt 80) {
+        if ($pct -lt 20) {
+            Write-Fail "Only $pct% of frames registered -- COLMAP reconstruction is unusable.`nCommon causes: bad HDR tone mapping, motion blur, very fast camera movement, or heavily repetitive textures.`nCheck a few frames in $frames to confirm they look correctly exposed before re-running."
+        } elseif ($pct -lt 80) {
             Write-Warn "Less than 80% of frames registered."
             Write-Warn "Consider reshooting with slower movement, more overlap, or better / more even lighting."
         }
@@ -195,11 +230,26 @@ if (-not $plyFile) { Write-Fail "No .ply file found in $exportScene after export
 $plySizeMB = [math]::Round($plyFile.Length / 1MB, 1)
 Write-Ok "Exported: $($plyFile.Name) ($plySizeMB MB)"
 
-# ── Open for review ───────────────────────────────────────────────────────────
+# ── Floater cleanup ───────────────────────────────────────────────────────────
 
-Write-Step "Opening export folder and SuperSplat"
+Write-Step "Cleaning floaters (scale filter + statistical outlier removal)"
+
+$cleanPly = "$exportScene\splat-clean.ply"
+& $condaExe run -n nerfstudio python "$workRoot\clean-splat.py" "$($plyFile.FullName)" "$cleanPly"
+if ($LASTEXITCODE -ne 0) {
+    Write-Warn "clean-splat.py failed -- skipping cleanup, using raw PLY for next steps."
+} else {
+    $cleanFile = Get-Item $cleanPly
+    $cleanSizeMB = [math]::Round($cleanFile.Length / 1MB, 1)
+    Write-Ok "Cleaned : splat-clean.ply ($cleanSizeMB MB)"
+    $plyFile   = $cleanFile
+    $plySizeMB = $cleanSizeMB
+}
+
+# ── Open export folder for review ────────────────────────────────────────────
+
+Write-Step "Opening export folder"
 Invoke-Item $exportScene
-Start-Process "https://supersplat.playcanvas.com"
 
 # ── Next-step instructions ────────────────────────────────────────────────────
 
@@ -207,25 +257,25 @@ $nasSlug    = $slug     # rename to YYYY-MM_property_room before NAS upload if n
 $splatName  = "${slug}.splat"
 
 Write-Host ""
-Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  Processing complete — review and deliver" -ForegroundColor Cyan
-Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host "  Processing complete - review and deliver" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  PLY file : $($plyFile.FullName) ($plySizeMB MB)"
 Write-Host ""
-Write-Host "  Step 1 — Review and convert in SuperSplat (now open in browser):"
-Write-Host "    a. Drag $($plyFile.Name) into the SuperSplat window"
-Write-Host "    b. Orbit the scene and check for floaters or black patches"
-Write-Host "    c. Use the selection tool to delete any floaters"
-Write-Host "    d. File > Export > Save as .splat"
-Write-Host "    e. Save as: $exportScene\$splatName"
-Write-Host "       (the .splat will be ~5-10x smaller than the PLY)"
+Write-Host "  Step 1 - Inspect the scene:"
+Write-Host "    conda run -n nerfstudio ns-viewer --load-config `"$($config.FullName)`""
 Write-Host ""
-Write-Host "  Step 2 — Copy to NAS (two separate destinations):" -ForegroundColor Yellow
+Write-Host "  Step 1b - Convert cleaned PLY to .splat for delivery:"
+Write-Host "    Cleaned PLY : $($plyFile.FullName) ($plySizeMB MB)"
+Write-Host "    Use a Gaussian splat viewer / converter to export as .splat"
+Write-Host "    (the .splat will be ~5-10x smaller than the PLY)"
+Write-Host ""
+Write-Host "  Step 2 - Copy to NAS (two separate destinations):" -ForegroundColor Yellow
 Write-Host "    Archive  : $($plyFile.Name)"
-Write-Host "               → NAS: 3d-walkthroughs\$nasSlug\export\$($plyFile.Name)"
+Write-Host "               -> NAS: 3d-walkthroughs\$nasSlug\export\$($plyFile.Name)"
 Write-Host "    R2 upload: $splatName"
-Write-Host "               → NAS: 3d-walkthroughs\splats-incoming\$splatName"
+Write-Host "               -> NAS: 3d-walkthroughs\splats-incoming\$splatName"
 Write-Host "       The NAS sync script picks up the .splat within 2 minutes"
 Write-Host "       and uploads it to R2 automatically."
 Write-Host ""
@@ -233,7 +283,7 @@ Write-Host "  Naming convention reminder:" -ForegroundColor Yellow
 Write-Host "    YYYY-MM_property-slug_room-slug.splat"
 Write-Host "    e.g. 2026-05_grand-palms_suite-101.splat"
 if ($slug -notmatch '^\d{4}-\d{2}_') {
-    Write-Host "    NOTE: '$slug' does not match the convention — rename before copying to the NAS." -ForegroundColor Yellow
+    Write-Host "    NOTE: '$slug' does not match the convention - rename before copying to the NAS." -ForegroundColor Yellow
 }
 Write-Host ""
-Write-Host "═══════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan

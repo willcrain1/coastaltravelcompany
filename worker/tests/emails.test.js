@@ -76,7 +76,9 @@ function captureResend() {
 }
 
 async function makeStripeHeader(body, secret) {
-  const t   = '1234567890';
+  // Must be a current timestamp — the webhook rejects signatures outside the
+  // 5-minute replay tolerance window.
+  const t   = String(Math.floor(Date.now() / 1000));
   const key = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(secret),
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']

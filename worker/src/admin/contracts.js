@@ -5,7 +5,11 @@ import { getAuth } from '../jwt.js';
 function buildContractSnapshot(contract, adminSignature, adminSignatureType, adminSignedAt) {
   const renderSig = (sig, type) => {
     if (!sig) return '<em style="color:#999">Not provided</em>';
-    if (type === 'drawn') return `<img src="${escHtml(sig)}" alt="Signature" style="max-height:70px;display:block">`;
+    if (type === 'drawn') {
+      // Drawn signatures must be inline image data — never a fetchable URL.
+      if (!/^data:image\//.test(sig)) return '<em style="color:#999">Invalid signature</em>';
+      return `<img src="${escHtml(sig)}" alt="Signature" style="max-height:70px;display:block">`;
+    }
     return `<span style="font-family:Georgia,serif;font-size:1.8em;font-style:italic">${escHtml(sig)}</span>`;
   };
   return `<!DOCTYPE html>
@@ -163,6 +167,9 @@ export async function handleAdminProjectContractCountersign(request, env, projec
   if (!env.DB) return jsonResponse({ error: 'Database not configured' }, 503);
   const { signature, signature_type } = await request.json();
   if (!signature || !signature_type) return jsonResponse({ error: 'signature and signature_type required' }, 400);
+  if (signature_type === 'drawn' && !/^data:image\//.test(signature)) {
+    return jsonResponse({ error: 'Drawn signature must be an image data URL' }, 400);
+  }
   const { results: cR } = await env.DB.prepare('SELECT * FROM contracts WHERE id = ? AND project_id = ?').bind(contractId, projectId).all();
   const contract = cR[0];
   if (!contract) return jsonResponse({ error: 'Contract not found' }, 404);
@@ -248,6 +255,9 @@ export async function handlePublicContractSign(request, env, token) {
   const body = await request.json();
   const { signature, signature_type } = body;
   if (!signature || !signature_type) return jsonResponse({ error: 'signature and signature_type required' }, 400);
+  if (signature_type === 'drawn' && !/^data:image\//.test(signature)) {
+    return jsonResponse({ error: 'Drawn signature must be an image data URL' }, 400);
+  }
   const { results: cR } = await env.DB.prepare('SELECT * FROM contracts WHERE signing_token = ?').bind(token).all();
   const contract = cR[0];
   if (!contract) return jsonResponse({ error: 'Contract not found' }, 404);

@@ -14,6 +14,8 @@
 - Portal: `/portal/*`
 - Admin: `/admin/*` (includes `POST /admin/masquerade`, `POST /admin/masquerade/exit`)
 - Public: `/proposals/*`, `/invoices/*`, `/contracts/*`, `/schedule/*`, `/questionnaire/*`
+- Gallery favorites: `GET /gallery/:id/admin-stars` and `POST /gallery/:id/submit-selections` require any valid JWT **plus** gallery assignment (admin or `assignedUsers`); `PUT /gallery/:id/admin-stars/:photoId` is admin-only
+- Stripe: `POST /stripe/webhook` — HMAC signature verified with constant-time compare and a 5-minute timestamp tolerance (replay protection)
 - Proxy: `/*` (fallthrough to `handleNasProxy`)
 
 ## D1 Schema
@@ -41,6 +43,10 @@
 - **Sync endpoint:** `POST /admin/galleries/:id/sync-r2?offset=N` (admin-auth). Paginates via `offset`; syncs both photo thumbnails (`thumbs/`) and full video files (`videos/`, streamed directly via `vidRes.body` to avoid buffering); sets `gallery.r2_synced=true` in KV when `done=true`.
 - **Sync script:** `worker/scripts/sync-gallery-to-r2.sh` — calls the Worker endpoint; loops over offset until `done`. Reads `ADMIN_JWT` and `WORKER_URL` from env.
 - **GHA workflow:** `.github/workflows/sync-gallery-to-r2.yml` — manual dispatch, targets preprod or prod, single gallery or all.
+
+## Security Invariants
+- **Contract signatures:** `signature_type === 'drawn'` must be a `data:image/` URL — enforced at client sign, admin countersign, and again when rendering the executed-contract snapshot.
+- **CMS zones:** plain text only — the Worker escapes `<`/`>` in zone values before committing, so the editor can never introduce markup into published pages. Zone insertion uses a function replacement so `$` characters in content are literal.
 
 ## Key Flows
 - **Gallery:** `/token` (exchange) -> KV(sid:passphrase) -> NAS Proxy

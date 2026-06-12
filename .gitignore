@@ -4,6 +4,14 @@ worker/node_modules/
 .DS_Store
 .claude/
 
+#splatting working folders
+workstation/splatting/colmap_out
+workstation/splatting/done
+workstation/splatting/export
+workstation/splatting/frames
+workstation/splatting/incoming/*
+workstation/splatting/outputs
+
 # Test dependencies and artifacts
 node_modules/
 playwright-report/

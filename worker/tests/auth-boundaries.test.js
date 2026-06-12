@@ -228,7 +228,6 @@ const PUBLIC_ROUTES = [
     // Infrastructure public routes
     ['GET',  '/public/availability',         undefined,  'public availability'],
     ['GET',  '/public/walkthroughs',         undefined,  'public walkthroughs'],
-    ['GET',  '/gallery/g1/admin-stars',      undefined,  'admin-starred photo list (public so clients see Admin Pick badges)'],
     ['POST', '/contact',                     '{}',       'contact form (empty body → 400)'],
     ['POST', '/analytics/event',             '{}',       'analytics event ingest (empty body → 400)'],
     ['POST', '/stripe/webhook',              '',         'stripe webhook (no sig → 400)'],
@@ -277,6 +276,56 @@ describe('portal routes accept client tokens', () => {
     const token = await clientToken();
     const r = await handleRequest(req('GET', '/portal/galleries', { token }), makeTestEnv());
     expect(r.status).toBe(401);
+  });
+});
+
+// ── Gallery favorites access control ──────────────────────────────────────────
+// Admin-stars reads and selection submissions require an authenticated user who
+// is either an admin or assigned to the gallery.
+
+describe('gallery favorites access control', () => {
+  async function galleryEnv(assignedUsers) {
+    const kv = makeKv();
+    await kv.put('gallery:g1', JSON.stringify({
+      id: 'g1', eventName: 'Test Event', assignedUsers,
+    }));
+    return makeEnv(kv);
+  }
+
+  it('401 unauthenticated: GET /gallery/g1/admin-stars', async () => {
+    const r = await handleRequest(req('GET', '/gallery/g1/admin-stars'), await galleryEnv([]));
+    expect(r.status).toBe(401);
+  });
+
+  it('403 for client not assigned to the gallery', async () => {
+    const token = await clientToken();
+    const r = await handleRequest(req('GET', '/gallery/g1/admin-stars', { token }), await galleryEnv([]));
+    expect(r.status).toBe(403);
+  });
+
+  it('200 for client assigned to the gallery', async () => {
+    const token = await clientToken();
+    const r = await handleRequest(
+      req('GET', '/gallery/g1/admin-stars', { token }),
+      await galleryEnv(['client@t.com']),
+    );
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual({ stars: [] });
+  });
+
+  it('200 for admin regardless of assignment', async () => {
+    const token = await adminToken();
+    const r = await handleRequest(req('GET', '/gallery/g1/admin-stars', { token }), await galleryEnv([]));
+    expect(r.status).toBe(200);
+  });
+
+  it('403 submit-selections for client not assigned to the gallery', async () => {
+    const token = await clientToken();
+    const r = await handleRequest(
+      req('POST', '/gallery/g1/submit-selections', { token, body: { selections: ['p1'] } }),
+      await galleryEnv([]),
+    );
+    expect(r.status).toBe(403);
   });
 });
 
@@ -340,6 +389,9 @@ describe('router cross-check', () => {
       '/portal/project/:id', // magic portal token (not JWT), tested in portal-project.spec.js
       '/token',              // requires any valid JWT + gallery assignment — not a simple public route
       '/auth/logout',        // clears HttpOnly cookie server-side; no request body, always succeeds
+      '/gallery/:id/admin-stars',          // requires any valid JWT + gallery assignment — tested below
+      '/gallery/:id/admin-stars/:id',      // admin-only toggle — tested below
+      '/gallery/:id/submit-selections',    // requires any valid JWT + gallery assignment — tested below
     ]);
 
     // ── Literal path checks: pathname === '/path' ─────────────────────────────
